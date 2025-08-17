@@ -7,7 +7,7 @@ package flappyBirdAI.controller;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.FlappyBird;
 import flappyBirdAI.model.GameObject;
-import flappyBirdAI.view.FlappyBirdPanel;
+import flappyBirdAI.view.SwingGameView;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -23,9 +23,12 @@ public class FlappyBirdAI extends JFrame {
 	private static final long serialVersionUID = 1L;
 
 	private final int nBirdsXGen;
-	private final FlappyBirdPanel p;
+	private final SwingGameView gameView;
+	private final GameController gameController;
 
     public FlappyBirdAI(int w, int h, int nBirdsXGen) {
+    	this.nBirdsXGen = nBirdsXGen;
+    	
         setSize(w, h + 37);
 		setTitle("Flappy Bird AI");
 		setIconImage(new ImageIcon(getClass().getResource("/res/FB_ICON.png")).getImage());
@@ -34,12 +37,10 @@ public class FlappyBirdAI extends JFrame {
 		setResizable(false);
 		setFocusable(false);
 		setLayout(null);
-		this.nBirdsXGen = nBirdsXGen;
-
-		FlappyBirdPanel.width = w;
-		FlappyBirdPanel.height = h;
-		p = new FlappyBirdPanel();
-		add(p);
+		
+		gameView = new SwingGameView(w, h);
+		gameController = new GameController(gameView);
+		add(gameView);
 	
 		setVisible(true);
 
@@ -50,7 +51,7 @@ public class FlappyBirdAI extends JFrame {
 		List<GameObject> vBirds = new ArrayList<>();
 		
 		for (int i = 0; i < nBirds; ++i) {
-			vBirds.add(new FlappyBird(20, FlappyBirdPanel.gameScreenH / 2 - FlappyBird.height / 2, new BirdBrain()));
+			vBirds.add(new FlappyBird(20, GameController.GAME_SCREEN_HEIGHT / 2 - FlappyBird.height / 2, new BirdBrain()));
 		}
 		
 		return vBirds;
@@ -60,7 +61,7 @@ public class FlappyBirdAI extends JFrame {
 		List<GameObject> vBirds = new ArrayList<>();
 		
 		for (int i = 0; i < nBirds; ++i) {
-			vBirds.add(new FlappyBird(20, FlappyBirdPanel.gameScreenH / 2 - FlappyBird.height / 2, bestBirdBrain));
+			vBirds.add(new FlappyBird(20, GameController.GAME_SCREEN_HEIGHT / 2 - FlappyBird.height / 2, bestBirdBrain));
 			((FlappyBird) vBirds.get(i)).brain.updateWeights();
 		}
 		
@@ -74,16 +75,15 @@ public class FlappyBirdAI extends JFrame {
 		while (true) {
 
 			if (isFirstGen) {
-				p.addBirds(createRandomBirds(nBirdsXGen));
+				gameController.addBirds(createRandomBirds(nBirdsXGen));
 				isFirstGen = false;
 			} else {
-				p.addBirds(createBirds(nBirdsRegen, p.bestBirdBrain));
-				p.addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
+				gameController.addBirds(createBirds(nBirdsRegen, gameController.getBestBirdBrain()));
+				gameController.addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
 			}
 
-			p.startMotion();
-
-			p.reset();
+			gameController.startMotion();
+			gameController.reset();
 		}
 	}
 

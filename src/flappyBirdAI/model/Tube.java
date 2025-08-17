@@ -8,7 +8,7 @@ import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 
-public class Tube extends AbstractGameObjec {
+public class Tube extends AbstractGameObject {
 	public static final int distXBetweenTubes = 750, distYBetweenTubes = 180;
     public static final int width = 50;
     public static int lastID = 0;

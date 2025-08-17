@@ -9,7 +9,7 @@ import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 
-public class FlappyBird extends AbstractGameObjec {
+public class FlappyBird extends AbstractGameObject {
 	public static final int width = 60, height = 45;
 
 	public final double gravity = 700, jumpForce = 300;
