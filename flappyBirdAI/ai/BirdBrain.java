@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 public class BirdBrain {
@@ -28,6 +29,20 @@ public class BirdBrain {
     public BirdBrain() {
         setRandomWeights();
     }
+    
+    public BirdBrain(BirdBrain otherBrain) {
+    	otherBrain = Objects.requireNonNull(otherBrain, "Brain Non Inizializzato");
+
+    	for (Matrix otherMatrix : otherBrain.vmWeights) {
+            Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
+            for (int i = 0; i < otherMatrix.getNRows(); ++i) {
+                for (int j = 0; j < otherMatrix.getNCols(); ++j) {
+                    newMatrix.set(i, j, otherMatrix.get(i, j));
+                }
+            }
+            vmWeights.add(newMatrix);
+        }
+	}
 
     // Normalizzazione dei Valori di Input Tra -1 e +1
     private Map<String, Double> normalize(Map<String, Double> list) {
