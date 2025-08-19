@@ -4,7 +4,78 @@
 
 package flappyBirdAI.utils;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import java.util.Objects;
+
 public class Matrix {
+	
+	public static Matrix fromJson(JsonObject jsonMatrix) {
+		jsonMatrix = Objects.requireNonNull(jsonMatrix, "JSON Matrix Object Cannot be Null");
+		
+		if (!jsonMatrix.isJsonObject()) {
+			throw new IllegalArgumentException("Invalid JSON: Expected a JSON Object");
+		}
+		if (jsonMatrix.size() == 0) {
+			throw new IllegalArgumentException("Malformed JSON: Empty Object");
+		}
+		if (!jsonMatrix.has("nRows")) {
+			throw new IllegalArgumentException("Malformed JSON: Missing 'nRows' Field");
+		}
+		if (!jsonMatrix.has("nCols")) {
+			throw new IllegalArgumentException("Malformed JSON: Missing 'nCols' Field");
+		}
+		if (!jsonMatrix.has("data")) {
+			throw new IllegalArgumentException("Malformed JSON: Missing 'data' Field");
+		}
+		
+		int nRows;
+		try {
+			nRows = jsonMatrix.get("nRows").getAsInt();
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Malformed JSON: 'nRows' Must be Integer", e);
+		}
+		
+		int nCols;
+		try {
+			nCols = jsonMatrix.get("nCols").getAsInt();
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Malformed JSON: 'nCols' Must be Integer", e);
+		}
+		
+		JsonArray jsonData;
+		try {
+			jsonData = jsonMatrix.getAsJsonArray("data");
+		} catch (ClassCastException e) {
+			throw new IllegalArgumentException("Malformed JSON: 'data' Must be an Array", e);
+		}
+        
+        Matrix matrix = new Matrix(nRows, nCols);
+        
+        for (int i = 0; i < nRows; ++i) {
+            JsonArray jsonRow = jsonData.get(i).getAsJsonArray();
+            try {
+                jsonRow = jsonData.get(i).getAsJsonArray();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Row " + i + " is Not a Valid JSON Array", e);
+            }
+
+            if (jsonRow.size() != nCols) {
+                throw new IllegalArgumentException("Row " + i + " has " + jsonRow.size() + " Columns Instead of " + nCols);
+            }
+            
+            for (int j = 0; j < nCols; ++j) {
+            	try {
+                    matrix.set(i, j, jsonRow.get(j).getAsDouble());
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Element at [" + i + "][" + j + "] is Not a Valid Double Number", e);
+                }
+            }
+        }
+        
+        return matrix;
+    }
+	
     private final double[][] data;
 
     public Matrix(int nRows, int nCols) {
@@ -42,6 +113,24 @@ public class Matrix {
         }
 
         return mResult;
+    }
+    
+    public JsonObject toJson() {
+        JsonObject jsonMatrix = new JsonObject();
+        jsonMatrix.addProperty("nRows", getNRows());
+        jsonMatrix.addProperty("nCols", getNCols());
+        
+        JsonArray jsonData = new JsonArray();
+        for (int i = 0; i < getNRows(); ++i) {
+            JsonArray jsonRow = new JsonArray();
+            for (int j = 0; j < getNCols(); ++j) {
+                jsonRow.add(data[i][j]);
+            }
+            jsonData.add(jsonRow);
+        }
+        jsonMatrix.add("data", jsonData);
+        
+        return jsonMatrix;
     }
 
     @Override

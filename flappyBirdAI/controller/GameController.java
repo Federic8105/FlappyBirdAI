@@ -10,12 +10,15 @@ import flappyBirdAI.model.FlappyBird;
 import flappyBirdAI.model.GameObject;
 import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.GameView;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Random;
+import java.util.Optional;
 import java.util.List;
-import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.awt.Rectangle;
 
 public class GameController {
 	
@@ -29,7 +32,7 @@ public class GameController {
     
     // Game State
     private BirdBrain bestBirdBrain;
-    private int nBirds = 0, nGen = 1, nMaxTubePassed = 0, autoSaveThreshold = 50;
+    private int nBirds = 0, nGen = 1, nTubePassed = 0, nMaxTubePassed = 0, autoSaveThreshold = 50;
     private double dtMultiplier = 1.0, bestLifeTime = 0;
     private boolean isGameRunning = false, isAutoSaveEnabled = true;
     
@@ -44,9 +47,8 @@ public class GameController {
 	
 	// Game Logic Methods
 	
-	@SuppressWarnings("unchecked")
-	public void addBirds(List<GameObject> vBirds) {
-		vGameObj.addAll((Collection<? extends AbstractGameObject>) vBirds);
+	public void addBirds(List<AbstractGameObject> vBirds) {
+		vGameObj.addAll((Collection<AbstractGameObject>) vBirds);
 		nBirds += vBirds.size();
 		updateGameStats();
 	}
@@ -55,7 +57,6 @@ public class GameController {
 		isGameRunning = true;
 		List<Rectangle> vTubeHitBox;
 		double dt, time, lastDt = System.nanoTime();
-		int nTubePassed = 0;
 
 		FlappyBird randBird = getRandomBird();
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
@@ -92,7 +93,6 @@ public class GameController {
 			
 			// Aggiornare Statistiche e UI
 			currentGameStats.fps = (int) (1 / dt * dtMultiplier);
-			currentGameStats.nTubePassed = nTubePassed;
 			updateGameStats();
 			
 			// Aggiornare la Vista di Gioco
@@ -222,22 +222,39 @@ public class GameController {
 	
 	private void nextGeneration() {
         ++nGen;
-        /*
+        
         // Salvataggio automatico
-        if (autoSaveEnabled && bestBirdBrain != null && nGen % autoSaveThreshold == 0) {
-            String autoSaveName = "autosave_gen_" + nGen + "_score_" + String.format("%.0f", bestLifeTime * 100);
-            if (bestBirdBrain.saveBrain(autoSaveName)) {
+        if (isAutoSaveEnabled && bestBirdBrain != null && nGen % autoSaveThreshold == 0) {
+            String autoSaveName = "autosave_gen_" + nGen + "_score_" + String.format("%.0f", bestLifeTime * 100) + ".json";
+            if (saveBestBrain(autoSaveName)) {
                 gameView.showAutoSaveMessage("AUTO-SAVED!");
                 System.out.println("Brain salvato automaticamente: " + autoSaveName);
+            } else {
+                gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
+                System.err.println("Errore nel salvataggio automatico del cervello");
             }
         }
-        */
     }
 
 	public void reset() {
 		isGameRunning = false;
 		nBirds = 0;
+		nTubePassed = 0;
 		vGameObj.clear();
+		newTubes();
+		updateGameStats();
+	}
+	
+	public void resetToFirstGeneration() {
+		isGameRunning = false;
+		nBirds = 0;
+		nTubePassed = 0;
+		vGameObj.clear();
+		
+		nGen = 1;
+		bestLifeTime = 0;
+		nMaxTubePassed = 0;
+		bestBirdBrain = null;
 		newTubes();
 		updateGameStats();
 	}
@@ -246,9 +263,43 @@ public class GameController {
         currentGameStats.nBirds = nBirds;
         currentGameStats.nGen = nGen;
         currentGameStats.bestLifeTime = bestLifeTime;
+        currentGameStats.nTubePassed = nTubePassed;
         currentGameStats.nMaxTubePassed = nMaxTubePassed;
+        currentGameStats.autoSaveThreshold = autoSaveThreshold;
         currentGameStats.isAutoSaveEnabled = isAutoSaveEnabled;
     }
+	
+	// Import/Export Methods
+	
+	public boolean saveBestBrain(String fileName) {
+		if (bestBirdBrain == null) {
+			System.err.println("Nessun cervello migliore disponibile per il salvataggio");
+			return false;
+		}
+		
+		return bestBirdBrain.saveToFile(Path.of(fileName));
+	}
+	
+	public boolean loadBrain(String filePath) {
+		try {
+			BirdBrain loadedBrain = BirdBrain.loadFromFile(Path.of(filePath));
+			if (loadedBrain != null) {
+				bestBirdBrain = loadedBrain;
+				resetToFirstGeneration();
+				System.out.println("Cervello caricato con successo da: " + filePath);
+				return true;
+			}
+			return false;
+		} catch (IOException e) {
+			System.err.println("Errore nel caricamento del cervello: " + e.getMessage());
+			return false;
+		}
+	}
+	
+	public Optional<String> exportBestBrainAsJson() {
+		// Controllare se il cervello migliore è disponibile (!= null) e convertirlo in JSON
+		return Optional.ofNullable(bestBirdBrain).map(BirdBrain::toJson);
+	}
 	
 	// Getters and Setters - API Methods
 	
@@ -270,7 +321,7 @@ public class GameController {
     
     public void toggleAutoSave() {
     	isAutoSaveEnabled = !isAutoSaveEnabled;
-        updateGameStats();
+        currentGameStats.isAutoSaveEnabled = isAutoSaveEnabled;
     }
     
     public void setAutoSaveThreshold(int threshold) {

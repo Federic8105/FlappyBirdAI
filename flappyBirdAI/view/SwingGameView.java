@@ -10,7 +10,11 @@ import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.GameObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -25,12 +29,17 @@ public class SwingGameView extends JFrame implements GameView {
     private List<AbstractGameObject> currentVGameObj = new ArrayList<>();
     
     // Pannelli Principali
-    private JPanel gamePanel, statsPanel, controlsPanel;
+    private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
     
-    // UI Components
+    // UI Components - Statistiche e Controlli
 	private JLabel lCurrFPS, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
 	private JSlider velocitySlider;
 	private Timer autoSaveMessageTimer;
+	
+	// UI Components - Import/Export
+	private JButton bSaveBrain, bLoadBrain, bToggleAutoSave;
+	private JTextField tfAutoSaveThreshold;
+	private JLabel lAutoSaveThreshold;
 
 	public SwingGameView(int width, int height) {
 		this.width = width;
@@ -43,7 +52,7 @@ public class SwingGameView extends JFrame implements GameView {
 	}
 	
 	private void initWindow() {
-		setSize(width, height);
+		setSize(width + 300, height);
         setTitle("Flappy Bird AI");
         setIconImage(new ImageIcon(getClass().getResource("/res/FB_ICON.png")).getImage());
         getContentPane().setBackground(Color.WHITE);
@@ -53,12 +62,99 @@ public class SwingGameView extends JFrame implements GameView {
 	}
 	
 	private void initPanels() {
+		// Inizializzare per Primo per averlo a SX
+		initImportExportPanel();
 		initGamePanel();
 		initStatsPanel();
 		initControlsPanel();
 		
 		// Ridimensionare la Finestra in Base a Preferred Size dei Componenti
 		pack();
+	}
+	
+	private void initImportExportPanel() {
+		importExportPanel = new JPanel();
+		importExportPanel.setLayout(new BoxLayout(importExportPanel, BoxLayout.Y_AXIS));
+		importExportPanel.setBackground(Color.LIGHT_GRAY);
+		importExportPanel.setPreferredSize(new Dimension(300, height));
+		
+		// Titolo del Pannello
+		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Import/Export Cervelli dei Volatili");
+		importExportTitle.setTitleJustification(TitledBorder.CENTER);
+		importExportTitle.setTitlePosition(TitledBorder.TOP);
+		importExportTitle.setTitleFont(new Font("Arial", Font.BOLD, 14));
+		importExportTitle.setTitleColor(Color.BLACK);
+		importExportPanel.setBorder(importExportTitle);
+		
+		initImportExportUI();
+		
+		add(importExportPanel, BorderLayout.WEST);
+	}
+	
+	private void initImportExportUI() {
+		// Spacing
+		importExportPanel.add(Box.createVerticalStrut(20));
+		
+		// Bottone Salva Cervello
+		bSaveBrain = new JButton("Salva Cervello Migliore");
+		bSaveBrain.setAlignmentX(Component.CENTER_ALIGNMENT);
+		bSaveBrain.setMaximumSize(new Dimension(280, 30));
+		bSaveBrain.setBackground(Color.GREEN);
+		bSaveBrain.setForeground(Color.BLACK);
+		bSaveBrain.setFont(new Font("Arial", Font.BOLD, 12));
+		bSaveBrain.addActionListener(new SaveBrainListener());
+		importExportPanel.add(bSaveBrain);
+		
+		importExportPanel.add(Box.createVerticalStrut(20));
+		
+		// Sezione Auto-Save Threshold
+		JPanel thresholdPanel = new JPanel();
+		thresholdPanel.setLayout(new BoxLayout(thresholdPanel, BoxLayout.Y_AXIS));
+		thresholdPanel.setBackground(Color.LIGHT_GRAY);
+		thresholdPanel.setMaximumSize(new Dimension(280, 80));
+		
+		lAutoSaveThreshold = new JLabel("Auto-Save Soglia (generazioni):");
+		lAutoSaveThreshold.setAlignmentX(Component.CENTER_ALIGNMENT);
+		lAutoSaveThreshold.setFont(new Font("Arial", Font.PLAIN, 11));
+		thresholdPanel.add(lAutoSaveThreshold);
+		
+		thresholdPanel.add(Box.createVerticalStrut(5));
+		
+		tfAutoSaveThreshold = new JTextField("50");
+		tfAutoSaveThreshold.setMaximumSize(new Dimension(100, 25));
+		tfAutoSaveThreshold.setHorizontalAlignment(JTextField.CENTER);
+		tfAutoSaveThreshold.setFont(new Font("Arial", Font.PLAIN, 12));
+		tfAutoSaveThreshold.addActionListener(new ThresholdChangeListener());
+		thresholdPanel.add(tfAutoSaveThreshold);
+		
+		importExportPanel.add(thresholdPanel);
+		
+		importExportPanel.add(Box.createVerticalStrut(15));
+		
+		// Bottone Toggle Auto-Save
+		bToggleAutoSave = new JButton("Disattiva Auto-Save");
+		bToggleAutoSave.setAlignmentX(Component.CENTER_ALIGNMENT);
+		bToggleAutoSave.setMaximumSize(new Dimension(280, 30));
+		bToggleAutoSave.setBackground(Color.ORANGE);
+		bToggleAutoSave.setForeground(Color.BLACK);
+		bToggleAutoSave.setFont(new Font("Arial", Font.BOLD, 12));
+		bToggleAutoSave.addActionListener(new ToggleAutoSaveListener());
+		importExportPanel.add(bToggleAutoSave);
+		
+		importExportPanel.add(Box.createVerticalStrut(20));
+		
+		// Bottone Carica Cervello
+		bLoadBrain = new JButton("Carica Cervello da File");
+		bLoadBrain.setAlignmentX(Component.CENTER_ALIGNMENT);
+		bLoadBrain.setMaximumSize(new Dimension(280, 30));
+		bLoadBrain.setBackground(Color.CYAN);
+		bLoadBrain.setForeground(Color.BLACK);
+		bLoadBrain.setFont(new Font("Arial", Font.BOLD, 12));
+		bLoadBrain.addActionListener(new LoadBrainListener());
+		importExportPanel.add(bLoadBrain);
+		
+		// Riempire lo spazio rimanente
+		importExportPanel.add(Box.createVerticalGlue());
 	}
 	
 	private void initGamePanel() {
@@ -263,5 +359,129 @@ public class SwingGameView extends JFrame implements GameView {
             gamePanel.repaint();
         }
     }
+    
+    // Inner Classes for Action Listeners for Import/Export and Auto-Save
+	
+    private class SaveBrainListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (gameController == null || gameController.getBestBirdBrain() == null) {
+				JOptionPane.showMessageDialog(SwingGameView.this, 
+					"Nessun cervello disponibile per il salvataggio!", 
+					"Errore", 
+					JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			
+			JFileChooser fileChooser = new JFileChooser();
+			fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
+			fileChooser.setSelectedFile(new File("best_brain_gen_" + 
+				gameController.getCurrentStats().nGen + ".json"));
+			
+			if (fileChooser.showSaveDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
+				File file = fileChooser.getSelectedFile();
+				String fileName = file.getAbsolutePath();
+				
+				// Aggiungere estensione se non presente
+				if (!fileName.toLowerCase().endsWith(".json")) {
+					fileName += ".json";
+				}
+				
+				if (gameController.saveBestBrain(fileName)) {
+					JOptionPane.showMessageDialog(SwingGameView.this, 
+						"Cervello salvato con successo!", 
+						"Successo", 
+						JOptionPane.INFORMATION_MESSAGE);
+				} else {
+					JOptionPane.showMessageDialog(SwingGameView.this, 
+						"Errore nel salvataggio del cervello!", 
+						"Errore", 
+						JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		}
+	}
+    
+    private class LoadBrainListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (gameController == null) {
+				return;
+			}
+			
+			JFileChooser fileChooser = new JFileChooser();
+			fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
+			
+			if (fileChooser.showOpenDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
+				File file = fileChooser.getSelectedFile();
+				
+				int choice = JOptionPane.showConfirmDialog(SwingGameView.this,
+					"Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?",
+					"Conferma Caricamento",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE);
+				
+				if (choice == JOptionPane.YES_OPTION) {
+					if (gameController.loadBrain(file.getAbsolutePath())) {
+						JOptionPane.showMessageDialog(SwingGameView.this, 
+							"Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", 
+							"Successo", 
+							JOptionPane.INFORMATION_MESSAGE);
+					} else {
+						JOptionPane.showMessageDialog(SwingGameView.this, 
+							"Errore nel caricamento del cervello!\nVerificare che il file sia valido.", 
+							"Errore", 
+							JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+		}
+	}
+	
+	private class ToggleAutoSaveListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (gameController != null) {
+				gameController.toggleAutoSave();
+				updateAutoSaveButton();
+			}
+		}
+	}
+	
+	private class ThresholdChangeListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (gameController == null) {
+				return;
+			}
+			
+			try {
+				int threshold = Integer.parseInt(tfAutoSaveThreshold.getText().trim());
+				if (threshold > 0) {
+					gameController.setAutoSaveThreshold(threshold);
+				} else {
+					throw new NumberFormatException("Valore deve essere maggiore di 0");
+				}
+			} catch (NumberFormatException ex) {
+				JOptionPane.showMessageDialog(SwingGameView.this, 
+					"Inserire un numero valido maggiore di 0!", 
+					"Errore", 
+					JOptionPane.WARNING_MESSAGE);
+				tfAutoSaveThreshold.setText(String.valueOf(gameController.getAutoSaveThreshold()));
+			}
+		}
+	}
+	
+	private void updateAutoSaveButton() {
+		if (gameController != null) {
+			if (gameController.isAutoSaveEnabled()) {
+				bToggleAutoSave.setText("Disattiva Auto-Save");
+				bToggleAutoSave.setBackground(Color.ORANGE);
+			} else {
+				bToggleAutoSave.setText("Attiva Auto-Save");
+				bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
+			}
+		}
+	}
 	
 }

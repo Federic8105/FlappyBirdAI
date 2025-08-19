@@ -5,8 +5,8 @@
 package flappyBirdAI.controller;
 
 import flappyBirdAI.ai.BirdBrain;
+import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
-import flappyBirdAI.model.GameObject;
 import flappyBirdAI.view.GameView;
 import flappyBirdAI.view.SwingGameView;
 import java.util.List;
@@ -38,8 +38,8 @@ public class FlappyBirdAI {
 		startGame();
 	}
 
-	private List<GameObject> createRandomBirds(int nBirds) {
-		List<GameObject> vBirds = new ArrayList<>();
+	private List<AbstractGameObject> createRandomBirds(int nBirds) {
+		List<AbstractGameObject> vBirds = new ArrayList<>();
 		
 		for (int i = 0; i < nBirds; ++i) {
 			vBirds.add(new FlappyBird(20, GameController.GAME_SCREEN_HEIGHT / 2 - FlappyBird.height / 2, new BirdBrain()));
@@ -48,8 +48,8 @@ public class FlappyBirdAI {
 		return vBirds;
 	}
 
-	private List<GameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
-		List<GameObject> vBirds = new ArrayList<>();
+	private List<AbstractGameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
+		List<AbstractGameObject> vBirds = new ArrayList<>();
 		
 		for (int i = 0; i < nBirds; ++i) {
 			vBirds.add(new FlappyBird(20, GameController.GAME_SCREEN_HEIGHT / 2 - FlappyBird.height / 2, bestBirdBrain));
