@@ -11,6 +11,10 @@ import flappyBirdAI.model.GameObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -498,4 +502,166 @@ public class SwingGameView extends JFrame implements GameView {
 		}
 	}
 	
+}
+
+/**
+ * JTextField che accetta solo numeri interi positivi
+ */
+class PositiveNumericTextField extends JTextField {
+	private static final long serialVersionUID = 1L;
+
+	/**
+     * Crea un PositiveNumericTextField con larghezza specificata
+     * @param columns numero di colonne
+     * @param maxDigits numero massimo di cifre (0 = illimitato)
+     */
+    public PositiveNumericTextField(int columns, int maxDigits) {
+        super(columns);
+        setupFilter(maxDigits);
+    }
+    
+    /**
+     * Crea un PositiveNumericTextField con larghezza specificata e senza limite di cifre
+     * @param columns numero di colonne
+     */
+    public PositiveNumericTextField(int columns) {
+        this(columns, 0);
+    }
+    
+    /**
+     * Crea un PositiveNumericTextField con valore iniziale
+     * @param initialValue valore iniziale
+     * @param maxDigits numero massimo di cifre
+     */
+    public PositiveNumericTextField(String initialValue, int maxDigits) {
+        super(initialValue);
+        setupFilter(maxDigits);
+    }
+    
+    /**
+     * Crea un PositiveNumericTextField senza parametri
+     */
+    public PositiveNumericTextField() {
+        this(0, 0);
+    }
+
+    private void setupFilter(int maxDigits) {
+        ((AbstractDocument) getDocument()).setDocumentFilter(new PositiveNumericDocumentFilter(maxDigits));
+        
+        // Centra il testo per default
+        setHorizontalAlignment(JTextField.CENTER);
+        
+        // Tooltip informativo
+        setToolTipText("Inserire solo numeri interi positivi");
+    }
+    
+    /**
+     * Ottiene il valore numerico del campo
+     * @return valore numerico, 0 se vuoto o non valido
+     */
+    public int getIntValue() {
+        String text = getText().trim();
+        if (text.isEmpty()) {
+            return 0;
+        }
+        
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Imposta il valore numerico del campo
+     * @param value valore da impostare
+     */
+    public void setIntValue(int value) {
+        if (value >= 0) {
+            setText(String.valueOf(value));
+        }
+    }
+    
+    /**
+     * Controlla se il campo contiene un valore valido
+     * @return true se il valore è valido e maggiore di 0
+     */
+    public boolean hasValidValue() {
+        return getIntValue() > 0;
+    }
+    
+}
+
+/**
+ * DocumentFilter che permette solo l'inserimento di numeri interi positivi
+ */
+class PositiveNumericDocumentFilter extends DocumentFilter {
+    private final int maxDigits;
+    
+    /**
+     * @param maxDigits numero massimo di cifre consentite (0 = illimitato)
+     */
+    public PositiveNumericDocumentFilter(int maxDigits) {
+        this.maxDigits = maxDigits;
+    }
+    
+    public PositiveNumericDocumentFilter() {
+        this(0); // Nessun limite
+    }
+    
+    @Override
+    public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) 
+            throws BadLocationException {
+        if (isValidInput(fb, offset, string, 0)) {
+            super.insertString(fb, offset, string, attr);
+        }
+    }
+    
+    @Override
+    public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) 
+            throws BadLocationException {
+        if (isValidInput(fb, offset, text, length)) {
+            super.replace(fb, offset, length, text, attrs);
+        }
+    }
+    
+    @Override
+    public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
+        super.remove(fb, offset, length);
+    }
+    
+    private boolean isValidInput(FilterBypass fb, int offset, String text, int replaceLength) 
+            throws BadLocationException {
+        // Permetti stringa vuota
+        if (text == null || text.isEmpty()) {
+            return true;
+        }
+        
+        // Controlla se contiene solo cifre
+        if (!text.matches("\\d+")) {
+            return false;
+        }
+        
+        // Calcola la lunghezza risultante dopo l'operazione
+        String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
+        String resultText = currentText.substring(0, offset) + text + 
+                           currentText.substring(offset + replaceLength);
+        
+        // Controlla il limite di cifre se specificato
+        if (maxDigits > 0 && resultText.length() > maxDigits) {
+            return false;
+        }
+        
+        // Controlla che il numero risultante non sia troppo grande per un int
+        if (!resultText.isEmpty()) {
+            try {
+                long value = Long.parseLong(resultText);
+                return value <= Integer.MAX_VALUE;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
 }

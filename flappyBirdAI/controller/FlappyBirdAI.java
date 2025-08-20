@@ -12,6 +12,9 @@ import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
+//TODO: messaggi in inglese, opzioni di autosave con BLT e nMaxTubePassed, javaFX, implemnt hashcode e equals, uso requireNonNull
+//TODO: impostare w e h min di ogni pannello, javadocs
+
 public class FlappyBirdAI {
 
 	public static void main(String[] args) {
