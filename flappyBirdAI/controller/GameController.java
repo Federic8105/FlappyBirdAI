@@ -10,6 +10,8 @@ import flappyBirdAI.model.FlappyBird;
 import flappyBirdAI.model.GameObject;
 import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.GameView;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,9 +25,14 @@ import java.awt.Rectangle;
 
 public class GameController {
 	
-	public static final int GAME_SCREEN_HEIGHT = 600, SLIDER_HEIGHT = 150, MAX_FPS = 80;
+	public static final int SLIDER_HEIGHT = 150, MAX_FPS = 80;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
-    
+	
+	// Template per i nomi dei file da salvare
+	public static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_score_%d_time_%s.json";
+	public static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_score_%d_time_%s.json";
+	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+
     private final Random rand = new Random();
     
     private final GameView gameView;
@@ -234,7 +241,7 @@ public class GameController {
                 System.err.println("Errore nella creazione della cartella autosaves: " + e.getMessage());
             }
         	
-            String fileName = "autosave_gen_" + nGen + "_score_" + String.format("%.0f", bestLifeTime * 100) + ".json";
+            String fileName = generateAutoSaveFileName();
             Path fullPath = AUTOSAVE_DIR.resolve(fileName);
             
             if (saveBestBrain(fullPath)) {
@@ -281,6 +288,16 @@ public class GameController {
     }
 	
 	// Import/Export Methods
+	
+	private String generateAutoSaveFileName() {
+	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
+	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, nGen, nMaxTubePassed, timestamp);
+	}
+	
+	public String generateManualSaveFileName() {
+	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
+	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, nGen, nMaxTubePassed, timestamp);
+	}
 	
 	public boolean saveBestBrain(Path file) {
 		if (bestBirdBrain == null) {

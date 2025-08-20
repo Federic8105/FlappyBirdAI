@@ -12,9 +12,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,62 +37,67 @@ public class BirdBrain {
 
     private static final int maxValue = 1, minValue = -1;
     private static final double updateWeightABSValue = 0.0001;
+    
+    private static BirdBrain fromJsonObject(JsonObject brainJson) {
+	    // Validazione parametri del cervello
+	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
+	    if (jsonNInputs != nInputs) {
+	        throw new IllegalArgumentException("Incompatible Input Size: Expected " + nInputs + ", Found " + jsonNInputs);
+	    }
+	    
+	    Gson gson = new Gson();
+	    Type typeStringList = new TypeToken<List<String>>() {}.getType();
+	    List<String> jsonInputKeys = gson.fromJson(brainJson.get("inputKeys"), typeStringList);
+	    if (!jsonInputKeys.equals(vInputsKeys)) {
+	        throw new IllegalArgumentException("Incompatible Input Keys");
+	    }
+	    
+	    Type typeIntegerList = new TypeToken<List<Integer>>() {}.getType();
+	    List<Integer> jsonNNeurons = gson.fromJson(brainJson.get("nNeurons"), typeIntegerList);
+	    if (!jsonNNeurons.equals(vNeurons)) {
+	        throw new IllegalArgumentException("Incompatible Neural Network Structure");
+	    }
+	    
+	    // Creare nuovo cervello per template
+	    BirdBrain tempBrain = new BirdBrain();
+	    tempBrain.vmWeights.clear();
+	    
+	    JsonArray weightsArray = brainJson.getAsJsonArray("weights");
+	    for (int i = 0; i < weightsArray.size(); ++i) {
+	        JsonObject matrixJson = weightsArray.get(i).getAsJsonObject();
+	        tempBrain.vmWeights.add(Matrix.fromJson(matrixJson));
+	    }
+	    
+	    return new BirdBrain(tempBrain);
+	}
 	
-	public static BirdBrain fromJson(String json) {
-		json = Objects.requireNonNull(json, "JSON String Cannot be Null");
-        if (json.trim().isEmpty()) {
-            throw new IllegalArgumentException("JSON String Cannot be Empty");
-        }
-        
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        
-        try {
-            JsonObject brainJson = gson.fromJson(json, JsonObject.class);
-            
-            // Validazione Parametri del Cervello
-            int jsonNInputs = brainJson.get("nInputs").getAsInt();
-            if (jsonNInputs != nInputs) {
-                throw new IllegalArgumentException("Incompatible Input Size: Expected " + nInputs + ", Found " + jsonNInputs);
-            }
-            
-            Type typeStringList = new TypeToken<List<String>>() {}.getType();
-			List<String> jsonInputKeys = gson.fromJson(brainJson.get("inputKeys"), typeStringList);
-            if (!jsonInputKeys.equals(vInputsKeys)) {
-                throw new IllegalArgumentException("Incompatible Input Keys");
-            }
-            
-            Type typeIntegerList = new TypeToken<List<Integer>>() {}.getType();
-			List<Integer> jsonNNeurons = gson.fromJson(brainJson.get("nNeurons"), typeIntegerList);
-            if (!jsonNNeurons.equals(vNeurons)) {
-                throw new IllegalArgumentException("Incompatible Neural Network Structure");
-            }
-            
-            // Creare Nuovo Cervello per Template
-            BirdBrain tempBrain = new BirdBrain();
-            // Rimuovere Pesi Inizializzati
-            tempBrain.vmWeights.clear();
-            
-            JsonArray weightsArray = brainJson.getAsJsonArray("weights");
-            for (int i = 0; i < weightsArray.size(); i++) {
-                JsonObject matrixJson = weightsArray.get(i).getAsJsonObject();
-                tempBrain.vmWeights.add(Matrix.fromJson(matrixJson));
-            }
-            
-            return new BirdBrain(tempBrain);
-            
-        } catch (JsonSyntaxException e) {
-            throw new IllegalArgumentException("Invalid JSON Format: " + e.getMessage(), e);
-        }
-    }
-	
-	//TODO: scrittura migliore
 	public static BirdBrain loadFromFile(Path file) throws IOException {
-		try {
-            String json = Files.readString(file);
-            return fromJson(json);
-        } catch (IOException e) {
-            throw new IOException("Errore nella Lettura del File: " + e.getMessage(), e);
-        }
+		if (!Files.exists(file)) {
+	        throw new IOException("File non trovato: " + file);
+	    }
+	    if (!Files.isReadable(file)) {
+	        throw new IOException("File non leggibile: " + file);
+	    }
+	    if (!Files.isRegularFile(file)) {
+	        throw new IOException("Il percorso non è un file regolare: " + file);
+	    }
+	    if (Files.isDirectory(file)) {
+	        throw new IOException("Il percorso è una cartella, non un file: " + file);
+	    }
+	    
+	    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+	    	Gson gson = new Gson();
+	    	
+	    	JsonObject brainJson = gson.fromJson(reader, JsonObject.class);
+	    	brainJson = Objects.requireNonNull(brainJson, "JSON Object Cannot be Null or Empty");
+	    	
+	    	return fromJsonObject(brainJson);
+	    	
+	    } catch (JsonSyntaxException e) {
+	        throw new IllegalArgumentException("JSON non valido nel file: " + e.getMessage(), e);
+	    } catch (IOException e) {
+	        throw new IOException("Errore durante la lettura del file: " + e.getMessage(), e);
+	    }
 	}
 
     private final List<Matrix> vmWeights = new ArrayList<>();
@@ -222,9 +231,10 @@ public class BirdBrain {
         return tempResult.get(0, 0) > 0.5;
     }
     
-    public String toJson() {
-    	Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    	JsonObject brainJson = new JsonObject();
+    private JsonObject createJsonObject() {
+        Gson gson = new Gson();
+        JsonObject brainJson = new JsonObject();
+        
         brainJson.addProperty("nInputs", nInputs);
         brainJson.add("inputKeys", gson.toJsonTree(vInputsKeys));
         brainJson.add("nNeurons", gson.toJsonTree(vNeurons));
@@ -234,24 +244,35 @@ public class BirdBrain {
         brainJson.addProperty("updateWeightABSValue", updateWeightABSValue);
         
         JsonArray weightsArray = new JsonArray();
-        for (Matrix matrix : vmWeights) {
-            weightsArray.add(matrix.toJson());
+        for (Matrix m : vmWeights) {
+            weightsArray.add(m.toJson());
         }
         brainJson.add("weights", weightsArray);
         
-        return gson.toJson(brainJson);
+        return brainJson;
     }
     
-    //TODO: scrittura migliore
+    public String toJson() {
+    	Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(createJsonObject());
+    }
+    
     public boolean saveToFile(Path file) {
-    	try {
-    		String json = toJson();
-            Files.writeString(file, json);
-            return true;
-		} catch (IOException e) {
-			System.err.println("Errore nella Scrittura del File: " + e.getMessage());
-			return false;
-		}
+    	try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            JsonObject brainJson = createJsonObject();
+            
+            // Scrivere direttamente dal JsonObject al writer
+            gson.toJson(brainJson, writer);
+            writer.flush();
+
+        } catch (IOException e) {
+            System.err.println("Errore durante la scrittura del file: " + e.getMessage());
+            return false;
+        }
+        
+        return true;
     }
     
     @Override
@@ -274,5 +295,28 @@ public class BirdBrain {
 		
 		return sb.toString();
 	}
+    
+    /*
+    public void saveToFileAsync(Path file, java.util.function.Consumer<Boolean> callback) {
+        CompletableFuture.supplyAsync(() -> saveToFile(file, true))
+            .thenAccept(callback)
+            .exceptionally(throwable -> {
+                System.err.println("Errore nel salvataggio asincrono: " + throwable.getMessage());
+                callback.accept(false);
+                return null;
+            });
+    }
 
+    
+    public static void loadFromFileAsync(Path file, java.util.function.Consumer<BirdBrain> callback) {
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return loadFromFile(file);
+            } catch (IOException e) {
+                System.err.println("Errore nel caricamento asincrono: " + e.getMessage());
+                return null;
+            }
+        }).thenAccept(callback);
+    }
+     */
 }

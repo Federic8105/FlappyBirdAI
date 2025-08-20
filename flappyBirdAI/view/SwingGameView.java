@@ -379,8 +379,9 @@ public class SwingGameView extends JFrame implements GameView {
             return gamePanel.getHeight();
         }
         
-        // Fallback alla costante solo se il pannello non è ancora inizializzato
-        return GameController.GAME_SCREEN_HEIGHT;
+        // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
+        // altezza totale - altezza pannelli stats (40) e controls (SLIDER_HEIGHT)
+        return height - 40 - GameController.SLIDER_HEIGHT;
     }
     
     @Override
@@ -396,17 +397,17 @@ public class SwingGameView extends JFrame implements GameView {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			if (gameController == null || gameController.getBestBirdBrain() == null) {
-				JOptionPane.showMessageDialog(SwingGameView.this, 
-					"Nessun cervello disponibile per il salvataggio!", 
-					"Errore", 
-					JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(SwingGameView.this, "Nessun cervello disponibile per il salvataggio!", "Errore", JOptionPane.WARNING_MESSAGE);
 				return;
 			}
 			
 			JFileChooser fileChooser = new JFileChooser();
 			fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
-			fileChooser.setSelectedFile(new File("best_brain_gen_" + 
-				gameController.getCurrentStats().nGen + ".json"));
+			
+			// Usare il template del controller per il nome file di default
+	        String defaultFileName = gameController.generateManualSaveFileName();
+	        
+	        fileChooser.setSelectedFile(new File(defaultFileName));
 			
 			if (fileChooser.showSaveDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
 				File file = fileChooser.getSelectedFile();
@@ -420,15 +421,9 @@ public class SwingGameView extends JFrame implements GameView {
 				Path filePath = Path.of(fileName);
 				
 				if (gameController.saveBestBrain(filePath)) {
-					JOptionPane.showMessageDialog(SwingGameView.this, 
-						"Cervello salvato con successo!", 
-						"Successo", 
-						JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(SwingGameView.this, "Cervello salvato con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
 				} else {
-					JOptionPane.showMessageDialog(SwingGameView.this, 
-						"Errore nel salvataggio del cervello!", 
-						"Errore", 
-						JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(SwingGameView.this, "Errore nel salvataggio del cervello!", "Errore", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		}
