@@ -11,6 +11,7 @@ import flappyBirdAI.model.GameObject;
 import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.GameView;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Random;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import java.awt.Rectangle;
 public class GameController {
 	
 	public static final int GAME_SCREEN_HEIGHT = 600, SLIDER_HEIGHT = 150, MAX_FPS = 80;
+	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
     
     private final Random rand = new Random();
     
@@ -225,10 +227,19 @@ public class GameController {
         
         // Salvataggio automatico
         if (isAutoSaveEnabled && bestBirdBrain != null && nGen % autoSaveThreshold == 0) {
-            String autoSaveName = "autosave_gen_" + nGen + "_score_" + String.format("%.0f", bestLifeTime * 100) + ".json";
-            if (saveBestBrain(autoSaveName)) {
+        	// Creare la DIR Se Non Esiste
+            try {
+                Files.createDirectories(AUTOSAVE_DIR);
+            } catch (IOException e) {
+                System.err.println("Errore nella creazione della cartella autosaves: " + e.getMessage());
+            }
+        	
+            String fileName = "autosave_gen_" + nGen + "_score_" + String.format("%.0f", bestLifeTime * 100) + ".json";
+            Path fullPath = AUTOSAVE_DIR.resolve(fileName);
+            
+            if (saveBestBrain(fullPath)) {
                 gameView.showAutoSaveMessage("AUTO-SAVED!");
-                System.out.println("Brain salvato automaticamente: " + autoSaveName);
+                System.out.println("Brain salvato automaticamente: " + fullPath);
             } else {
                 gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
                 System.err.println("Errore nel salvataggio automatico del cervello");
@@ -271,13 +282,13 @@ public class GameController {
 	
 	// Import/Export Methods
 	
-	public boolean saveBestBrain(String fileName) {
+	public boolean saveBestBrain(Path file) {
 		if (bestBirdBrain == null) {
 			System.err.println("Nessun cervello migliore disponibile per il salvataggio");
 			return false;
 		}
 		
-		return bestBirdBrain.saveToFile(Path.of(fileName));
+		return bestBirdBrain.saveToFile(file);
 	}
 	
 	public boolean loadBrain(String filePath) {

@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -64,9 +65,19 @@ public class SwingGameView extends JFrame implements GameView {
 	private void initPanels() {
 		// Inizializzare per Primo per averlo a SX
 		initImportExportPanel();
+		
+		JPanel centralPanel = new JPanel(new BorderLayout());
+		centralPanel.setPreferredSize(new Dimension(width, height));
+		
 		initGamePanel();
 		initStatsPanel();
 		initControlsPanel();
+		
+		centralPanel.add(statsPanel, BorderLayout.NORTH);
+	    centralPanel.add(gamePanel, BorderLayout.CENTER);
+	    centralPanel.add(controlsPanel, BorderLayout.SOUTH);
+	    
+	    add(centralPanel, BorderLayout.CENTER);
 		
 		// Ridimensionare la Finestra in Base a Preferred Size dei Componenti
 		pack();
@@ -387,7 +398,9 @@ public class SwingGameView extends JFrame implements GameView {
 					fileName += ".json";
 				}
 				
-				if (gameController.saveBestBrain(fileName)) {
+				Path filePath = Path.of(fileName);
+				
+				if (gameController.saveBestBrain(filePath)) {
 					JOptionPane.showMessageDialog(SwingGameView.this, 
 						"Cervello salvato con successo!", 
 						"Successo", 
@@ -415,23 +428,13 @@ public class SwingGameView extends JFrame implements GameView {
 			if (fileChooser.showOpenDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
 				File file = fileChooser.getSelectedFile();
 				
-				int choice = JOptionPane.showConfirmDialog(SwingGameView.this,
-					"Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?",
-					"Conferma Caricamento",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE);
+				int choice = JOptionPane.showConfirmDialog(SwingGameView.this, "Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?", "Conferma Caricamento", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 				
 				if (choice == JOptionPane.YES_OPTION) {
 					if (gameController.loadBrain(file.getAbsolutePath())) {
-						JOptionPane.showMessageDialog(SwingGameView.this, 
-							"Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", 
-							"Successo", 
-							JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.showMessageDialog(SwingGameView.this, "Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", "Successo", JOptionPane.INFORMATION_MESSAGE);
 					} else {
-						JOptionPane.showMessageDialog(SwingGameView.this, 
-							"Errore nel caricamento del cervello!\nVerificare che il file sia valido.", 
-							"Errore", 
-							JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(SwingGameView.this, "Errore nel caricamento del cervello!\nVerificare che il file sia valido.", "Errore", JOptionPane.ERROR_MESSAGE);
 					}
 				}
 			}
@@ -463,10 +466,7 @@ public class SwingGameView extends JFrame implements GameView {
 					throw new NumberFormatException("Valore deve essere maggiore di 0");
 				}
 			} catch (NumberFormatException ex) {
-				JOptionPane.showMessageDialog(SwingGameView.this, 
-					"Inserire un numero valido maggiore di 0!", 
-					"Errore", 
-					JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(SwingGameView.this, "Inserire un numero valido maggiore di 0!", "Errore", JOptionPane.WARNING_MESSAGE);
 				tfAutoSaveThreshold.setText(String.valueOf(gameController.getAutoSaveThreshold()));
 			}
 		}
