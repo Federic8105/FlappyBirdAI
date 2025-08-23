@@ -25,7 +25,7 @@ import java.awt.Rectangle;
 
 public class GameController {
 	
-	public static final int SLIDER_HEIGHT = 150, MAX_FPS = 80;
+	public static final int SLIDER_HEIGHT = 150, STATS_HEIGHT = 40, MAX_FPS = 80;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare

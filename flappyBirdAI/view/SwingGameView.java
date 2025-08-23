@@ -22,14 +22,32 @@ import java.util.ArrayList;
 public class SwingGameView extends JFrame implements GameView {
 
 	private static final long serialVersionUID = 1L;
+	
+	private static final String WINDOW_TITLE = "Flappy Bird AI";
+    private static final String ICON_PATH = "/res/FB_ICON.png";
+    private static final Color GAME_BACKGROUND = Color.CYAN;
+    private static final Color STATS_BACKGROUND = Color.DARK_GRAY;
+    private static final Color CONTROLS_BACKGROUND = Color.decode("#800020");
+    private static final Color IMPORT_EXPORT_BACKGROUND = Color.LIGHT_GRAY;
+    
+    // Utility Functions
+    
+    static JFileChooser createJsonFileChooser() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
+        return fileChooser;
+    }
 
+    // Window Dimensions
 	private final int width, height;
-	private GameController gameController;
+	
+	// Controller Reference
+	GameController gameController;
 	
 	// Game Objects for Rendering
     private List<AbstractGameObject> currentVGameObj = new ArrayList<>();
     
-    // Pannelli Principali
+    // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
     
     // UI Components - Statistiche
@@ -56,8 +74,8 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	private void initWindow() {
 		setSize(width, height);
-        setTitle("Flappy Bird AI");
-        setIconImage(new ImageIcon(getClass().getResource("/res/FB_ICON.png")).getImage());
+        setTitle(WINDOW_TITLE);
+        setIconImage(new ImageIcon(getClass().getResource(ICON_PATH)).getImage());
         getContentPane().setBackground(Color.WHITE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setFocusable(false);
@@ -88,16 +106,10 @@ public class SwingGameView extends JFrame implements GameView {
 	private void initImportExportPanel() {
 		importExportPanel = new JPanel();
 		importExportPanel.setLayout(new BoxLayout(importExportPanel, BoxLayout.Y_AXIS));
-		importExportPanel.setBackground(Color.LIGHT_GRAY);
-		importExportPanel.setPreferredSize(new Dimension(300, height));
+		importExportPanel.setBackground(IMPORT_EXPORT_BACKGROUND);
 		
-		// Calcolare la larghezza come percentuale della larghezza totale (20%)
-	    int panelWidth = (int) (width * 0.20);
-	    // Controllo Width Min
-	    panelWidth = Math.max(panelWidth, 250);
-	    // Controllo Width Max
-	    panelWidth = Math.min(panelWidth, 400);
-	    
+		// Calcolare la larghezza come percentuale della larghezza totale
+	    int panelWidth = calcImportExportPanelWidth(0.2f);
 	    importExportPanel.setPreferredSize(new Dimension(panelWidth, height));
 		
 		// Titolo del Pannello
@@ -113,6 +125,66 @@ public class SwingGameView extends JFrame implements GameView {
 		add(importExportPanel, BorderLayout.WEST);
 	}
 	
+	private int calcImportExportPanelWidth(float percOfTotWidth) {
+	    // Calcolare la larghezza come percentuale della larghezza totale
+		int panelWidth = (int) (width * percOfTotWidth);
+	    // Controllo Width Min
+	    panelWidth = Math.max(panelWidth, 250);
+	    // Controllo Width Max
+	    panelWidth = Math.min(panelWidth, 400);
+        return panelWidth;
+    }
+	
+	private void initGamePanel() {
+        gamePanel = new JPanel() {
+            private static final long serialVersionUID = 1L;
+            
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+
+                if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
+                    for (GameObject obj : currentVGameObj) {
+                        if (obj != null) {
+                            obj.draw(g2d);
+                        }
+                    }
+                }
+            }
+        };
+        
+        
+        gamePanel.setBackground(GAME_BACKGROUND);
+        
+        // Calcolare l'altezza disponibile: altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (GameController.SLIDER_HEIGHT)
+        int availableHeight = height - GameController.STATS_HEIGHT - GameController.SLIDER_HEIGHT;
+        gamePanel.setPreferredSize(new Dimension(width, availableHeight));
+        
+        add(gamePanel, BorderLayout.CENTER);
+    }
+	
+	private void initStatsPanel() {
+		statsPanel = new JPanel();
+		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
+		statsPanel.setBackground(STATS_BACKGROUND);
+		statsPanel.setPreferredSize(new Dimension(width, GameController.STATS_HEIGHT));
+		
+		initStatsUI();
+		
+		add(statsPanel, BorderLayout.NORTH);
+	}
+	
+	private void initControlsPanel() {
+		controlsPanel = new JPanel(new BorderLayout());
+		controlsPanel.setBackground(CONTROLS_BACKGROUND);
+		controlsPanel.setPreferredSize(new Dimension(width, GameController.SLIDER_HEIGHT));
+		
+		initControlsUI();
+		
+		add(controlsPanel, BorderLayout.SOUTH);
+	}
+	
 	private void initImportExportUI(int importExportPanelWidth) {
 	    int componentsWidth = importExportPanelWidth - 20; // Lascia un margine di 10px per lato
 	    
@@ -120,13 +192,8 @@ public class SwingGameView extends JFrame implements GameView {
 		importExportPanel.add(Box.createVerticalStrut(20));
 		
 		// Bottone Salva Cervello
-		bSaveBrain = new JButton("Salva Cervello Migliore");
-		bSaveBrain.setAlignmentX(Component.CENTER_ALIGNMENT);
-		bSaveBrain.setMaximumSize(new Dimension(componentsWidth, 30));
-		bSaveBrain.setBackground(Color.GREEN);
-		bSaveBrain.setForeground(Color.BLACK);
-		bSaveBrain.setFont(new Font("Arial", Font.BOLD, 12));
-		bSaveBrain.addActionListener(new SaveBrainListener());
+		bSaveBrain = createImportExportButton("Salva Cervello su File", Color.GREEN, componentsWidth);
+		bSaveBrain.addActionListener(new SaveBrainListener(this));
 		importExportPanel.add(bSaveBrain);
 		
 		importExportPanel.add(Box.createVerticalStrut(20));
@@ -152,7 +219,6 @@ public class SwingGameView extends JFrame implements GameView {
 		// Centrare il Testo del Campo di Input del JSpinner
 		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
 		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
-		
 		spinnerTextField.addActionListener(_ -> validateSpinnerValue(spinnerTextField));
 		
 		thresholdPanel.add(autoSaveThresholdSpinner);
@@ -162,89 +228,40 @@ public class SwingGameView extends JFrame implements GameView {
 		importExportPanel.add(Box.createVerticalStrut(15));
 		
 		// Bottone Toggle Auto-Save
-		bToggleAutoSave = new JButton("Disattiva Auto-Save");
-		bToggleAutoSave.setAlignmentX(Component.CENTER_ALIGNMENT);
-		bToggleAutoSave.setMaximumSize(new Dimension(componentsWidth, 30));
-		bToggleAutoSave.setBackground(Color.ORANGE);
-		bToggleAutoSave.setForeground(Color.BLACK);
-		bToggleAutoSave.setFont(new Font("Arial", Font.BOLD, 12));
-		bToggleAutoSave.addActionListener(new ToggleAutoSaveListener());
+		bToggleAutoSave = createImportExportButton("Disattiva Auto-Save", Color.ORANGE, componentsWidth);
+		bToggleAutoSave.addActionListener(new ToggleAutoSaveListener(this));
 		importExportPanel.add(bToggleAutoSave);
 		
 		importExportPanel.add(Box.createVerticalStrut(20));
 		
 		// Bottone Carica Cervello
-		bLoadBrain = new JButton("Carica Cervello da File");
-		bLoadBrain.setAlignmentX(Component.CENTER_ALIGNMENT);
-		bLoadBrain.setMaximumSize(new Dimension(componentsWidth, 30));
-		bLoadBrain.setBackground(Color.CYAN);
-		bLoadBrain.setForeground(Color.BLACK);
-		bLoadBrain.setFont(new Font("Arial", Font.BOLD, 12));
-		bLoadBrain.addActionListener(new LoadBrainListener());
+		bLoadBrain = createImportExportButton("Carica Cervello da File", Color.CYAN, componentsWidth);
+		bLoadBrain.addActionListener(new LoadBrainListener(this));
 		importExportPanel.add(bLoadBrain);
 		
 		// Riempire lo spazio rimanente
 		importExportPanel.add(Box.createVerticalGlue());
 	}
 	
-	private void initGamePanel() {
-        gamePanel = new JPanel() {
-            private static final long serialVersionUID = 1L;
-            
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-
-                if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
-                    for (GameObject obj : currentVGameObj) {
-                        if (obj != null) {
-                            obj.draw(g2d);
-                        }
-                    }
-                }
-            }
-        };
-        
-        
-        gamePanel.setBackground(Color.CYAN);
-        // Calcolare l'altezza disponibile: altezza totale - altezza pannelli stats (40) e controls (GameController.SLIDER_HEIGHT)
-        int availableHeight = height - 40 - GameController.SLIDER_HEIGHT;
-        gamePanel.setPreferredSize(new Dimension(width, availableHeight));
-        
-        add(gamePanel, BorderLayout.CENTER);
+	private JButton createImportExportButton(String text, Color backgroundColor, int width) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setMaximumSize(new Dimension(width, 30));
+        button.setBackground(backgroundColor);
+        button.setForeground(Color.BLACK);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        return button;
     }
-	
-	private void initStatsPanel() {
-		statsPanel = new JPanel();
-		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
-		statsPanel.setBackground(Color.DARK_GRAY);
-		statsPanel.setPreferredSize(new Dimension(width, 40));
-		
-		initStatsUI();
-		
-		add(statsPanel, BorderLayout.NORTH);
-	}
-	
-	private void initControlsPanel() {
-		controlsPanel = new JPanel(new BorderLayout());
-		controlsPanel.setBackground(Color.decode("#800020"));
-		controlsPanel.setPreferredSize(new Dimension(width, GameController.SLIDER_HEIGHT));
-		
-		initControlsUI();
-		
-		add(controlsPanel, BorderLayout.SOUTH);
-	}
 	
 	private void initStatsUI() {
 		
 		// Statistiche a DX
 		JPanel rightStatsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
-		rightStatsPanel.setBackground(Color.DARK_GRAY);
+		rightStatsPanel.setBackground(STATS_BACKGROUND);
 		
 		// Statistiche a SX
 		JPanel leftStatsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-		leftStatsPanel.setBackground(Color.DARK_GRAY);
+		leftStatsPanel.setBackground(STATS_BACKGROUND);
 		
 		// FPS Label
         lCurrFPS = createStatsLabel("FPS: 0");
@@ -308,12 +325,8 @@ public class SwingGameView extends JFrame implements GameView {
         sl.setSnapToTicks(true);
 		sl.setMinorTickSpacing(1);
         sl.setMajorTickSpacing(1);
-		sl.setBackground(Color.decode("#800020"));
-		sl.addChangeListener(_ -> {
-			if (gameController != null) {
-				gameController.setDtMultiplier(velocitySlider.getValue());
-			}
-		});
+		sl.setBackground(CONTROLS_BACKGROUND);
+		sl.addChangeListener(_ -> handleVelocitySliderChange());
 
 		TitledBorder sliderTitle = BorderFactory.createTitledBorder("Velocity Multiplier");
 		sliderTitle.setTitleJustification(TitledBorder.CENTER);
@@ -323,6 +336,12 @@ public class SwingGameView extends JFrame implements GameView {
 		sl.setBorder(sliderTitle);
 
 		return sl;
+	}
+	
+	void handleVelocitySliderChange() {
+		if (gameController != null) {
+			gameController.setDtMultiplier(velocitySlider.getValue());
+		}
 	}
 	
 	private void validateSpinnerValue(JFormattedTextField textField) {
@@ -354,6 +373,18 @@ public class SwingGameView extends JFrame implements GameView {
 	    }
 	}
 	
+	void updateAutoSaveButton() {
+		if (gameController != null) {
+			if (gameController.isAutoSaveEnabled()) {
+				bToggleAutoSave.setText("Disattiva Auto-Save");
+				bToggleAutoSave.setBackground(Color.ORANGE);
+			} else {
+				bToggleAutoSave.setText("Attiva Auto-Save");
+				bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
+			}
+		}
+	}
+	
 	// GameView Interface Methods
 	
 	@Override
@@ -365,25 +396,29 @@ public class SwingGameView extends JFrame implements GameView {
     public void updateDisplay(GameStats stats, List<AbstractGameObject> vGameObj) {
         // Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
-            lCurrFPS.setText("FPS: " + stats.fps);
-            lBestLifeTime.setText("BLT: " + String.format("%.3f", stats.bestLifeTime) + "s");
-            lNGen.setText("Gen: " + stats.nGen);
-            lNBirds.setText("Birds: " + stats.nBirds);
-            lNTubePassed.setText("Tubes: " + stats.nTubePassed);
-            
-            if (stats.nTubePassed > stats.nMaxTubePassed) {
-                lMaxTubePassed.setText("Max Tubes: " + stats.nTubePassed);
-            } else {
-                lMaxTubePassed.setText("Max Tubes: " + stats.nMaxTubePassed);
-            }
-            
-            lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled ? "ON" : "OFF"));
-            lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
-            
+        	updateStatsLabels(stats);
             this.currentVGameObj = vGameObj;
             gamePanel.repaint();
         });
     }
+	
+	//TODO: ottimizzare aggiornamento labels
+	private void updateStatsLabels(GameStats stats) {
+		lCurrFPS.setText("FPS: " + stats.fps);
+        lBestLifeTime.setText("BLT: " + String.format("%.3f", stats.bestLifeTime) + "s");
+        lNGen.setText("Gen: " + stats.nGen);
+        lNBirds.setText("Birds: " + stats.nBirds);
+        lNTubePassed.setText("Tubes: " + stats.nTubePassed);
+        
+        if (stats.nTubePassed > stats.nMaxTubePassed) {
+            lMaxTubePassed.setText("Max Tubes: " + stats.nTubePassed);
+        } else {
+            lMaxTubePassed.setText("Max Tubes: " + stats.nMaxTubePassed);
+        }
+        
+        lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled ? "ON" : "OFF"));
+        lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
+	}
 	
 	@Override
     public void showAutoSaveMessage(String message) {
@@ -417,8 +452,8 @@ public class SwingGameView extends JFrame implements GameView {
         }
         
         // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
-        // altezza totale - altezza pannelli stats (40) e controls (SLIDER_HEIGHT)
-        return height - 40 - GameController.SLIDER_HEIGHT;
+        // altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (SLIDER_HEIGHT)
+        return height - GameController.STATS_HEIGHT - GameController.SLIDER_HEIGHT;
     }
     
     @Override
@@ -427,91 +462,94 @@ public class SwingGameView extends JFrame implements GameView {
             gamePanel.repaint();
         }
     }
-    
-    // Inner Classes for Action Listeners for Import/Export and Auto-Save
 	
-    private class SaveBrainListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			if (gameController == null || gameController.getBestBirdBrain() == null) {
-				JOptionPane.showMessageDialog(SwingGameView.this, "Nessun cervello disponibile per il salvataggio!", "Errore", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-			
-			JFileChooser fileChooser = new JFileChooser();
-			fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
-			
-			// Usare il template del controller per il nome file di default
-	        String defaultFileName = gameController.generateManualSaveFileName();
-	        
-	        fileChooser.setSelectedFile(new File(defaultFileName));
-			
-			if (fileChooser.showSaveDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
-				File file = fileChooser.getSelectedFile();
-				String fileName = file.getAbsolutePath();
-				
-				// Aggiungere estensione se non presente
-				if (!fileName.toLowerCase().endsWith(".json")) {
-					fileName += ".json";
-				}
-				
-				Path filePath = Path.of(fileName);
-				
-				if (gameController.saveBestBrain(filePath)) {
-					JOptionPane.showMessageDialog(SwingGameView.this, "Cervello salvato con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
-				} else {
-					JOptionPane.showMessageDialog(SwingGameView.this, "Errore nel salvataggio del cervello!", "Errore", JOptionPane.ERROR_MESSAGE);
-				}
-			}
-		}
-	}
-    
-    private class LoadBrainListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			if (gameController == null) {
-				return;
-			}
-			
-			JFileChooser fileChooser = new JFileChooser();
-			fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
-			
-			if (fileChooser.showOpenDialog(SwingGameView.this) == JFileChooser.APPROVE_OPTION) {
-				File file = fileChooser.getSelectedFile();
-				
-				int choice = JOptionPane.showConfirmDialog(SwingGameView.this, "Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?", "Conferma Caricamento", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-				
-				if (choice == JOptionPane.YES_OPTION) {
-					if (gameController.loadBrain(file.getAbsolutePath())) {
-						JOptionPane.showMessageDialog(SwingGameView.this, "Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", "Successo", JOptionPane.INFORMATION_MESSAGE);
-					} else {
-						JOptionPane.showMessageDialog(SwingGameView.this, "Errore nel caricamento del cervello!\nVerificare che il file sia valido.", "Errore", JOptionPane.ERROR_MESSAGE);
-					}
-				}
-			}
-		}
+}
+
+// Classes for Action Listeners
+
+class SaveBrainListener implements ActionListener {
+	private final SwingGameView parentView;
+	
+	public SaveBrainListener(SwingGameView parentView) {
+		this.parentView = parentView;
 	}
 	
-	private class ToggleAutoSaveListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			if (gameController != null) {
-				gameController.toggleAutoSave();
-				updateAutoSaveButton();
-			}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (parentView.gameController == null || parentView.gameController.getBestBirdBrain() == null) {
+			JOptionPane.showMessageDialog(parentView, "Nessun cervello disponibile per il salvataggio!", "Errore", JOptionPane.WARNING_MESSAGE);
+			return;
 		}
-	}
-	
-	private void updateAutoSaveButton() {
-		if (gameController != null) {
-			if (gameController.isAutoSaveEnabled()) {
-				bToggleAutoSave.setText("Disattiva Auto-Save");
-				bToggleAutoSave.setBackground(Color.ORANGE);
+		
+		JFileChooser fileChooser = SwingGameView.createJsonFileChooser();
+		
+		// Usare il template del controller per il nome file di default
+        String defaultFileName = parentView.gameController.generateManualSaveFileName();
+        
+        fileChooser.setSelectedFile(new File(defaultFileName));
+		
+		if (fileChooser.showSaveDialog(parentView) == JFileChooser.APPROVE_OPTION) {
+			String fileName = fileChooser.getSelectedFile().getAbsolutePath();
+			
+			// Aggiungere estensione se non presente
+			if (!fileName.toLowerCase().endsWith(".json")) {
+				fileName += ".json";
+			}
+			
+			Path filePath = Path.of(fileName);
+			
+			if (parentView.gameController.saveBestBrain(filePath)) {
+				JOptionPane.showMessageDialog(parentView, "Cervello salvato con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
 			} else {
-				bToggleAutoSave.setText("Attiva Auto-Save");
-				bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
+				JOptionPane.showMessageDialog(parentView, "Errore nel salvataggio del cervello!", "Errore", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
+}
+
+class LoadBrainListener implements ActionListener {
+	private final SwingGameView parentView;
 	
+	public LoadBrainListener(SwingGameView parentView) {
+		this.parentView = parentView;
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (parentView.gameController == null) {
+			return;
+		}
+		
+		JFileChooser fileChooser = SwingGameView.createJsonFileChooser();
+		
+		if (fileChooser.showOpenDialog(parentView) == JFileChooser.APPROVE_OPTION) {
+			File file = fileChooser.getSelectedFile();
+			
+			int choice = JOptionPane.showConfirmDialog(parentView, "Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?", "Conferma Caricamento", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+			
+			if (choice == JOptionPane.YES_OPTION) {
+				if (parentView.gameController.loadBrain(file.getAbsolutePath())) {
+					JOptionPane.showMessageDialog(parentView, "Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", "Successo", JOptionPane.INFORMATION_MESSAGE);
+				} else {
+					JOptionPane.showMessageDialog(parentView, "Errore nel caricamento del cervello!\nVerificare che il file sia valido.", "Errore", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		}
+	}
+}
+
+class ToggleAutoSaveListener implements ActionListener {
+	private final SwingGameView parentView;
+	
+	public ToggleAutoSaveListener(SwingGameView parentView) {
+		this.parentView = parentView;
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (parentView.gameController != null) {
+			parentView.gameController.toggleAutoSave();
+			parentView.updateAutoSaveButton();
+		}
+	}
 }
