@@ -11,10 +11,6 @@ import flappyBirdAI.model.GameObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -36,14 +32,16 @@ public class SwingGameView extends JFrame implements GameView {
     // Pannelli Principali
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
     
-    // UI Components - Statistiche e Controlli
+    // UI Components - Statistiche
 	private JLabel lCurrFPS, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
-	private JSlider velocitySlider;
 	private Timer autoSaveMessageTimer;
+	
+	// UI Components - Controls
+	private JSlider velocitySlider;
 	
 	// UI Components - Import/Export
 	private JButton bSaveBrain, bLoadBrain, bToggleAutoSave;
-	private JTextField tfAutoSaveThreshold;
+	private JSpinner autoSaveThresholdSpinner;
 	private JLabel lAutoSaveThreshold;
 
 	public SwingGameView(int width, int height) {
@@ -146,12 +144,18 @@ public class SwingGameView extends JFrame implements GameView {
 		
 		thresholdPanel.add(Box.createVerticalStrut(5));
 		
-		tfAutoSaveThreshold = new JTextField("50");
-		tfAutoSaveThreshold.setMaximumSize(new Dimension(100, 25));
-		tfAutoSaveThreshold.setHorizontalAlignment(JTextField.CENTER);
-		tfAutoSaveThreshold.setFont(new Font("Arial", Font.PLAIN, 12));
-		tfAutoSaveThreshold.addActionListener(new ThresholdChangeListener());
-		thresholdPanel.add(tfAutoSaveThreshold);
+		// JSpinner con Valore di Default 50, Min 1, Max Integer.MAX_VALUE, Step 1
+		autoSaveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 1, Integer.MAX_VALUE, 1));
+		autoSaveThresholdSpinner.setMaximumSize(new Dimension(100, 25));
+		autoSaveThresholdSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
+		
+		// Centrare il Testo del Campo di Input del JSpinner
+		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
+		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
+		
+		spinnerTextField.addActionListener(_ -> validateSpinnerValue(spinnerTextField));
+		
+		thresholdPanel.add(autoSaveThresholdSpinner);
 		
 		importExportPanel.add(thresholdPanel);
 		
@@ -321,6 +325,35 @@ public class SwingGameView extends JFrame implements GameView {
 		return sl;
 	}
 	
+	private void validateSpinnerValue(JFormattedTextField textField) {
+	    String input = textField.getText().trim();
+	    
+	    try {
+	        int value = Integer.parseInt(input);
+	        
+	        if (value < 1 || value > Integer.MAX_VALUE) {
+	            throw new NumberFormatException();
+	        }
+	        
+	        // Valore valido - aggiorna tutto
+	        autoSaveThresholdSpinner.setValue(value);
+	        if (gameController != null) {
+	            gameController.setAutoSaveThreshold(value);
+	        }
+	        
+	    } catch (NumberFormatException e) {
+	        // Forza il ripristino del valore corretto
+	        int validValue = gameController != null ? gameController.getAutoSaveThreshold() : 50;
+	        autoSaveThresholdSpinner.setValue(validValue);
+	        
+	        // Forza l'aggiornamento del display
+	        SwingUtilities.invokeLater(() -> {
+	            textField.setValue(validValue);
+	            textField.selectAll(); // seleziona tutto per facilitare la riscrittura
+	        });
+	    }
+	}
+	
 	// GameView Interface Methods
 	
 	@Override
@@ -469,27 +502,6 @@ public class SwingGameView extends JFrame implements GameView {
 		}
 	}
 	
-	private class ThresholdChangeListener implements ActionListener {
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			if (gameController == null) {
-				return;
-			}
-			
-			try {
-				int threshold = Integer.parseInt(tfAutoSaveThreshold.getText().trim());
-				if (threshold > 0) {
-					gameController.setAutoSaveThreshold(threshold);
-				} else {
-					throw new NumberFormatException("Valore deve essere maggiore di 0");
-				}
-			} catch (NumberFormatException ex) {
-				JOptionPane.showMessageDialog(SwingGameView.this, "Inserire un numero valido maggiore di 0!", "Errore", JOptionPane.WARNING_MESSAGE);
-				tfAutoSaveThreshold.setText(String.valueOf(gameController.getAutoSaveThreshold()));
-			}
-		}
-	}
-	
 	private void updateAutoSaveButton() {
 		if (gameController != null) {
 			if (gameController.isAutoSaveEnabled()) {
@@ -502,166 +514,4 @@ public class SwingGameView extends JFrame implements GameView {
 		}
 	}
 	
-}
-
-/**
- * JTextField che accetta solo numeri interi positivi
- */
-class PositiveNumericTextField extends JTextField {
-	private static final long serialVersionUID = 1L;
-
-	/**
-     * Crea un PositiveNumericTextField con larghezza specificata
-     * @param columns numero di colonne
-     * @param maxDigits numero massimo di cifre (0 = illimitato)
-     */
-    public PositiveNumericTextField(int columns, int maxDigits) {
-        super(columns);
-        setupFilter(maxDigits);
-    }
-    
-    /**
-     * Crea un PositiveNumericTextField con larghezza specificata e senza limite di cifre
-     * @param columns numero di colonne
-     */
-    public PositiveNumericTextField(int columns) {
-        this(columns, 0);
-    }
-    
-    /**
-     * Crea un PositiveNumericTextField con valore iniziale
-     * @param initialValue valore iniziale
-     * @param maxDigits numero massimo di cifre
-     */
-    public PositiveNumericTextField(String initialValue, int maxDigits) {
-        super(initialValue);
-        setupFilter(maxDigits);
-    }
-    
-    /**
-     * Crea un PositiveNumericTextField senza parametri
-     */
-    public PositiveNumericTextField() {
-        this(0, 0);
-    }
-
-    private void setupFilter(int maxDigits) {
-        ((AbstractDocument) getDocument()).setDocumentFilter(new PositiveNumericDocumentFilter(maxDigits));
-        
-        // Centra il testo per default
-        setHorizontalAlignment(JTextField.CENTER);
-        
-        // Tooltip informativo
-        setToolTipText("Inserire solo numeri interi positivi");
-    }
-    
-    /**
-     * Ottiene il valore numerico del campo
-     * @return valore numerico, 0 se vuoto o non valido
-     */
-    public int getIntValue() {
-        String text = getText().trim();
-        if (text.isEmpty()) {
-            return 0;
-        }
-        
-        try {
-            return Integer.parseInt(text);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-    
-    /**
-     * Imposta il valore numerico del campo
-     * @param value valore da impostare
-     */
-    public void setIntValue(int value) {
-        if (value >= 0) {
-            setText(String.valueOf(value));
-        }
-    }
-    
-    /**
-     * Controlla se il campo contiene un valore valido
-     * @return true se il valore è valido e maggiore di 0
-     */
-    public boolean hasValidValue() {
-        return getIntValue() > 0;
-    }
-    
-}
-
-/**
- * DocumentFilter che permette solo l'inserimento di numeri interi positivi
- */
-class PositiveNumericDocumentFilter extends DocumentFilter {
-    private final int maxDigits;
-    
-    /**
-     * @param maxDigits numero massimo di cifre consentite (0 = illimitato)
-     */
-    public PositiveNumericDocumentFilter(int maxDigits) {
-        this.maxDigits = maxDigits;
-    }
-    
-    public PositiveNumericDocumentFilter() {
-        this(0); // Nessun limite
-    }
-    
-    @Override
-    public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) 
-            throws BadLocationException {
-        if (isValidInput(fb, offset, string, 0)) {
-            super.insertString(fb, offset, string, attr);
-        }
-    }
-    
-    @Override
-    public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) 
-            throws BadLocationException {
-        if (isValidInput(fb, offset, text, length)) {
-            super.replace(fb, offset, length, text, attrs);
-        }
-    }
-    
-    @Override
-    public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
-        super.remove(fb, offset, length);
-    }
-    
-    private boolean isValidInput(FilterBypass fb, int offset, String text, int replaceLength) 
-            throws BadLocationException {
-        // Permetti stringa vuota
-        if (text == null || text.isEmpty()) {
-            return true;
-        }
-        
-        // Controlla se contiene solo cifre
-        if (!text.matches("\\d+")) {
-            return false;
-        }
-        
-        // Calcola la lunghezza risultante dopo l'operazione
-        String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
-        String resultText = currentText.substring(0, offset) + text + 
-                           currentText.substring(offset + replaceLength);
-        
-        // Controlla il limite di cifre se specificato
-        if (maxDigits > 0 && resultText.length() > maxDigits) {
-            return false;
-        }
-        
-        // Controlla che il numero risultante non sia troppo grande per un int
-        if (!resultText.isEmpty()) {
-            try {
-                long value = Long.parseLong(resultText);
-                return value <= Integer.MAX_VALUE;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
 }
