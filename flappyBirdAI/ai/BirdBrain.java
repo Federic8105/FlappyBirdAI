@@ -276,6 +276,27 @@ public class BirdBrain {
     }
     
     @Override
+	public int hashCode() {
+		return Objects.hash(mInputs, vmWeights);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		
+		BirdBrain other = (BirdBrain) obj;
+		return Objects.equals(mInputs, other.mInputs) && Objects.equals(vmWeights, other.vmWeights);
+	}
+
+	@Override
     public String toString() {
 		StringBuilder sb = new StringBuilder();
 		

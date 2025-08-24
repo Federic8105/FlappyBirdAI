@@ -7,6 +7,7 @@ package flappyBirdAI.model;
 import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
+import java.util.Objects;
 
 public class Tube extends AbstractGameObject {
 	public static final int distXBetweenTubes = 750, distYBetweenTubes = 180;
@@ -34,20 +35,6 @@ public class Tube extends AbstractGameObject {
            updateIFrames();
            setImage();
         }
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (!(obj instanceof Tube otherTube)) {
-            return false;
-        }
-        return this.id == otherTube.id;
     }
     
     @Override
@@ -89,6 +76,27 @@ public class Tube extends AbstractGameObject {
             g2d.drawImage(vFrames[0], x, y, null);
         }
     }
+	
+	 @Override
+	public int hashCode() {
+		return Objects.hash(id);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		
+		Tube other = (Tube) obj;
+		return id == other.id;
+	}
 	
 	@Override
 	public String toString() {

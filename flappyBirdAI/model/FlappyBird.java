@@ -8,6 +8,7 @@ import flappyBirdAI.ai.BirdBrain;
 import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
+import java.util.Objects;
 
 public class FlappyBird extends AbstractGameObject {
 	public static final int width = 60, height = 45;
@@ -102,6 +103,32 @@ public class FlappyBird extends AbstractGameObject {
         }
 	}
 	
+	@Override
+	public int hashCode() {
+		return Objects.hash(x, y, vy, lifeTime, isAlive, brain);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		
+		FlappyBird other = (FlappyBird) obj;
+		return Objects.equals(brain, other.brain)
+				&& x == other.x
+				&& y == other.y
+				&& isAlive == other.isAlive
+				&& Double.compare(vy, other.vy) == 0
+				&& Double.compare(lifeTime, other.lifeTime) == 0;
+	}
+
 	@Override
 	public String toString() {
 		if (isAlive) {
