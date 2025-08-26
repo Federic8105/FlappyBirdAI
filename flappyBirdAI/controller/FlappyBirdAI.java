@@ -7,13 +7,12 @@ package flappyBirdAI.controller;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
-import flappyBirdAI.view.GameView;
 import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
 //TODO: messaggi in inglese, opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull
-//TODO: impostare w e h min di ogni pannello, javadocs, sfondo con nuvole
+//TODO: impostare w e h min di ogni pannello, javadocs, sfondo con nuvole, update label migliore
 
 public class FlappyBirdAI {
 
@@ -29,14 +28,7 @@ public class FlappyBirdAI {
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	this.nBirdsXGen = nBirdsXGen;
     	
-    	GameView gameView;
-    	if (useJavaFX) {
-    		gameView = new SwingGameView(w, h);
-		} else {
-			gameView = new SwingGameView(w, h);
-		}
-    	
-		gameController = new GameController(gameView);
+		gameController = new GameController(useJavaFX ? new SwingGameView(w, h) : new SwingGameView(w, h));
 
 		startGame();
 	}

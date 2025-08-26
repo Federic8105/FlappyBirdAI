@@ -402,7 +402,7 @@ public class SwingGameView extends JFrame implements GameView {
         });
     }
 	
-	//NOTA: Concatenazione di Stringhe Già Ottimizzata da javac (Con StringBuilder di Lunghezza Apposita Internamente)
+	//TODO
 	private void updateStatsLabels(GameStats stats) {
 		lCurrFPS.setText("FPS: " + stats.fps);
         lBestLifeTime.setText("BLT: " + String.format("%.3f", stats.bestLifeTime) + "s");
