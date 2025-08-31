@@ -34,7 +34,7 @@ public class SwingGameView extends JFrame implements GameView {
     
     static JFileChooser createJsonFileChooser() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(new FileNameExtensionFilter("File JSON", "json"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON File", "json"));
         return fileChooser;
     }
 
@@ -113,7 +113,7 @@ public class SwingGameView extends JFrame implements GameView {
 	    importExportPanel.setPreferredSize(new Dimension(panelWidth, height));
 		
 		// Titolo del Pannello
-		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Import/Export Cervelli dei Volatili");
+		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Bird Brain Import/Export");
 		importExportTitle.setTitleJustification(TitledBorder.CENTER);
 		importExportTitle.setTitlePosition(TitledBorder.TOP);
 		importExportTitle.setTitleFont(new Font("Arial", Font.BOLD, 14));
@@ -192,7 +192,7 @@ public class SwingGameView extends JFrame implements GameView {
 		importExportPanel.add(Box.createVerticalStrut(20));
 		
 		// Bottone Salva Cervello
-		bSaveBrain = createImportExportButton("Salva Cervello su File", Color.GREEN, componentsWidth);
+		bSaveBrain = createImportExportButton("Save Brain to File", Color.GREEN, componentsWidth);
 		bSaveBrain.addActionListener(new SaveBrainListener(this));
 		importExportPanel.add(bSaveBrain);
 		
@@ -204,7 +204,7 @@ public class SwingGameView extends JFrame implements GameView {
 		thresholdPanel.setBackground(Color.LIGHT_GRAY);
 		thresholdPanel.setMaximumSize(new Dimension(componentsWidth, 80));
 		
-		lAutoSaveThreshold = new JLabel("Auto-Save Soglia (generazioni):");
+		lAutoSaveThreshold = new JLabel("Auto-Save Threshold (Generations):");
 		lAutoSaveThreshold.setAlignmentX(Component.CENTER_ALIGNMENT);
 		lAutoSaveThreshold.setFont(new Font("Arial", Font.PLAIN, 11));
 		thresholdPanel.add(lAutoSaveThreshold);
@@ -228,14 +228,14 @@ public class SwingGameView extends JFrame implements GameView {
 		importExportPanel.add(Box.createVerticalStrut(15));
 		
 		// Bottone Toggle Auto-Save
-		bToggleAutoSave = createImportExportButton("Disattiva Auto-Save", Color.ORANGE, componentsWidth);
+		bToggleAutoSave = createImportExportButton("Disable Auto-Save", Color.ORANGE, componentsWidth);
 		bToggleAutoSave.addActionListener(new ToggleAutoSaveListener(this));
 		importExportPanel.add(bToggleAutoSave);
 		
 		importExportPanel.add(Box.createVerticalStrut(20));
 		
 		// Bottone Carica Cervello
-		bLoadBrain = createImportExportButton("Carica Cervello da File", Color.CYAN, componentsWidth);
+		bLoadBrain = createImportExportButton("Load Brain From File", Color.CYAN, componentsWidth);
 		bLoadBrain.addActionListener(new LoadBrainListener(this));
 		importExportPanel.add(bLoadBrain);
 		
@@ -376,10 +376,10 @@ public class SwingGameView extends JFrame implements GameView {
 	void updateAutoSaveButton() {
 		if (gameController != null) {
 			if (gameController.isAutoSaveEnabled()) {
-				bToggleAutoSave.setText("Disattiva Auto-Save");
+				bToggleAutoSave.setText("Disable Auto-Save");
 				bToggleAutoSave.setBackground(Color.ORANGE);
 			} else {
-				bToggleAutoSave.setText("Attiva Auto-Save");
+				bToggleAutoSave.setText("Enable Auto-Save");
 				bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
 			}
 		}
@@ -477,7 +477,7 @@ class SaveBrainListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (parentView.gameController == null || parentView.gameController.getBestBirdBrain() == null) {
-			JOptionPane.showMessageDialog(parentView, "Nessun cervello disponibile per il salvataggio!", "Errore", JOptionPane.WARNING_MESSAGE);
+			JOptionPane.showMessageDialog(parentView, "No Brain Available for Saving!", "Error", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
 		
@@ -499,9 +499,9 @@ class SaveBrainListener implements ActionListener {
 			Path filePath = Path.of(fileName);
 			
 			if (parentView.gameController.saveBestBrain(filePath)) {
-				JOptionPane.showMessageDialog(parentView, "Cervello salvato con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(parentView, "Brain Saved Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
 			} else {
-				JOptionPane.showMessageDialog(parentView, "Errore nel salvataggio del cervello!", "Errore", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(parentView, "Error Saving Brain!", "Error", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
@@ -525,13 +525,13 @@ class LoadBrainListener implements ActionListener {
 		if (fileChooser.showOpenDialog(parentView) == JFileChooser.APPROVE_OPTION) {
 			File file = fileChooser.getSelectedFile();
 			
-			int choice = JOptionPane.showConfirmDialog(parentView, "Caricare il cervello resetterà il gioco alla generazione 1.\nContinuare?", "Conferma Caricamento", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+			int choice = JOptionPane.showConfirmDialog(parentView, "Loading the Brain will Reset the Game to Generation 1.\nContinue?", "Confirm Load", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 			
 			if (choice == JOptionPane.YES_OPTION) {
 				if (parentView.gameController.loadBrain(file.getAbsolutePath())) {
-					JOptionPane.showMessageDialog(parentView, "Cervello caricato con successo!\nIl gioco è stato resettato alla generazione 1.", "Successo", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(parentView, "Brain Loaded Successfully!\nGame has been Reset to Generation 1.", "Success", JOptionPane.INFORMATION_MESSAGE);
 				} else {
-					JOptionPane.showMessageDialog(parentView, "Errore nel caricamento del cervello!\nVerificare che il file sia valido.", "Errore", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(parentView, "Error Loading Brain!\nPlease Verify the File is Valid.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		}

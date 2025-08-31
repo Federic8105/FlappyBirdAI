@@ -6,12 +6,14 @@ package flappyBirdAI.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
-
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class Matrix {
+public class Matrix implements Serializable {
 	
+	private static final long serialVersionUID = 1L;
+
 	public static Matrix fromJson(JsonObject jsonMatrix) {
 		jsonMatrix = Objects.requireNonNull(jsonMatrix, "JSON Matrix Object Cannot be Null");
 		
@@ -179,4 +181,5 @@ public class Matrix {
         
         return sb.toString();
     }
+
 }

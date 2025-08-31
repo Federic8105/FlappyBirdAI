@@ -11,7 +11,7 @@ import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
-//TODO: messaggi in inglese, opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull
+//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull
 //TODO: impostare w e h min di ogni pannello, javadocs, sfondo con nuvole, update label migliore
 
 public class FlappyBirdAI {

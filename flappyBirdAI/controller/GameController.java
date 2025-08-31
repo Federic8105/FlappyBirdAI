@@ -238,7 +238,7 @@ public class GameController {
             try {
                 Files.createDirectories(AUTOSAVE_DIR);
             } catch (IOException e) {
-                System.err.println("Errore nella creazione della cartella autosaves: " + e.getMessage());
+                System.err.println("Error Creating Autosaves Directory: " + e.getMessage());
             }
         	
             String fileName = generateAutoSaveFileName();
@@ -246,10 +246,10 @@ public class GameController {
             
             if (saveBestBrain(fullPath)) {
                 gameView.showAutoSaveMessage("AUTO-SAVED!");
-                System.out.println("Brain salvato automaticamente: " + fullPath);
+                System.out.println("Brain Automatically Saved: " + fullPath);
             } else {
                 gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
-                System.err.println("Errore nel salvataggio automatico del cervello");
+                System.err.println("Error in Automatic Brain Save");
             }
         }
     }
@@ -301,7 +301,7 @@ public class GameController {
 	
 	public boolean saveBestBrain(Path file) {
 		if (bestBirdBrain == null) {
-			System.err.println("Nessun cervello migliore disponibile per il salvataggio");
+			System.err.println("No Best Brain Available for Saving");
 			return false;
 		}
 		
@@ -314,12 +314,12 @@ public class GameController {
 			if (loadedBrain != null) {
 				bestBirdBrain = loadedBrain;
 				resetToFirstGeneration();
-				System.out.println("Cervello caricato con successo da: " + filePath);
+				System.out.println("Brain Successfully Loaded From: " + filePath);
 				return true;
 			}
 			return false;
 		} catch (IOException e) {
-			System.err.println("Errore nel caricamento del cervello: " + e.getMessage());
+			System.err.println("Error Loading Brain: " + e.getMessage());
 			return false;
 		}
 	}

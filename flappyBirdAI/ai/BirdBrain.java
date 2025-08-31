@@ -15,6 +15,7 @@ import java.lang.reflect.Type;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +28,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
-public class BirdBrain {
+public class BirdBrain implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
 	
 	public static final List<String> vInputsKeys = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int nInputs = vInputsKeys.size();
@@ -73,16 +76,16 @@ public class BirdBrain {
 	
 	public static BirdBrain loadFromFile(Path file) throws IOException {
 		if (!Files.exists(file)) {
-	        throw new IOException("File non trovato: " + file);
+	        throw new IOException("File Not Found: " + file);
 	    }
 	    if (!Files.isReadable(file)) {
-	        throw new IOException("File non leggibile: " + file);
+	        throw new IOException("File Not Readable: " + file);
 	    }
 	    if (!Files.isRegularFile(file)) {
-	        throw new IOException("Il percorso non è un file regolare: " + file);
+	        throw new IOException("Path is Not a Regular File: " + file);
 	    }
 	    if (Files.isDirectory(file)) {
-	        throw new IOException("Il percorso è una cartella, non un file: " + file);
+	        throw new IOException("Path is a Direcotry, Not a File: " + file);
 	    }
 	    
 	    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
@@ -94,9 +97,9 @@ public class BirdBrain {
 	    	return fromJsonObject(brainJson);
 	    	
 	    } catch (JsonSyntaxException e) {
-	        throw new IllegalArgumentException("JSON non valido nel file: " + e.getMessage(), e);
+	        throw new IllegalArgumentException("Invalid JSON in File: " + e.getMessage(), e);
 	    } catch (IOException e) {
-	        throw new IOException("Errore durante la lettura del file: " + e.getMessage(), e);
+	        throw new IOException("Error Reading File: " + e.getMessage(), e);
 	    }
 	}
 
@@ -108,7 +111,7 @@ public class BirdBrain {
     }
     
     public BirdBrain(BirdBrain otherBrain) {
-    	otherBrain = Objects.requireNonNull(otherBrain, "Brain Non Inizializzato");
+    	otherBrain = Objects.requireNonNull(otherBrain, "Brain Not Initialized");
 
     	for (Matrix otherMatrix : otherBrain.vmWeights) {
             Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
@@ -144,11 +147,11 @@ public class BirdBrain {
 
     public void setInputs(Map<String, Double> vInputs) {
         if (vInputs.size() != nInputs) {
-            throw new IllegalArgumentException("Numero di Input Non Corretto");
+            throw new IllegalArgumentException("Incorrect Number of Inputs");
         }
         for (String key : vInputs.keySet()) {
             if (!vInputsKeys.contains(key)) {
-                throw new IllegalArgumentException("Chiave di Input Non Corretta");
+                throw new IllegalArgumentException("Incorrect Input Key: " + key);
             }
         }
 
@@ -206,9 +209,9 @@ public class BirdBrain {
     }
 
     public boolean think() {
-    	Objects.requireNonNull(mInputs, "Input Non Inizializzati");
+    	Objects.requireNonNull(mInputs, "Inputs Not Initialized");
         if (vmWeights.isEmpty()) {
-            throw new IllegalArgumentException("Pesi Non Inizializzati");
+            throw new IllegalArgumentException("Weights Not Initialized");
         }
 
         Matrix tempWeights;
@@ -268,7 +271,7 @@ public class BirdBrain {
             writer.flush();
 
         } catch (IOException e) {
-            System.err.println("Errore durante la scrittura del file: " + e.getMessage());
+            System.err.println("Error Writing File: " + e.getMessage());
             return false;
         }
         
@@ -322,7 +325,7 @@ public class BirdBrain {
         CompletableFuture.supplyAsync(() -> saveToFile(file, true))
             .thenAccept(callback)
             .exceptionally(throwable -> {
-                System.err.println("Errore nel salvataggio asincrono: " + throwable.getMessage());
+                System.err.println("Error in Asynchronous Save: " + throwable.getMessage());
                 callback.accept(false);
                 return null;
             });
@@ -334,7 +337,7 @@ public class BirdBrain {
             try {
                 return loadFromFile(file);
             } catch (IOException e) {
-                System.err.println("Errore nel caricamento asincrono: " + e.getMessage());
+                System.err.println("Error in Asynchronous Load: " + e.getMessage());
                 return null;
             }
         }).thenAccept(callback);

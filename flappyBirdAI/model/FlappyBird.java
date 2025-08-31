@@ -66,7 +66,7 @@ public class FlappyBird extends AbstractGameObject {
 				isImageFound = true;
 			} catch(IOException e) {
 				isImageFound = false;
-            	System.err.println("FlappyBird Image Not Found");
+            	System.err.println("FB Image Not Found");
 			}
 		}
 	}
