@@ -7,6 +7,7 @@ package flappyBirdAI.model;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
+import java.util.Objects;
 
 public class AbstractGameObject implements GameObject {
 	public static final String IMG_EXT= ".png";
@@ -33,9 +34,12 @@ public class AbstractGameObject implements GameObject {
 	
 	@Override
 	public boolean checkCollision(Rectangle[] vHitBox) {
+		vHitBox = Objects.requireNonNull(vHitBox, "HitBox Array Cannot be Null");
+		
 		boolean collision = false;
 
         for (Rectangle box : vHitBox) {
+        	Objects.requireNonNull(box, "Individual HitBox Cannot be Null");
             if (hitBox.intersects(box)) {
                 collision = true;
                 break;
