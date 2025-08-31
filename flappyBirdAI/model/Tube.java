@@ -10,11 +10,13 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class Tube extends AbstractGameObject {
-	public static final int distXBetweenTubes = 750, distYBetweenTubes = 180;
-    public static final int width = 50;
+	public static final int DIST_X_BETWEEN_TUBES = 750, DIST_Y_BETWEEN_TUBES = 180;
+    public static final int WIDTH = 50;
+    
     public static int lastID = 0;
 
     public final boolean isSuperior;
+    
     private final int id;
     private final double vx = 250;
 
@@ -26,7 +28,7 @@ public class Tube extends AbstractGameObject {
         nImages = 2;
         x = x0;
         y = y0;
-		w = Tube.width;
+		w = Tube.WIDTH;
 		h = height;
 
         updateHitBox();

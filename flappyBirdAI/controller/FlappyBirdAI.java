@@ -11,8 +11,7 @@ import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
-//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull
-//TODO: impostare w e h min di ogni pannello, javadocs, sfondo con nuvole, update label migliore
+//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull, javadocs e organizzazione metodi, sfondo con nuvole, update label migliore, StringJoiner per toString, migliori interfacce con più metodi, thorows
 
 public class FlappyBirdAI {
 
@@ -38,7 +37,7 @@ public class FlappyBirdAI {
 		int startY;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			startY = gameController.getGameHeight() / 2 - FlappyBird.height / 2;
+			startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 			vBirds.add(new FlappyBird(20, startY, new BirdBrain()));
 		}
 		
@@ -50,7 +49,7 @@ public class FlappyBirdAI {
 		int startY;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			startY = gameController.getGameHeight() / 2 - FlappyBird.height / 2;
+			startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 			vBirds.add(new FlappyBird(20, startY, bestBirdBrain));
 			((FlappyBird) vBirds.get(i)).brain.updateWeights();
 		}

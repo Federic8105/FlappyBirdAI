@@ -32,32 +32,32 @@ public class BirdBrain implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	
-	public static final List<String> vInputsKeys = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
-    public static final int nInputs = vInputsKeys.size();
+	public static final List<String> V_INPUT_KEYS = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
+    public static final int NUM_INPUT = V_INPUT_KEYS.size();
 
-    private static final List<Integer> vNeurons = new ArrayList<>(List.of(4, 4, 1));
-    private static final int nLayers = vNeurons.size();
+    private static final List<Integer> V_NEURONS = new ArrayList<>(List.of(4, 4, 1));
+    private static final int NUM_LAYERS = V_NEURONS.size();
 
-    private static final int maxValue = 1, minValue = -1;
-    private static final double updateWeightABSValue = 0.0001;
+    private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
+    private static final double WEIGHT_UPDATE_STEP = 0.0001;
     
     private static BirdBrain fromJsonObject(JsonObject brainJson) {
 	    // Validazione parametri del cervello
 	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
-	    if (jsonNInputs != nInputs) {
-	        throw new IllegalArgumentException("Incompatible Input Size: Expected " + nInputs + ", Found " + jsonNInputs);
+	    if (jsonNInputs != NUM_INPUT) {
+	        throw new IllegalArgumentException("Incompatible Input Size: Expected " + NUM_INPUT + ", Found " + jsonNInputs);
 	    }
 	    
 	    Gson gson = new Gson();
 	    Type typeStringList = new TypeToken<List<String>>() {}.getType();
 	    List<String> jsonInputKeys = gson.fromJson(brainJson.get("inputKeys"), typeStringList);
-	    if (!jsonInputKeys.equals(vInputsKeys)) {
+	    if (!jsonInputKeys.equals(V_INPUT_KEYS)) {
 	        throw new IllegalArgumentException("Incompatible Input Keys");
 	    }
 	    
 	    Type typeIntegerList = new TypeToken<List<Integer>>() {}.getType();
 	    List<Integer> jsonNNeurons = gson.fromJson(brainJson.get("nNeurons"), typeIntegerList);
-	    if (!jsonNNeurons.equals(vNeurons)) {
+	    if (!jsonNNeurons.equals(V_NEURONS)) {
 	        throw new IllegalArgumentException("Incompatible Neural Network Structure");
 	    }
 	    
@@ -146,11 +146,11 @@ public class BirdBrain implements Serializable {
     }
 
     public void setInputs(Map<String, Double> vInputs) {
-        if (vInputs.size() != nInputs) {
+        if (vInputs.size() != NUM_INPUT) {
             throw new IllegalArgumentException("Incorrect Number of Inputs");
         }
         for (String key : vInputs.keySet()) {
-            if (!vInputsKeys.contains(key)) {
+            if (!V_INPUT_KEYS.contains(key)) {
                 throw new IllegalArgumentException("Incorrect Input Key: " + key);
             }
         }
@@ -171,13 +171,13 @@ public class BirdBrain implements Serializable {
         Random rand = new Random();
 
         // Creazione Lista di Matrici dei Pesi
-        for (int i = 0; i < nLayers; ++i) {
-            int nRows = vNeurons.get(i);
-            int nCols = i > 0 ? vNeurons.get(i - 1) : nInputs;
+        for (int i = 0; i < NUM_LAYERS; ++i) {
+            int nRows = V_NEURONS.get(i);
+            int nCols = i > 0 ? V_NEURONS.get(i - 1) : NUM_INPUT;
             vmWeights.add(new Matrix(nRows, nCols));
             for (int j = 0; j < vmWeights.get(i).getNRows(); ++j) {
                 for (int k = 0; k < vmWeights.get(i).getNCols(); ++k) {
-                    vmWeights.get(i).set(j, k, minValue + (maxValue - minValue) * rand.nextDouble());
+                    vmWeights.get(i).set(j, k, WEIGHT_MIN_VALUE + (WEIGHT_MAX_VALUE - WEIGHT_MIN_VALUE) * rand.nextDouble());
                 }
             }
         }
@@ -193,12 +193,12 @@ public class BirdBrain implements Serializable {
                 for (int k = 0; k < mWeight.getNCols(); ++k) {
 
                     if (rand.nextInt(0, 1 + 1) == 1) {
-                        updateWeightValue = -updateWeightABSValue;
+                        updateWeightValue = -WEIGHT_UPDATE_STEP;
                     } else {
-                        updateWeightValue = updateWeightABSValue;
+                        updateWeightValue = WEIGHT_UPDATE_STEP;
                     }
 
-                    if (mWeight.get(j, k) + updateWeightValue > maxValue || mWeight.get(j, k) + updateWeightValue < minValue) {
+                    if (mWeight.get(j, k) + updateWeightValue > WEIGHT_MAX_VALUE || mWeight.get(j, k) + updateWeightValue < WEIGHT_MIN_VALUE) {
                         updateWeightValue = -updateWeightValue;
                     }
 
@@ -214,21 +214,12 @@ public class BirdBrain implements Serializable {
             throw new IllegalArgumentException("Weights Not Initialized");
         }
 
-        Matrix tempWeights;
-        Matrix tempInputs = mInputs;
-        Matrix tempResult = null;
+        Matrix tempInputs = mInputs, tempResult = null;
 
-        for (int i = 0; i < nLayers; ++i) {
-            tempWeights = vmWeights.get(i);
-
-            tempResult = tempWeights.multiply(tempInputs);
-            for (int j = 0; j < tempResult.getNRows(); ++j) {
-                tempResult.set(j, 0, sigmoid(tempResult.get(j, 0)));
-            }
-
-            if (i < nLayers - 1) {
-                tempInputs = tempResult;
-            }
+        for (int i = 0; i < NUM_LAYERS; ++i) {
+        	tempResult = vmWeights.get(i).multiply(tempInputs);
+            tempResult = tempResult.applyFunction(this::sigmoid);
+            tempInputs = tempResult;
         }
 
         return tempResult.get(0, 0) > 0.5;
@@ -238,13 +229,13 @@ public class BirdBrain implements Serializable {
         Gson gson = new Gson();
         JsonObject brainJson = new JsonObject();
         
-        brainJson.addProperty("nInputs", nInputs);
-        brainJson.add("inputKeys", gson.toJsonTree(vInputsKeys));
-        brainJson.add("nNeurons", gson.toJsonTree(vNeurons));
-        brainJson.addProperty("nLayers", nLayers);
-        brainJson.addProperty("maxValue", maxValue);
-        brainJson.addProperty("minValue", minValue);
-        brainJson.addProperty("updateWeightABSValue", updateWeightABSValue);
+        brainJson.addProperty("nInputs", NUM_INPUT);
+        brainJson.add("inputKeys", gson.toJsonTree(V_INPUT_KEYS));
+        brainJson.add("nNeurons", gson.toJsonTree(V_NEURONS));
+        brainJson.addProperty("nLayers", NUM_LAYERS);
+        brainJson.addProperty("maxValue", WEIGHT_MAX_VALUE);
+        brainJson.addProperty("minValue", WEIGHT_MIN_VALUE);
+        brainJson.addProperty("updateWeightABSValue", WEIGHT_UPDATE_STEP);
         
         JsonArray weightsArray = new JsonArray();
         for (Matrix m : vmWeights) {

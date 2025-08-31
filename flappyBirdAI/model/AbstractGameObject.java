@@ -10,6 +10,7 @@ import java.awt.Rectangle;
 
 public class AbstractGameObject implements GameObject {
 	public static final String IMG_EXT= ".png";
+	
 	public int x, y, w, h, iFrames = 0, nImages;
 	public boolean isAlive = true;
 	protected boolean showImage = true, isImageFound = false;

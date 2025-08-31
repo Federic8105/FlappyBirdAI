@@ -25,7 +25,7 @@ import java.awt.Rectangle;
 
 public class GameController {
 	
-	public static final int SLIDER_HEIGHT = 150, STATS_HEIGHT = 40, MAX_FPS = 80;
+	public static final int MAX_FPS = 80;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
@@ -39,14 +39,13 @@ public class GameController {
     private final List<AbstractGameObject> vGameObj = new ArrayList<>();
     private final int sleepMs = Math.round(1000 / (float) MAX_FPS), tubeHoleOffsetAbsValue = 180;
     
-    // Game State
+    // Game Engine Variables
     private BirdBrain bestBirdBrain;
-    private int nBirds = 0, nGen = 1, nTubePassed = 0, nMaxTubePassed = 0, autoSaveThreshold = 50;
-    private double dtMultiplier = 1.0, bestLifeTime = 0;
-    private boolean isGameRunning = false, isAutoSaveEnabled = true;
+    private double dtMultiplier = 1.0;
+    private boolean isGameRunning = false;
     
     // Game Statistics
-    private GameStats currentGameStats = new GameStats();
+    private GameStats gameStats = new GameStats();
 
 	public GameController(GameView gameView) {
 		this.gameView = gameView;
@@ -58,8 +57,7 @@ public class GameController {
 	
 	public void addBirds(List<AbstractGameObject> vBirds) {
 		vGameObj.addAll((Collection<AbstractGameObject>) vBirds);
-		nBirds += vBirds.size();
-		updateGameStats();
+		gameStats.nBirds += vBirds.size();
 	}
 	
 	public void startMotion() {
@@ -82,7 +80,7 @@ public class GameController {
 			// Ottenere Primo Tube Superiore a Destra
 			Tube firstTopTube = getFirstTopTube(randBird);
 			if (firstTopTube != null && !firstTopTube.equals(previousFirstTopTube)) {
-				++nTubePassed;
+				++gameStats.nTubePassed;
 			}
 			previousFirstTopTube = firstTopTube;
 
@@ -101,12 +99,11 @@ public class GameController {
 			deleteDeadObjects();
 			
 			// Aggiornare Statistiche e UI
-			currentGameStats.fps = (int) (1 / dt * dtMultiplier);
-			updateGameStats();
+			gameStats.fps = (int) (1 / dt * dtMultiplier);
 			
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
-            gameView.updateDisplay(currentGameStats, new ArrayList<>(vGameObj));
+            gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
 
 			try {
 				Thread.sleep(sleepMs);
@@ -114,10 +111,10 @@ public class GameController {
 				throw new RuntimeException(e);
 			}
 
-        } while (nBirds > 0 && isGameRunning);
+        } while (gameStats.nBirds > 0 && isGameRunning);
 
-		if (nTubePassed > nMaxTubePassed) {
-			nMaxTubePassed = nTubePassed;
+		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
+			gameStats.nMaxTubePassed = gameStats. nTubePassed;
 		}
 		
 		nextGeneration();
@@ -134,16 +131,16 @@ public class GameController {
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
                 
             	// Controllo Collisioni
-                if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + FlappyBird.height < 0 || currBird.y > getGameHeight()) {
+                if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + FlappyBird.HEIGHT < 0 || currBird.y > getGameHeight()) {
                     
                     // Nuovo Record
-                    if (currBird.lifeTime > bestLifeTime) {
-                        bestLifeTime = currBird.lifeTime;
+                    if (currBird.lifeTime > gameStats.bestLifeTime) {
+                    	gameStats.bestLifeTime = currBird.lifeTime;
                         bestBirdBrain = currBird.brain;
                     }
                     
                     currBird.isAlive = false;
-                    --nBirds;
+                    --gameStats.nBirds;
                     continue;
                     
                 // AI Decision
@@ -153,7 +150,7 @@ public class GameController {
                         {
                             put("yBird", (double) currBird.y);
                             put("vyBird", currBird.vy);
-                            put("yCenterTubeHole", (double) (firstTopTube.h + Tube.distYBetweenTubes / 2));
+                            put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
                             put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
                         }
                     });
@@ -213,7 +210,7 @@ public class GameController {
             }
         }
 
-		if (lastTube != null && lastTube.x + Tube.width <= gameView.getGameWidth() - Tube.distXBetweenTubes) {
+		if (lastTube != null && lastTube.x + Tube.WIDTH <= gameView.getGameWidth() - Tube.DIST_X_BETWEEN_TUBES) {
 			newTubes();
 		} else if (lastTube == null) {
 			newTubes();
@@ -223,17 +220,17 @@ public class GameController {
 	private void newTubes() {
 		int tubeHoleOffset = rand.nextInt(-tubeHoleOffsetAbsValue, tubeHoleOffsetAbsValue + 1);
 		int yTubeHoleCenter = (getGameHeight() / 2) + tubeHoleOffset;
-		int upperTubeHeight = yTubeHoleCenter - Tube.distYBetweenTubes / 2;
+		int upperTubeHeight = yTubeHoleCenter - Tube.DIST_Y_BETWEEN_TUBES / 2;
 
 		vGameObj.add(new Tube(gameView.getGameWidth(), 0, upperTubeHeight, true));
-		vGameObj.add(new Tube(gameView.getGameWidth(), upperTubeHeight + Tube.distYBetweenTubes, getGameHeight() - upperTubeHeight - Tube.distYBetweenTubes, false));
+		vGameObj.add(new Tube(gameView.getGameWidth(), upperTubeHeight + Tube.DIST_Y_BETWEEN_TUBES, getGameHeight() - upperTubeHeight - Tube.DIST_Y_BETWEEN_TUBES, false));
 	}
 	
 	private void nextGeneration() {
-        ++nGen;
+        ++gameStats.nGen;
         
         // Salvataggio automatico
-        if (isAutoSaveEnabled && bestBirdBrain != null && nGen % autoSaveThreshold == 0) {
+        if (gameStats.isAutoSaveEnabled && bestBirdBrain != null && gameStats.nGen % gameStats.autoSaveThreshold == 0) {
         	// Creare la DIR Se Non Esiste
             try {
                 Files.createDirectories(AUTOSAVE_DIR);
@@ -256,47 +253,36 @@ public class GameController {
 
 	public void reset() {
 		isGameRunning = false;
-		nBirds = 0;
-		nTubePassed = 0;
+		gameStats.nBirds = 0;
+		gameStats.nTubePassed = 0;
 		vGameObj.clear();
 		newTubes();
-		updateGameStats();
 	}
 	
 	public void resetToFirstGeneration() {
 		isGameRunning = false;
-		nBirds = 0;
-		nTubePassed = 0;
 		vGameObj.clear();
-		
-		nGen = 1;
-		bestLifeTime = 0;
-		nMaxTubePassed = 0;
 		bestBirdBrain = null;
+		
+		gameStats.nBirds = 0;
+		gameStats.nTubePassed = 0;
+		gameStats.nGen = 1;
+		gameStats.bestLifeTime = 0;
+		gameStats.nMaxTubePassed = 0;
+		
 		newTubes();
-		updateGameStats();
 	}
-	
-	private void updateGameStats() {
-        currentGameStats.nBirds = nBirds;
-        currentGameStats.nGen = nGen;
-        currentGameStats.bestLifeTime = bestLifeTime;
-        currentGameStats.nTubePassed = nTubePassed;
-        currentGameStats.nMaxTubePassed = nMaxTubePassed;
-        currentGameStats.autoSaveThreshold = autoSaveThreshold;
-        currentGameStats.isAutoSaveEnabled = isAutoSaveEnabled;
-    }
 	
 	// Import/Export Methods
 	
 	private String generateAutoSaveFileName() {
 	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, nGen, nMaxTubePassed, timestamp);
+	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.nMaxTubePassed, timestamp);
 	}
 	
 	public String generateManualSaveFileName() {
 	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, nGen, nMaxTubePassed, timestamp);
+	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.nMaxTubePassed, timestamp);
 	}
 	
 	public boolean saveBestBrain(Path file) {
@@ -356,22 +342,21 @@ public class GameController {
     }
     
     public void toggleAutoSave() {
-    	isAutoSaveEnabled = !isAutoSaveEnabled;
-        currentGameStats.isAutoSaveEnabled = isAutoSaveEnabled;
+    	gameStats.isAutoSaveEnabled = !gameStats.isAutoSaveEnabled;
     }
     
     public void setAutoSaveThreshold(int threshold) {
         if (threshold > 0) {
-            this.autoSaveThreshold = threshold;
+        	gameStats.autoSaveThreshold = threshold;
         }
     }
     
     public boolean isAutoSaveEnabled() {
-        return isAutoSaveEnabled;
+        return gameStats.isAutoSaveEnabled;
     }
     
     public int getAutoSaveThreshold() {
-        return autoSaveThreshold;
+        return gameStats.autoSaveThreshold;
     }
     
     public void stopGame() {
@@ -379,7 +364,7 @@ public class GameController {
     }
     
     public GameStats getCurrentStats() {
-        return currentGameStats;
+        return gameStats;
     }
     
 }

@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class FlappyBird extends AbstractGameObject {
-	public static final int width = 60, height = 45;
+	public static final int WIDTH = 60, HEIGHT = 45;
 
 	public final double gravity = 700, jumpForce = 300;
     public final int tDelayAnimation = 150;
@@ -24,8 +24,8 @@ public class FlappyBird extends AbstractGameObject {
         nImages = 4;
         x = x0;
 		y = y0;
-		w = FlappyBird.width;
-		h = FlappyBird.height;
+		w = FlappyBird.WIDTH;
+		h = FlappyBird.HEIGHT;
 		this.brain = brain;
 
 		updateHitBox();

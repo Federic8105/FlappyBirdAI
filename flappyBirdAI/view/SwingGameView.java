@@ -23,8 +23,22 @@ public class SwingGameView extends JFrame implements GameView {
 
 	private static final long serialVersionUID = 1L;
 	
+	// Window and UI Constants
+	
 	private static final String WINDOW_TITLE = "Flappy Bird AI";
     private static final String ICON_PATH = "/res/FB_ICON.png";
+    
+    // Panel Minimum Dimensions Constants
+    public static final int MIN_STATS_PANEL_HEIGHT = 40;
+    public static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
+    public static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
+    public static final int MAX_IMPORT_EXPORT_PANEL_WIDTH = 400;
+    public static final int MIN_GAME_PANEL_WIDTH = 850;
+    public static final int MIN_GAME_PANEL_HEIGHT = 500;
+    public static final int MIN_WINDOW_WIDTH = MIN_GAME_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
+    public static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
+    
+    // Colors
     private static final Color GAME_BACKGROUND = Color.CYAN;
     private static final Color STATS_BACKGROUND = Color.DARK_GRAY;
     private static final Color CONTROLS_BACKGROUND = Color.decode("#800020");
@@ -38,8 +52,8 @@ public class SwingGameView extends JFrame implements GameView {
         return fileChooser;
     }
 
-    // Window Dimensions
-	private final int width, height;
+    // Initial Window Dimensions
+	private final int initialWidth, initialHeight;
 	
 	// Controller Reference
 	GameController gameController;
@@ -63,8 +77,8 @@ public class SwingGameView extends JFrame implements GameView {
 	private JLabel lAutoSaveThreshold;
 
 	public SwingGameView(int width, int height) {
-		this.width = width;
-		this.height = height;
+		this.initialWidth = Math.max(width, MIN_WINDOW_WIDTH);
+		this.initialHeight = Math.max(height, MIN_WINDOW_HEIGHT);
 		
 		initWindow();
 		initPanels();
@@ -73,7 +87,8 @@ public class SwingGameView extends JFrame implements GameView {
 	}
 	
 	private void initWindow() {
-		setSize(width, height);
+		setSize(initialWidth, initialHeight);
+		setMinimumSize(new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
         setTitle(WINDOW_TITLE);
         setIconImage(new ImageIcon(getClass().getResource(ICON_PATH)).getImage());
         getContentPane().setBackground(Color.WHITE);
@@ -87,7 +102,7 @@ public class SwingGameView extends JFrame implements GameView {
 		initImportExportPanel();
 		
 		JPanel centralPanel = new JPanel(new BorderLayout());
-		centralPanel.setPreferredSize(new Dimension(width, height));
+		centralPanel.setPreferredSize(new Dimension(initialWidth, initialHeight));
 		
 		initGamePanel();
 		initStatsPanel();
@@ -110,8 +125,9 @@ public class SwingGameView extends JFrame implements GameView {
 		
 		// Calcolare la larghezza come percentuale della larghezza totale
 	    int panelWidth = calcImportExportPanelWidth(0.2f);
-	    importExportPanel.setPreferredSize(new Dimension(panelWidth, height));
-		
+	    importExportPanel.setPreferredSize(new Dimension(panelWidth, initialHeight));
+	    importExportPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, initialHeight));
+	    
 		// Titolo del Pannello
 		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Bird Brain Import/Export");
 		importExportTitle.setTitleJustification(TitledBorder.CENTER);
@@ -127,11 +143,11 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	private int calcImportExportPanelWidth(float percOfTotWidth) {
 	    // Calcolare la larghezza come percentuale della larghezza totale
-		int panelWidth = (int) (width * percOfTotWidth);
+		int panelWidth = (int) (initialWidth * percOfTotWidth);
 	    // Controllo Width Min
-	    panelWidth = Math.max(panelWidth, 250);
+	    panelWidth = Math.max(panelWidth, MIN_IMPORT_EXPORT_PANEL_WIDTH);
 	    // Controllo Width Max
-	    panelWidth = Math.min(panelWidth, 400);
+	    panelWidth = Math.min(panelWidth, MAX_IMPORT_EXPORT_PANEL_WIDTH);
         return panelWidth;
     }
 	
@@ -158,8 +174,11 @@ public class SwingGameView extends JFrame implements GameView {
         gamePanel.setBackground(GAME_BACKGROUND);
         
         // Calcolare l'altezza disponibile: altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (GameController.SLIDER_HEIGHT)
-        int availableHeight = height - GameController.STATS_HEIGHT - GameController.SLIDER_HEIGHT;
-        gamePanel.setPreferredSize(new Dimension(width, availableHeight));
+        int availableHeight = Math.max(initialHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
+        int availableWidth = Math.max(initialWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
+        
+        gamePanel.setPreferredSize(new Dimension(availableWidth, availableHeight));
+        gamePanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_GAME_PANEL_HEIGHT));
         
         add(gamePanel, BorderLayout.CENTER);
     }
@@ -168,7 +187,8 @@ public class SwingGameView extends JFrame implements GameView {
 		statsPanel = new JPanel();
 		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
 		statsPanel.setBackground(STATS_BACKGROUND);
-		statsPanel.setPreferredSize(new Dimension(width, GameController.STATS_HEIGHT));
+		statsPanel.setPreferredSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
+		statsPanel.setMinimumSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
 		
 		initStatsUI();
 		
@@ -178,7 +198,8 @@ public class SwingGameView extends JFrame implements GameView {
 	private void initControlsPanel() {
 		controlsPanel = new JPanel(new BorderLayout());
 		controlsPanel.setBackground(CONTROLS_BACKGROUND);
-		controlsPanel.setPreferredSize(new Dimension(width, GameController.SLIDER_HEIGHT));
+		controlsPanel.setPreferredSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
+		controlsPanel.setMinimumSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
 		
 		initControlsUI();
 		
@@ -250,6 +271,7 @@ public class SwingGameView extends JFrame implements GameView {
         button.setBackground(backgroundColor);
         button.setForeground(Color.BLACK);
         button.setFont(new Font("Arial", Font.BOLD, 12));
+        button.setFocusPainted(false);
         return button;
     }
 	
@@ -362,7 +384,7 @@ public class SwingGameView extends JFrame implements GameView {
 	        
 	    } catch (NumberFormatException e) {
 	        // Forza il ripristino del valore corretto
-	        int validValue = gameController != null ? gameController.getAutoSaveThreshold() : 50;
+	        int validValue = gameController != null ? gameController.getAutoSaveThreshold() : GameStats.DEFAULT_AUTOSAVE_THRESHOLD;
 	        autoSaveThresholdSpinner.setValue(validValue);
 	        
 	        // Forza l'aggiornamento del display
@@ -441,7 +463,12 @@ public class SwingGameView extends JFrame implements GameView {
     
     @Override
     public int getGameWidth() {
-        return width;
+    	// Ritornare la larghezza effettiva del pannello di gioco se è già inizializzato
+	    if (gamePanel != null) {
+	        return gamePanel.getWidth();
+	    }
+	    
+	    return Math.max(initialWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
     }
     
     @Override
@@ -453,7 +480,7 @@ public class SwingGameView extends JFrame implements GameView {
         
         // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
         // altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (SLIDER_HEIGHT)
-        return height - GameController.STATS_HEIGHT - GameController.SLIDER_HEIGHT;
+        return Math.max(initialHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
     }
     
     @Override
