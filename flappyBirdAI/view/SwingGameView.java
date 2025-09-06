@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -433,8 +434,11 @@ public class SwingGameView extends JFrame implements GameView {
     }
 	
 	@Override
-    public void updateDisplay(GameStats stats, List<AbstractGameObject> vGameObj) {
-        // Aggiorna UI Thread-Safe
+    public void updateDisplay(GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
+		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
+		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
+				
+		// Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
             this.currentVGameObj = vGameObj;
@@ -461,9 +465,9 @@ public class SwingGameView extends JFrame implements GameView {
 	}
 	
 	@Override
-    public void showAutoSaveMessage(String message) {
+    public void showAutoSaveMessage(String msg) {
         SwingUtilities.invokeLater(() -> {
-            lAutoSave.setText(message);
+            lAutoSave.setText(msg);
             
             if (autoSaveMessageTimer != null) {
                 autoSaveMessageTimer.stop();
@@ -515,8 +519,8 @@ public class SwingGameView extends JFrame implements GameView {
 class SaveBrainListener implements ActionListener {
 	private final SwingGameView parentView;
 	
-	public SaveBrainListener(SwingGameView parentView) {
-		this.parentView = parentView;
+	public SaveBrainListener(SwingGameView parentView) throws NullPointerException {
+		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
 	}
 	
 	@Override
@@ -556,8 +560,8 @@ class SaveBrainListener implements ActionListener {
 class LoadBrainListener implements ActionListener {
 	private final SwingGameView parentView;
 	
-	public LoadBrainListener(SwingGameView parentView) {
-		this.parentView = parentView;
+	public LoadBrainListener(SwingGameView parentView) throws NullPointerException {
+		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
 	}
 	
 	@Override
@@ -588,8 +592,8 @@ class LoadBrainListener implements ActionListener {
 class ToggleAutoSaveListener implements ActionListener {
 	private final SwingGameView parentView;
 	
-	public ToggleAutoSaveListener(SwingGameView parentView) {
-		this.parentView = parentView;
+	public ToggleAutoSaveListener(SwingGameView parentView) throws NullPointerException {
+		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
 	}
 	
 	@Override

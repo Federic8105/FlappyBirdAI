@@ -48,15 +48,17 @@ public class GameController {
     // Game Statistics
     private GameStats gameStats = new GameStats();
 
-	public GameController(GameView gameView) {
-		this.gameView = gameView;
-		this.gameView.setController(this);
+	public GameController(GameView gameView) throws NullPointerException {
+		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
+		gameView.setController(this);
         newTubes();
 	}
 	
 	// Game Logic Methods
 	
-	public void addBirds(List<AbstractGameObject> vBirds) {
+	public void addBirds(List<AbstractGameObject> vBirds) throws NullPointerException {
+		Objects.requireNonNull(vBirds, "Birds List Cannot be Null");
+		
 		vGameObj.addAll((Collection<AbstractGameObject>) vBirds);
 		gameStats.nBirds += vBirds.size();
 	}
@@ -297,13 +299,12 @@ public class GameController {
 		bestBirdBrain.saveToFile(file);
 	}
 	
-	public void loadBrain(String filePath) throws IOException, IllegalArgumentException {
+	public void loadBrain(String filePath) throws NullPointerException, IOException, IllegalArgumentException {
+		Objects.requireNonNull(filePath, "File Path Cannot be Null");
+		
 		try {
-			BirdBrain loadedBrain = BirdBrain.loadFromFile(Path.of(filePath));
-			if (loadedBrain != null) {
-				bestBirdBrain = loadedBrain;
-				resetToFirstGeneration();
-			}
+			bestBirdBrain = BirdBrain.loadFromFile(Path.of(filePath));
+			resetToFirstGeneration();
 		} catch (IOException e) {
 			throw e;
 		}
@@ -325,7 +326,7 @@ public class GameController {
 	}
 	
 	public void setDtMultiplier(double multiplier) {
-        this.dtMultiplier = multiplier;
+        dtMultiplier = multiplier;
     }
     
     public double getDtMultiplier() {
@@ -337,7 +338,7 @@ public class GameController {
     }
     
     public void setBestBirdBrain(BirdBrain brain) {
-        this.bestBirdBrain = brain;
+        bestBirdBrain = brain;
     }
     
     public void toggleAutoSave() {

@@ -19,14 +19,14 @@ public class FlappyBird extends AbstractGameObject {
 
 	public double lifeTime = 0, vy = 0;
 
-	public FlappyBird(int x0, int y0, BirdBrain brain) {
+	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
+		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
 		imgName = "/res/FB";
         nImages = 4;
         x = x0;
 		y = y0;
 		w = FlappyBird.WIDTH;
 		h = FlappyBird.HEIGHT;
-		this.brain = brain;
 
 		updateHitBox();
 

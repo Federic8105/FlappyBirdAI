@@ -11,7 +11,7 @@ import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
-//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, uso requireNonNull, javadocs e organizzazione metodi, update label migliore, StringJoiner per toString, migliori interfacce con più metodi, controllo System
+//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, update label migliore, StringJoiner per toString, migliori interfacce con più metodi, controllo System
 
 public class FlappyBirdAI {
 

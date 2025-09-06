@@ -41,7 +41,9 @@ public class BirdBrain implements Serializable {
     private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
     private static final double WEIGHT_UPDATE_STEP = 0.0001;
     
-    private static BirdBrain fromJsonObject(JsonObject brainJson) throws IllegalArgumentException {
+    private static BirdBrain fromJsonObject(JsonObject brainJson) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(brainJson, "JSON Object Cannot be Null");
+    	
 	    // Validazione parametri del cervello
 	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
 	    if (jsonNInputs != NUM_INPUT) {
@@ -89,13 +91,8 @@ public class BirdBrain implements Serializable {
 	    }
 	    
 	    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-	    	Gson gson = new Gson();
-	    	
-	    	JsonObject brainJson = gson.fromJson(reader, JsonObject.class);
-	    	brainJson = Objects.requireNonNull(brainJson, "JSON Object Cannot be Null or Empty");
-	    	
-	    	return fromJsonObject(brainJson);
-	    	
+	    	return fromJsonObject(new Gson().fromJson(reader, JsonObject.class));
+	    
 	    } catch (JsonSyntaxException e) {
 	        throw new IllegalArgumentException("Invalid JSON in File: " + e.getMessage(), e);
 	    } catch (IOException e) {
@@ -111,7 +108,7 @@ public class BirdBrain implements Serializable {
     }
     
     public BirdBrain(BirdBrain otherBrain) throws NullPointerException {
-    	otherBrain = Objects.requireNonNull(otherBrain, "Brain Not Initialized");
+    	Objects.requireNonNull(otherBrain, "Brain Not Initialized");
 
     	for (Matrix otherMatrix : otherBrain.vmWeights) {
             Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
@@ -145,10 +142,12 @@ public class BirdBrain implements Serializable {
         return 1 / (1 + Math.exp(-x));
     }
 
-    public void setInputs(Map<String, Double> vInputs) throws IllegalArgumentException {
-        if (vInputs.size() != NUM_INPUT) {
+    public void setInputs(Map<String, Double> vInputs) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(vInputs, "Inputs Map Cannot be Null");
+    	if (vInputs.size() != NUM_INPUT) {
             throw new IllegalArgumentException("Incorrect Number of Inputs");
         }
+    	
         for (String key : vInputs.keySet()) {
             if (!V_INPUT_KEYS.contains(key)) {
                 throw new IllegalArgumentException("Incorrect Input Key: " + key);

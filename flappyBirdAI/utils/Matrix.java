@@ -56,7 +56,7 @@ public class Matrix implements Serializable {
     }
 
 	public static Matrix fromJson(JsonObject jsonMatrix) throws NullPointerException, IllegalArgumentException {
-		jsonMatrix = Objects.requireNonNull(jsonMatrix, "JSON Matrix Object Cannot be Null");
+		Objects.requireNonNull(jsonMatrix, "JSON Matrix Object Cannot be Null");
 		
 		if (!jsonMatrix.isJsonObject()) {
 			throw new IllegalArgumentException("Invalid JSON: Expected a JSON Object");
@@ -96,9 +96,9 @@ public class Matrix implements Serializable {
 		}
         
         Matrix matrix = new Matrix(nRows, nCols);
-        
+        JsonArray jsonRow;
         for (int i = 0; i < nRows; ++i) {
-            JsonArray jsonRow = jsonData.get(i).getAsJsonArray();
+            jsonRow = jsonData.get(i).getAsJsonArray();
             try {
                 jsonRow = jsonData.get(i).getAsJsonArray();
             } catch (Exception e) {
@@ -134,16 +134,20 @@ public class Matrix implements Serializable {
         data = new double[nRows][nCols];
     }
     
-    public boolean checkDimensions(Matrix otherMatrix) {
-        if (this.getNRows() == otherMatrix.getNRows() && this.getNCols() == otherMatrix.getNCols()) {
+    public boolean checkDimensions(Matrix otherMatrix) throws NullPointerException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
+    	if (this.getNRows() == otherMatrix.getNRows() && this.getNCols() == otherMatrix.getNCols()) {
         	return true;
         } else {
             return false;
         }
     }
     
-    public Matrix applyFunction(DoubleUnaryOperator func) {
-        Matrix mResult = new Matrix(getNRows(), getNCols());
+    public Matrix applyFunction(DoubleUnaryOperator func) throws NullPointerException {
+    	Objects.requireNonNull(func, "Function Cannot be Null");
+    	
+    	Matrix mResult = new Matrix(getNRows(), getNCols());
         for (int i = 0; i < getNRows(); ++i) {
             for (int j = 0; j < getNCols(); ++j) {
             	mResult.set(i, j, func.applyAsDouble(this.get(i, j)));
@@ -166,8 +170,10 @@ public class Matrix implements Serializable {
         return mResult;
     }
 
-    public Matrix multiply(Matrix otherMatrix) throws IllegalArgumentException {
-        if (this.getNCols() != otherMatrix.getNRows()) {
+    public Matrix multiply(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
+    	if (this.getNCols() != otherMatrix.getNRows()) {
             throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Multiplication");
         }
 
@@ -183,7 +189,9 @@ public class Matrix implements Serializable {
         return mResult;
     }
     
-    public Matrix divide(Matrix otherMatrix) throws IllegalArgumentException, ArithmeticException {
+    public Matrix divide(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException, ArithmeticException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Subtraction");
 		}
@@ -202,8 +210,10 @@ public class Matrix implements Serializable {
 		return mResult;
     }
     
-    public Matrix add(Matrix otherMatrix) throws IllegalArgumentException {
-		if (!checkDimensions(otherMatrix)) {
+    public Matrix add(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
+    	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Addition");
 		}
 
@@ -217,7 +227,9 @@ public class Matrix implements Serializable {
 		return mResult;
 	}
     
-    public Matrix subtract(Matrix otherMatrix) throws IllegalArgumentException {
+    public Matrix subtract(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Subtraction");
 		}
@@ -234,7 +246,9 @@ public class Matrix implements Serializable {
     
     // Element-wise Operations
     
-    public Matrix elementWiseMultiply(Matrix otherMatrix) throws IllegalArgumentException {
+    public Matrix elementWiseMultiply(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+    	
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Element Wise Multiplication");
 		}
