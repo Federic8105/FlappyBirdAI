@@ -307,27 +307,4 @@ public class BirdBrain implements Serializable {
 		return sb.toString();
 	}
     
-    /*
-    public void saveToFileAsync(Path file, java.util.function.Consumer<Boolean> callback) {
-        CompletableFuture.supplyAsync(() -> saveToFile(file, true))
-            .thenAccept(callback)
-            .exceptionally(throwable -> {
-                System.err.println("Error in Asynchronous Save: " + throwable.getMessage());
-                callback.accept(false);
-                return null;
-            });
-    }
-
-    
-    public static void loadFromFileAsync(Path file, java.util.function.Consumer<BirdBrain> callback) {
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                return loadFromFile(file);
-            } catch (IOException e) {
-                System.err.println("Error in Asynchronous Load: " + e.getMessage());
-                return null;
-            }
-        }).thenAccept(callback);
-    }
-     */
 }

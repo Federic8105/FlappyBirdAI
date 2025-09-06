@@ -132,7 +132,7 @@ public class GameController {
 		
         for (GameObject obj : new ArrayList<>(vGameObj)) {
         	
-        	// Stampa per Debug
+        	// Debug
         	//System.out.println(obj + System.lineSeparator());
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
@@ -251,7 +251,6 @@ public class GameController {
             try {
             	saveBestBrain(fullPath);
                 gameView.showAutoSaveMessage("AUTO-SAVED!");
-                System.out.println("Brain Automatically Saved: " + fullPath);
             } catch (IOException | NullPointerException e) {
                 gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
                 System.err.println("Error in Automatic Brain Save: " + e.getMessage());

@@ -49,7 +49,7 @@ public class Tube extends AbstractGameObject {
             isImageFound = true;
         } catch(IOException e) {
             isImageFound = false;
-            System.err.println("Tube Image Not Found");
+            System.err.println("Tube Image Not Found for Tube ID: " + id);
         }
     }
 
