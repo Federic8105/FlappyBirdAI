@@ -8,12 +8,15 @@ import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.GameObject;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -28,6 +31,7 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	private static final String WINDOW_TITLE = "Flappy Bird AI";
     private static final String ICON_PATH = "/res/FB_ICON.png";
+    private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
     
     // Panel Minimum Dimensions Constants
     public static final int MIN_STATS_PANEL_HEIGHT = 40;
@@ -40,10 +44,10 @@ public class SwingGameView extends JFrame implements GameView {
     public static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
     
     // Colors
-    private static final Color GAME_BACKGROUND = Color.CYAN;
-    private static final Color STATS_BACKGROUND = Color.DARK_GRAY;
-    private static final Color CONTROLS_BACKGROUND = Color.decode("#800020");
-    private static final Color IMPORT_EXPORT_BACKGROUND = Color.LIGHT_GRAY;
+    private static final Color GAME_BACKGROUND_COLOR = Color.CYAN;
+    private static final Color STATS_BACKGROUND_COLOR = Color.DARK_GRAY;
+    private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
+    private static final Color IMPORT_EXPORT_BACKGROUND_COLOR = Color.LIGHT_GRAY;
     
     // Utility Functions
     
@@ -122,7 +126,7 @@ public class SwingGameView extends JFrame implements GameView {
 	private void initImportExportPanel() {
 		importExportPanel = new JPanel();
 		importExportPanel.setLayout(new BoxLayout(importExportPanel, BoxLayout.Y_AXIS));
-		importExportPanel.setBackground(IMPORT_EXPORT_BACKGROUND);
+		importExportPanel.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
 		
 		// Calcolare la larghezza come percentuale della larghezza totale
 	    int panelWidth = calcImportExportPanelWidth(0.2f);
@@ -153,6 +157,8 @@ public class SwingGameView extends JFrame implements GameView {
     }
 	
 	private void initGamePanel() {
+		Image backgroundImg = createGameBackgroundImage();
+		
         gamePanel = new JPanel() {
             private static final long serialVersionUID = 1L;
             
@@ -160,6 +166,11 @@ public class SwingGameView extends JFrame implements GameView {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
+                
+                if (backgroundImg != null) {
+                    // Scalare l'immagine alle dimensioni del pannello
+                    g2d.drawImage(backgroundImg, 0, 0, getWidth(), getHeight(), this);
+                }
 
                 if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
                     for (GameObject obj : currentVGameObj) {
@@ -171,8 +182,8 @@ public class SwingGameView extends JFrame implements GameView {
             }
         };
         
-        
-        gamePanel.setBackground(GAME_BACKGROUND);
+        // Se l'immagine di sfondo non è disponibile, usare un colore di sfondo
+        gamePanel.setBackground(GAME_BACKGROUND_COLOR);
         
         // Calcolare l'altezza disponibile: altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (GameController.SLIDER_HEIGHT)
         int availableHeight = Math.max(initialHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
@@ -184,10 +195,36 @@ public class SwingGameView extends JFrame implements GameView {
         add(gamePanel, BorderLayout.CENTER);
     }
 	
+	private Image createGameBackgroundImage() {
+		Image backgroundImg;
+        try {
+            Image originalImage = ImageIO.read(getClass().getResource(GAME_BACKGROUND_IMAGE_PATH));
+            
+            // Pre-scalare l'immagine alle dimensioni desiderate per ottimizzare il rendering
+            int panelWidth = getGameWidth();
+            int panelHeight = getGameHeight();
+            
+            backgroundImg = originalImage.getScaledInstance(panelWidth, panelHeight, Image.SCALE_SMOOTH);
+            
+            // Convertire a BufferedImage per performance migliori
+            BufferedImage buffered = new BufferedImage(panelWidth, panelHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = buffered.createGraphics();
+            g2d.drawImage(backgroundImg, 0, 0, null);
+            g2d.dispose();
+            backgroundImg = buffered;
+            
+        } catch (IOException e) {
+            System.err.println("Error Loading Game Panel Background Image: " + e.getMessage());
+            backgroundImg = null;
+        }
+        
+        return backgroundImg;
+    }
+	
 	private void initStatsPanel() {
 		statsPanel = new JPanel();
 		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
-		statsPanel.setBackground(STATS_BACKGROUND);
+		statsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		statsPanel.setPreferredSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
 		statsPanel.setMinimumSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
 		
@@ -198,7 +235,7 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	private void initControlsPanel() {
 		controlsPanel = new JPanel(new BorderLayout());
-		controlsPanel.setBackground(CONTROLS_BACKGROUND);
+		controlsPanel.setBackground(CONTROLS_BACKGROUND_COLOR);
 		controlsPanel.setPreferredSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
 		controlsPanel.setMinimumSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
 		
@@ -280,11 +317,11 @@ public class SwingGameView extends JFrame implements GameView {
 		
 		// Statistiche a DX
 		JPanel rightStatsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
-		rightStatsPanel.setBackground(STATS_BACKGROUND);
+		rightStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// Statistiche a SX
 		JPanel leftStatsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-		leftStatsPanel.setBackground(STATS_BACKGROUND);
+		leftStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// FPS Label
         lCurrFPS = createStatsLabel("FPS: 0");
@@ -348,7 +385,7 @@ public class SwingGameView extends JFrame implements GameView {
         sl.setSnapToTicks(true);
 		sl.setMinorTickSpacing(1);
         sl.setMajorTickSpacing(1);
-		sl.setBackground(CONTROLS_BACKGROUND);
+		sl.setBackground(CONTROLS_BACKGROUND_COLOR);
 		sl.addChangeListener(_ -> handleVelocitySliderChange());
 
 		TitledBorder sliderTitle = BorderFactory.createTitledBorder("Velocity Multiplier");
