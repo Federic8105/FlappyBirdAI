@@ -41,7 +41,7 @@ public class BirdBrain implements Serializable {
     private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
     private static final double WEIGHT_UPDATE_STEP = 0.0001;
     
-    private static BirdBrain fromJsonObject(JsonObject brainJson) {
+    private static BirdBrain fromJsonObject(JsonObject brainJson) throws IllegalArgumentException {
 	    // Validazione parametri del cervello
 	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
 	    if (jsonNInputs != NUM_INPUT) {
@@ -74,7 +74,7 @@ public class BirdBrain implements Serializable {
 	    return new BirdBrain(tempBrain);
 	}
 	
-	public static BirdBrain loadFromFile(Path file) throws IOException {
+	public static BirdBrain loadFromFile(Path file) throws IOException, IllegalArgumentException {
 		if (!Files.exists(file)) {
 	        throw new IOException("File Not Found: " + file);
 	    }
@@ -110,7 +110,7 @@ public class BirdBrain implements Serializable {
         setRandomWeights();
     }
     
-    public BirdBrain(BirdBrain otherBrain) {
+    public BirdBrain(BirdBrain otherBrain) throws NullPointerException {
     	otherBrain = Objects.requireNonNull(otherBrain, "Brain Not Initialized");
 
     	for (Matrix otherMatrix : otherBrain.vmWeights) {
@@ -145,7 +145,7 @@ public class BirdBrain implements Serializable {
         return 1 / (1 + Math.exp(-x));
     }
 
-    public void setInputs(Map<String, Double> vInputs) {
+    public void setInputs(Map<String, Double> vInputs) throws IllegalArgumentException {
         if (vInputs.size() != NUM_INPUT) {
             throw new IllegalArgumentException("Incorrect Number of Inputs");
         }
@@ -208,7 +208,7 @@ public class BirdBrain implements Serializable {
         }
     }
 
-    public boolean think() {
+    public boolean think() throws NullPointerException, IllegalArgumentException {
     	Objects.requireNonNull(mInputs, "Inputs Not Initialized");
         if (vmWeights.isEmpty()) {
             throw new IllegalArgumentException("Weights Not Initialized");
@@ -251,7 +251,7 @@ public class BirdBrain implements Serializable {
         return gson.toJson(createJsonObject());
     }
     
-    public boolean saveToFile(Path file) {
+    public void saveToFile(Path file) throws IOException {
     	try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
             
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -262,11 +262,8 @@ public class BirdBrain implements Serializable {
             writer.flush();
 
         } catch (IOException e) {
-            System.err.println("Error Writing File: " + e.getMessage());
-            return false;
+            throw e;
         }
-        
-        return true;
     }
     
     @Override

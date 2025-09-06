@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.Random;
 import java.util.Optional;
 import java.util.List;
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -60,7 +61,7 @@ public class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startMotion() {
+	public void startMotion() throws RuntimeException {
 		isGameRunning = true;
 		List<Rectangle> vTubeHitBox;
 		double dt, time, lastDt = System.nanoTime();
@@ -117,7 +118,11 @@ public class GameController {
 			gameStats.nMaxTubePassed = gameStats. nTubePassed;
 		}
 		
-		nextGeneration();
+		try {
+			nextGeneration();
+		} catch (IOException e) {
+			System.err.println("Error in Next Generation: " + e.getMessage());
+		}
         isGameRunning = false;
 	}
 	
@@ -226,7 +231,7 @@ public class GameController {
 		vGameObj.add(new Tube(gameView.getGameWidth(), upperTubeHeight + Tube.DIST_Y_BETWEEN_TUBES, getGameHeight() - upperTubeHeight - Tube.DIST_Y_BETWEEN_TUBES, false));
 	}
 	
-	private void nextGeneration() {
+	private void nextGeneration() throws IOException {
         ++gameStats.nGen;
         
         // Salvataggio automatico
@@ -235,18 +240,19 @@ public class GameController {
             try {
                 Files.createDirectories(AUTOSAVE_DIR);
             } catch (IOException e) {
-                System.err.println("Error Creating Autosaves Directory: " + e.getMessage());
+            	throw new IOException("Error Creating Autosaves Directory: " + e.getMessage(), e);
             }
         	
             String fileName = generateAutoSaveFileName();
             Path fullPath = AUTOSAVE_DIR.resolve(fileName);
             
-            if (saveBestBrain(fullPath)) {
+            try {
+            	saveBestBrain(fullPath);
                 gameView.showAutoSaveMessage("AUTO-SAVED!");
                 System.out.println("Brain Automatically Saved: " + fullPath);
-            } else {
+            } catch (IOException | NullPointerException e) {
                 gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
-                System.err.println("Error in Automatic Brain Save");
+                System.err.println("Error in Automatic Brain Save: " + e.getMessage());
             }
         }
     }
@@ -285,28 +291,21 @@ public class GameController {
 	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.nMaxTubePassed, timestamp);
 	}
 	
-	public boolean saveBestBrain(Path file) {
-		if (bestBirdBrain == null) {
-			System.err.println("No Best Brain Available for Saving");
-			return false;
-		}
+	public void saveBestBrain(Path file) throws NullPointerException, IOException {
+		Objects.requireNonNull(bestBirdBrain, "No Best Bird Brain Available for Saving");
 		
-		return bestBirdBrain.saveToFile(file);
+		bestBirdBrain.saveToFile(file);
 	}
 	
-	public boolean loadBrain(String filePath) {
+	public void loadBrain(String filePath) throws IOException, IllegalArgumentException {
 		try {
 			BirdBrain loadedBrain = BirdBrain.loadFromFile(Path.of(filePath));
 			if (loadedBrain != null) {
 				bestBirdBrain = loadedBrain;
 				resetToFirstGeneration();
-				System.out.println("Brain Successfully Loaded From: " + filePath);
-				return true;
 			}
-			return false;
 		} catch (IOException e) {
-			System.err.println("Error Loading Brain: " + e.getMessage());
-			return false;
+			throw e;
 		}
 	}
 	

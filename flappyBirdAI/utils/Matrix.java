@@ -55,7 +55,7 @@ public class Matrix implements Serializable {
         return m;
     }
 
-	public static Matrix fromJson(JsonObject jsonMatrix) {
+	public static Matrix fromJson(JsonObject jsonMatrix) throws NullPointerException, IllegalArgumentException {
 		jsonMatrix = Objects.requireNonNull(jsonMatrix, "JSON Matrix Object Cannot be Null");
 		
 		if (!jsonMatrix.isJsonObject()) {
@@ -123,7 +123,7 @@ public class Matrix implements Serializable {
 	
     private final double[][] data;
 
-    public Matrix(int nRows, int nCols) {
+    public Matrix(int nRows, int nCols) throws IllegalArgumentException {
     	if (nRows <= 0) {
     		throw new IllegalArgumentException("Number of Rows Must be Greater than Zero");
 		}
@@ -166,7 +166,7 @@ public class Matrix implements Serializable {
         return mResult;
     }
 
-    public Matrix multiply(Matrix otherMatrix) {
+    public Matrix multiply(Matrix otherMatrix) throws IllegalArgumentException {
         if (this.getNCols() != otherMatrix.getNRows()) {
             throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Multiplication");
         }
@@ -183,7 +183,7 @@ public class Matrix implements Serializable {
         return mResult;
     }
     
-    public Matrix divide(Matrix otherMatrix) {
+    public Matrix divide(Matrix otherMatrix) throws IllegalArgumentException, ArithmeticException {
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Subtraction");
 		}
@@ -202,7 +202,7 @@ public class Matrix implements Serializable {
 		return mResult;
     }
     
-    public Matrix add(Matrix otherMatrix) {
+    public Matrix add(Matrix otherMatrix) throws IllegalArgumentException {
 		if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Addition");
 		}
@@ -217,7 +217,7 @@ public class Matrix implements Serializable {
 		return mResult;
 	}
     
-    public Matrix subtract(Matrix otherMatrix) {
+    public Matrix subtract(Matrix otherMatrix) throws IllegalArgumentException {
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Subtraction");
 		}
@@ -234,7 +234,7 @@ public class Matrix implements Serializable {
     
     // Element-wise Operations
     
-    public Matrix elementWiseMultiply(Matrix otherMatrix) {
+    public Matrix elementWiseMultiply(Matrix otherMatrix) throws IllegalArgumentException {
     	if (!checkDimensions(otherMatrix)) {
 			throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Element Wise Multiplication");
 		}
@@ -253,7 +253,7 @@ public class Matrix implements Serializable {
         return applyFunction(x -> Math.pow(x, exp));
     }
     
-    public Matrix root(double degree) {
+    public Matrix root(double degree) throws ArithmeticException {
 		if (degree == 0) {
 			throw new ArithmeticException("Root Degree Cannot be Zero");
 		}
@@ -265,7 +265,7 @@ public class Matrix implements Serializable {
         return applyFunction(x -> x * scalar);
     }
 
-    public Matrix divideByScalar(double scalar) {
+    public Matrix divideByScalar(double scalar) throws ArithmeticException {
         if (scalar == 0) {
         	throw new ArithmeticException("Division by Zero");
         }

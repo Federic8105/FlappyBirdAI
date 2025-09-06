@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
@@ -525,11 +526,12 @@ class SaveBrainListener implements ActionListener {
 			
 			Path filePath = Path.of(fileName);
 			
-			if (parentView.gameController.saveBestBrain(filePath)) {
-				JOptionPane.showMessageDialog(parentView, "Brain Saved Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-			} else {
-				JOptionPane.showMessageDialog(parentView, "Error Saving Brain!", "Error", JOptionPane.ERROR_MESSAGE);
-			}
+			try {
+                parentView.gameController.saveBestBrain(filePath);
+                JOptionPane.showMessageDialog(parentView, "Brain Saved Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(parentView, "Error Saving Brain: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
 		}
 	}
 }
@@ -555,11 +557,12 @@ class LoadBrainListener implements ActionListener {
 			int choice = JOptionPane.showConfirmDialog(parentView, "Loading the Brain will Reset the Game to Generation 1.\nContinue?", "Confirm Load", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 			
 			if (choice == JOptionPane.YES_OPTION) {
-				if (parentView.gameController.loadBrain(file.getAbsolutePath())) {
-					JOptionPane.showMessageDialog(parentView, "Brain Loaded Successfully!\nGame has been Reset to Generation 1.", "Success", JOptionPane.INFORMATION_MESSAGE);
-				} else {
-					JOptionPane.showMessageDialog(parentView, "Error Loading Brain!\nPlease Verify the File is Valid.", "Error", JOptionPane.ERROR_MESSAGE);
-				}
+				try {
+                    parentView.gameController.loadBrain(file.getAbsolutePath());
+                    JOptionPane.showMessageDialog(parentView, "Brain Loaded Successfully!\nGame has been Reset to Generation 1.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(parentView, "Error Loading Brain: " + ex.getMessage() + "\nPlease Verify the File is Valid.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
 			}
 		}
 	}

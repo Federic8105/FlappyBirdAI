@@ -40,14 +40,14 @@ public class FlappyBird extends AbstractGameObject {
 		return brain.think();
 	}
 
-    private void startAnimation() {
+    private void startAnimation() throws RuntimeException {
 		Thread animationThread = new Thread(() -> {
 			while (isAlive) {
 				try {
 					Thread.sleep(tDelayAnimation);
 					updateIFrames();
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					throw new RuntimeException(e);
 				}
 			}
 		});

@@ -33,11 +33,10 @@ public class AbstractGameObject implements GameObject {
 	public void updateXY(double dt_ms) {}
 	
 	@Override
-	public boolean checkCollision(Rectangle[] vHitBox) {
+	public boolean checkCollision(Rectangle[] vHitBox) throws NullPointerException {
 		vHitBox = Objects.requireNonNull(vHitBox, "HitBox Array Cannot be Null");
 		
 		boolean collision = false;
-
         for (Rectangle box : vHitBox) {
         	Objects.requireNonNull(box, "Individual HitBox Cannot be Null");
             if (hitBox.intersects(box)) {
