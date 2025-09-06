@@ -8,20 +8,18 @@ import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.GameObject;
-
 import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.ArrayList;
 
 public class SwingGameView extends JFrame implements GameView {
 
@@ -168,7 +166,6 @@ public class SwingGameView extends JFrame implements GameView {
                 Graphics2D g2d = (Graphics2D) g;
                 
                 if (backgroundImg != null) {
-                    // Scalare l'immagine alle dimensioni del pannello
                     g2d.drawImage(backgroundImg, 0, 0, getWidth(), getHeight(), this);
                 }
 
@@ -196,29 +193,12 @@ public class SwingGameView extends JFrame implements GameView {
     }
 	
 	private Image createGameBackgroundImage() {
-		Image backgroundImg;
         try {
-            Image originalImage = ImageIO.read(getClass().getResource(GAME_BACKGROUND_IMAGE_PATH));
-            
-            // Pre-scalare l'immagine alle dimensioni desiderate per ottimizzare il rendering
-            int panelWidth = getGameWidth();
-            int panelHeight = getGameHeight();
-            
-            backgroundImg = originalImage.getScaledInstance(panelWidth, panelHeight, Image.SCALE_SMOOTH);
-            
-            // Convertire a BufferedImage per performance migliori
-            BufferedImage buffered = new BufferedImage(panelWidth, panelHeight, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g2d = buffered.createGraphics();
-            g2d.drawImage(backgroundImg, 0, 0, null);
-            g2d.dispose();
-            backgroundImg = buffered;
-            
+            return ImageIO.read(getClass().getResource(GAME_BACKGROUND_IMAGE_PATH));
         } catch (IOException e) {
             System.err.println("Error Loading Game Panel Background Image: " + e.getMessage());
-            backgroundImg = null;
+            return null;
         }
-        
-        return backgroundImg;
     }
 	
 	private void initStatsPanel() {
