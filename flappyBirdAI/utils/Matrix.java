@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
+import java.util.StringJoiner;
 import java.util.function.DoubleUnaryOperator;
 
 public class Matrix implements Serializable {
@@ -349,23 +350,20 @@ public class Matrix implements Serializable {
 
 	@Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (double[] row : data) {
-            for (double value : row) {
-                sb.append("[").append(String.format("%.3f", value)).append("]");
-            }
-            sb.append(System.lineSeparator());
-        }
-        
-        // Rimuovere Ultima System.lineSeparator()
-        if (sb.length() > 0) {
-            int lineSepLen = System.lineSeparator().length();
-            if (sb.substring(sb.length() - lineSepLen).equals(System.lineSeparator())) {
-                sb.delete(sb.length() - lineSepLen, sb.length());
-            }
-        }
-        
-        return sb.toString();
+		StringJoiner sj = new StringJoiner(System.lineSeparator());
+	    StringBuilder rowBuilder = new StringBuilder();
+	    
+	    for (double[] row : data) {
+	        for (double value : row) {
+	            rowBuilder.append("[").append(String.format("%.3f", value)).append("]");
+	        }
+	        
+	        sj.add(rowBuilder.toString());
+	        // reset lunghezza StringBuilder per la prossima riga
+	        rowBuilder.setLength(0);
+	    }
+	    
+	    return sj.toString();
     }
 
 }

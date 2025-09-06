@@ -21,7 +21,7 @@ public class AbstractGameObject implements GameObject {
 
 	@Override
 	public void updateHitBox() {
-		hitBox = new Rectangle(x,y,w,h);
+		hitBox = new Rectangle(x, y, w, h);
 	}
 	
 	@Override
@@ -59,15 +59,15 @@ public class AbstractGameObject implements GameObject {
 	
 	@Override
 	public String toString() {
-		if (isAlive) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("GameObj --> W: ").append(w)
-			  .append(" - H: ").append(h)
-			  .append(" - X: ").append(x)
-			  .append(" - Y: ").append(y);
-			return sb.toString();
-		} else {
-			return "GameObject Not Alive";
-		}
+		if (!isAlive) {
+	        return "GameObject Not Alive";
+	    }
+	    
+	    return "GameObj --> " + String.join(" - ",
+	        "W: " + w,
+	        "H: " + h,
+	        "X: " + x,
+	        "Y: " + y
+	    );
 	}
 }

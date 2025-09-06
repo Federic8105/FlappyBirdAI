@@ -102,13 +102,17 @@ public class Tube extends AbstractGameObject {
 	
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("Tube --> ID: ").append(id)
-		  .append(" - X: ").append(x)
-		  .append(" - Y: ").append(y)
-		  .append(" - W: ").append(w)
-		  .append(" - H: ").append(h);
-		return sb.toString();
+		if (!isAlive) {
+	        return "Tube Not Alive";
+	    }
+		
+		return "Tube --> " + String.join(" - ",
+	        "ID: " + id,
+	        "X: " + x,
+	        "Y: " + y,
+	        "W: " + w,
+	        "H: " + h
+	    );
 	}
 	
 

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.StringJoiner;
 
 public class BirdBrain implements Serializable {
 	
@@ -288,23 +289,13 @@ public class BirdBrain implements Serializable {
 
 	@Override
     public String toString() {
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append("Brain --> ").append("Weights:").append(System.lineSeparator());
+		StringJoiner sj = new StringJoiner(System.lineSeparator(), "Brain --> Weights:" + System.lineSeparator(), "");
+
 		for (int i = 0; i < vmWeights.size(); ++i) {
-			sb.append("Layer ").append(i + 1).append(":").append(System.lineSeparator()).append(vmWeights.get(i)).append(System.lineSeparator());
+			sj.add("Layer " + (i + 1) + ":" + System.lineSeparator() + vmWeights.get(i));
 		}
-		
-		// Rimuovere Ultima System.lineSeparator()
-		if (sb.length() > 0) {
-        	int lineSepLen = System.lineSeparator().length();
-        	
-        	if (sb.substring(sb.length() - lineSepLen).equals(System.lineSeparator())) {
-        		sb.delete(sb.length() - lineSepLen, sb.length());
-        	}
-        }
-		
-		return sb.toString();
+
+		return sj.toString();
 	}
     
 }

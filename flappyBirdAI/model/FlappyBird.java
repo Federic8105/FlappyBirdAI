@@ -131,19 +131,19 @@ public class FlappyBird extends AbstractGameObject {
 
 	@Override
 	public String toString() {
-		if (isAlive) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("FlappyBird --> W: ").append(w)
-			  .append(" - H: ").append(h)
-			  .append(" - X: ").append(x)
-			  .append(" - Y: ").append(y)
-			  .append(" - LifeTime: ").append(String.format("%.2f", lifeTime))
-			  .append(" - Vy: ").append(String.format("%.2f", vy))
-			  .append(" - ").append(brain);
-			return sb.toString();
-		} else {
-			return "FB Not Alive";
-		}
+		if (!isAlive) {
+	        return "FlappyBird Not Alive";
+	    }
+	    
+	    return "FlappyBird --> " + String.join(" - ",
+	        "W: " + w,
+	        "H: " + h,
+	        "X: " + x,
+	        "Y: " + y,
+	        "LifeTime: " + String.format("%.2f", lifeTime),
+	        "Vy: " + String.format("%.2f", vy),
+	        brain.toString()
+	    );
 	}
 	
 }

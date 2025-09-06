@@ -63,13 +63,11 @@ public class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startMotion() throws RuntimeException {
+	public void startGame() throws RuntimeException {
 		isGameRunning = true;
 		List<Rectangle> vTubeHitBox;
 		double dt, time, lastDt = System.nanoTime();
-
-		FlappyBird randBird = getRandomBird();
-		Tube previousFirstTopTube = getFirstTopTube(randBird);
+		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
 
 		do {
 			time = System.nanoTime();
@@ -77,11 +75,9 @@ public class GameController {
 			// Calcolo del Tempo trascorso in Secondi tra Frames
 			dt = (time - lastDt) / 1e9 * dtMultiplier;
 			lastDt = time;
-
-			randBird = getRandomBird();
 			
 			// Ottenere Primo Tube Superiore a Destra
-			Tube firstTopTube = getFirstTopTube(randBird);
+			Tube firstTopTube = getFirstTopTube(getRandomBird());
 			if (firstTopTube != null && !firstTopTube.equals(previousFirstTopTube)) {
 				++gameStats.nTubePassed;
 			}
@@ -114,7 +110,7 @@ public class GameController {
 				throw new RuntimeException(e);
 			}
 
-        } while (gameStats.nBirds > 0 && isGameRunning);
+        } while (isGameRunning && gameStats.nBirds > 0);
 
 		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
 			gameStats.nMaxTubePassed = gameStats. nTubePassed;
@@ -125,7 +121,6 @@ public class GameController {
 		} catch (IOException e) {
 			System.err.println("Error in Next Generation: " + e.getMessage());
 		}
-        isGameRunning = false;
 	}
 	
 	private void updateGameObjects(double dt, List<Rectangle> tubeHitBoxes, Tube firstTopTube) {
