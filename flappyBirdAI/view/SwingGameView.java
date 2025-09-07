@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -63,7 +62,7 @@ public class SwingGameView extends JFrame implements GameView {
 	GameController gameController;
 	
 	// Game Objects for Rendering
-    private List<AbstractGameObject> currentVGameObj = new ArrayList<>();
+    private List<AbstractGameObject> currentVGameObj;
     
     // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
@@ -441,7 +440,7 @@ public class SwingGameView extends JFrame implements GameView {
 		// Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
-            this.currentVGameObj = vGameObj;
+            currentVGameObj = vGameObj;
             gamePanel.repaint();
         });
     }

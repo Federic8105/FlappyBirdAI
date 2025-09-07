@@ -10,13 +10,15 @@ import java.awt.Rectangle;
 import java.util.Objects;
 
 public class AbstractGameObject implements GameObject {
+	
 	public static final String IMG_EXT= ".png";
+	public static final String FB_IMG_NAME = "/res/FB";
+	public static final String TUBE_IMG_NAME = "/res/TUBE";
 	
 	public int x, y, w, h, iFrames = 0, nImages;
 	public boolean isAlive = true;
 	protected boolean showImage = true, isImageFound = false;
 	protected Rectangle hitBox;
-	protected String imgName;
 	protected Image[] vFrames;
 
 	@Override

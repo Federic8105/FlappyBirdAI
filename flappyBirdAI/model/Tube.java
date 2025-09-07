@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class Tube extends AbstractGameObject {
+	
 	public static final int DIST_X_BETWEEN_TUBES = 750, DIST_Y_BETWEEN_TUBES = 180;
     public static final int WIDTH = 50;
     
@@ -24,7 +25,6 @@ public class Tube extends AbstractGameObject {
 		this.isSuperior = isSuperior;
         this.id = Tube.lastID;
         ++Tube.lastID;
-        imgName = "/res/TUBE";
         nImages = 2;
         x = x0;
         y = y0;
@@ -43,7 +43,7 @@ public class Tube extends AbstractGameObject {
     public void setImage() {
         vFrames = new Image[1];
 		try {
-            vFrames[0] = ImageIO.read(getClass().getResource(imgName + (iFrames+1) + IMG_EXT));
+            vFrames[0] = ImageIO.read(getClass().getResource(AbstractGameObject.TUBE_IMG_NAME + (iFrames+1) + IMG_EXT));
             vFrames[0] = vFrames[0].getScaledInstance(w, h, Image.SCALE_SMOOTH);
 
             isImageFound = true;

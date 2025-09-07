@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class FlappyBird extends AbstractGameObject {
+	
 	public static final int WIDTH = 60, HEIGHT = 45;
 
 	public final double gravity = 700, jumpForce = 300;
@@ -21,7 +22,6 @@ public class FlappyBird extends AbstractGameObject {
 
 	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
 		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
-		imgName = "/res/FB";
         nImages = 4;
         x = x0;
 		y = y0;
@@ -60,7 +60,7 @@ public class FlappyBird extends AbstractGameObject {
 		vFrames = new Image[nImages];
 		for (int i = 0; i < vFrames.length; ++i) {
 			try {
-				vFrames[i] = ImageIO.read(getClass().getResource(imgName + (i+1) + IMG_EXT));
+				vFrames[i] = ImageIO.read(getClass().getResource(AbstractGameObject.FB_IMG_NAME + (i+1) + IMG_EXT));
 				vFrames[i] = vFrames[i].getScaledInstance(w, h, Image.SCALE_SMOOTH);
 
 				isImageFound = true;
