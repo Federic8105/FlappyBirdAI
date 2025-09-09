@@ -54,6 +54,16 @@ public class SwingGameView extends JFrame implements GameView {
         fileChooser.setFileFilter(new FileNameExtensionFilter("JSON File", "json"));
         return fileChooser;
     }
+    
+    // StringBuilder Riusabili per Performance Aggiornamento Labels
+    private final StringBuilder fpsBuilder = new StringBuilder(10);
+    private final StringBuilder currLifeTimeBuilder = new StringBuilder(15);
+    private final StringBuilder bestLifeTimeBuilder = new StringBuilder(16);
+    
+    // Caching Ultimi Valori di Statistica per Labels
+    private int lastGen = -1;
+    private boolean lastAutoSaveStatus = false;
+    private double lastBestLifeTime = -1.0;
 
     // Initial Window Dimensions
 	private final int initialWidth, initialHeight;
@@ -68,7 +78,7 @@ public class SwingGameView extends JFrame implements GameView {
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
     
     // UI Components - Statistiche
-	private JLabel lCurrFPS, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
+	private JLabel lFPS, lCurrLifeTime, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
 	private Timer autoSaveMessageTimer;
 	
 	// UI Components - Controls
@@ -304,10 +314,13 @@ public class SwingGameView extends JFrame implements GameView {
 		leftStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// FPS Label
-        lCurrFPS = createStatsLabel("FPS: 0");
+        lFPS = createStatsLabel("FPS: 0");
+        
+        // Current Life Time Label
+        lCurrLifeTime = createStatsLabel("LT: 0.00s");
         
         // Best Life Time Label
-        lBestLifeTime = createStatsLabel("BLT: 0.000s");
+        lBestLifeTime = createStatsLabel("BLT: 0.00s");
         
         // Generation Label
         lNGen = createStatsLabel("Gen: 1");
@@ -331,7 +344,8 @@ public class SwingGameView extends JFrame implements GameView {
         rightStatsPanel.add(lMaxTubePassed);
         rightStatsPanel.add(lAutoSave);
         
-        leftStatsPanel.add(lCurrFPS);
+        leftStatsPanel.add(lFPS);
+        leftStatsPanel.add(lCurrLifeTime);
         leftStatsPanel.add(lBestLifeTime);
         
         // Aggiunta dei Pannelli delle Statistiche DX/SX al Pannello Principale
@@ -439,7 +453,14 @@ public class SwingGameView extends JFrame implements GameView {
 				
 		// Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
+        	
+        	//TODO
+        	long startTime = System.nanoTime();
         	updateStatsLabels(stats);
+        	long duration = System.nanoTime() - startTime;
+        	System.out.println((duration/1_000_000.0) + "ms");
+        	
+        	
             currentVGameObj = vGameObj;
             gamePanel.repaint();
         });
@@ -447,10 +468,35 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	//TODO
 	private void updateStatsLabels(GameStats stats) {
-		lCurrFPS.setText("FPS: " + stats.fps);
-        lBestLifeTime.setText("BLT: " + String.format("%.3f", stats.bestLifeTime) + "s");
-        lNGen.setText("Gen: " + stats.nGen);
+	
+        fpsBuilder.setLength(0);
+        fpsBuilder.append("FPS: ").append(stats.fps);
+        lFPS.setText(fpsBuilder.toString());
+        
+		//lFPS.setText("FPS: " + stats.fps);
+        
+        currLifeTimeBuilder.setLength(0);
+        currLifeTimeBuilder.append("LT: ").append(GameStats.roundTwoDecimals(stats.currLifeTime)).append("s");
+        lCurrLifeTime.setText(currLifeTimeBuilder.toString());
+        
+        //lCurrLifeTime.setText("LT: " + GameStats.roundTwoDecimals(stats.currLifeTime) + "s");
+		
+		if (stats.bestLifeTime != lastBestLifeTime) {
+			bestLifeTimeBuilder.setLength(0);
+			bestLifeTimeBuilder.append("BLT: ").append(GameStats.roundTwoDecimals(stats.bestLifeTime)).append("s");
+			lBestLifeTime.setText(bestLifeTimeBuilder.toString());
+			
+			//lBestLifeTime.setText("BLT: " + GameStats.roundTwoDecimals(stats.bestLifeTime) + "s");
+			lastBestLifeTime = stats.bestLifeTime;
+        }
+		
+        if (stats.nGen != lastGen) {
+        	lNGen.setText("Gen: " + stats.nGen);
+            lastGen = stats.nGen;
+        }
+        
         lNBirds.setText("Birds: " + stats.nBirds);
+        
         lNTubePassed.setText("Tubes: " + stats.nTubePassed);
         
         if (stats.nTubePassed > stats.nMaxTubePassed) {
@@ -459,8 +505,12 @@ public class SwingGameView extends JFrame implements GameView {
             lMaxTubePassed.setText("Max Tubes: " + stats.nMaxTubePassed);
         }
         
-        lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled ? "ON" : "OFF"));
-        lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
+        if (stats.isAutoSaveEnabled != lastAutoSaveStatus) {
+        	lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled ? "ON" : "OFF"));
+            lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
+            lastAutoSaveStatus = stats.isAutoSaveEnabled;
+		}
+       
 	}
 	
 	@Override

@@ -14,10 +14,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Random;
 import java.util.Optional;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +28,7 @@ import java.awt.Rectangle;
 
 public class GameController {
 	
-	public static final int MAX_FPS = 80;
+	public static final int MAX_FPS = 60;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
@@ -38,6 +40,7 @@ public class GameController {
     
     private final GameView gameView;
     private final List<AbstractGameObject> vGameObj = new ArrayList<>();
+    private final Map<String, Double> brainInputMap = new HashMap<>();
     private final int sleepMs = Math.round(1000 / (float) MAX_FPS), tubeHoleOffsetAbsValue = 180;
     
     // Game Engine Variables
@@ -98,7 +101,7 @@ public class GameController {
 			deleteDeadObjects();
 			
 			// Aggiornare Statistiche e UI
-			gameStats.fps = (int) (1 / dt * dtMultiplier);
+			gameStats.fps = updateFPS(dt);
 			
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
@@ -131,15 +134,19 @@ public class GameController {
         	//System.out.println(obj + System.lineSeparator());
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
+            	
+            	if (currBird.lifeTime > gameStats.currLifeTime) {
+                	gameStats.currLifeTime = currBird.lifeTime;
+                	
+                	// Nuovo Record di Vita
+                	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
+						gameStats.bestLifeTime = currBird.lifeTime;
+						bestBirdBrain = currBird.brain;
+					}
+                }
                 
-            	// Controllo Collisioni
+            	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + FlappyBird.HEIGHT < 0 || currBird.y > getGameHeight()) {
-                    
-                    // Nuovo Record
-                    if (currBird.lifeTime > gameStats.bestLifeTime) {
-                    	gameStats.bestLifeTime = currBird.lifeTime;
-                        bestBirdBrain = currBird.brain;
-                    }
                     
                     currBird.isAlive = false;
                     --gameStats.nBirds;
@@ -147,15 +154,13 @@ public class GameController {
                     
                 // AI Decision
                 } else if (firstTopTube != null) {
-                    currBird.brain.setInputs(new HashMap<String, Double>() {
-                        private static final long serialVersionUID = 1L;
-                        {
-                            put("yBird", (double) currBird.y);
-                            put("vyBird", currBird.vy);
-                            put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
-                            put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
-                        }
-                    });
+                	
+                	brainInputMap.put("yBird", (double) currBird.y);
+                	brainInputMap.put("vyBird", currBird.vy);
+                	brainInputMap.put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
+                	brainInputMap.put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
+
+                	currBird.brain.setInputs(brainInputMap);
                     
                     if (currBird.think()) {
                         currBird.jump();
@@ -173,6 +178,10 @@ public class GameController {
             }
         }
     }
+	
+	private int updateFPS(double dt) {
+		return (int) (1 / dt * dtMultiplier);
+	}
 	
 	private void deleteDeadObjects() {
         vGameObj.removeIf(obj -> !obj.isAlive);
@@ -253,15 +262,16 @@ public class GameController {
         }
     }
 
-	public void reset() {
+	public void resetForNewGen() {
 		isGameRunning = false;
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
+		gameStats.currLifeTime = 0;
 		vGameObj.clear();
 		newTubes();
 	}
 	
-	public void resetToFirstGeneration() {
+	public void resetToFirstGen() {
 		isGameRunning = false;
 		vGameObj.clear();
 		bestBirdBrain = null;
@@ -269,6 +279,7 @@ public class GameController {
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
 		gameStats.nGen = 1;
+		gameStats.currLifeTime = 0;
 		gameStats.bestLifeTime = 0;
 		gameStats.nMaxTubePassed = 0;
 		
@@ -293,12 +304,12 @@ public class GameController {
 		bestBirdBrain.saveToFile(file);
 	}
 	
-	public void loadBrain(String filePath) throws NullPointerException, IOException, IllegalArgumentException {
+	public void loadBrain(String filePath) throws NullPointerException, IOException, IllegalArgumentException, InvalidPathException {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
 		
 		try {
 			bestBirdBrain = BirdBrain.loadFromFile(Path.of(filePath));
-			resetToFirstGeneration();
+			resetToFirstGen();
 		} catch (IOException e) {
 			throw e;
 		}
@@ -360,5 +371,9 @@ public class GameController {
     public GameStats getCurrentStats() {
         return gameStats;
     }
+    
+    public boolean isFirstGen() {
+		return gameStats.isFirstGen();
+	}
     
 }
