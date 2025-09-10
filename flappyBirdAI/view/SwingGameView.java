@@ -32,13 +32,14 @@ public class SwingGameView extends JFrame implements GameView {
     private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
     
     // Panel Minimum Dimensions Constants
+    public static final int MIN_STATS_PANEL_WIDTH = 950;
     public static final int MIN_STATS_PANEL_HEIGHT = 40;
     public static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
     public static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
     public static final int MAX_IMPORT_EXPORT_PANEL_WIDTH = 400;
-    public static final int MIN_GAME_PANEL_WIDTH = 850;
+    public static final int MIN_GAME_PANEL_WIDTH = MIN_STATS_PANEL_WIDTH;
     public static final int MIN_GAME_PANEL_HEIGHT = 500;
-    public static final int MIN_WINDOW_WIDTH = MIN_GAME_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
+    public static final int MIN_WINDOW_WIDTH = MIN_STATS_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
     public static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
     
     // Colors
@@ -302,15 +303,15 @@ public class SwingGameView extends JFrame implements GameView {
         button.setFocusPainted(false);
         return button;
     }
-	
+
 	private void initStatsUI() {
 		
 		// Statistiche a DX
-		JPanel rightStatsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+		JPanel rightStatsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 9));
 		rightStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// Statistiche a SX
-		JPanel leftStatsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+		JPanel leftStatsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 9));
 		leftStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// FPS Label

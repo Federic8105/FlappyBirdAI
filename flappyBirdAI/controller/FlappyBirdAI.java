@@ -11,8 +11,8 @@ import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
-//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, update label migliore, migliori interfacce con più metodi
-//TODO: pausa gioco con spazio usando isGameRunning, private, labels centrate, tubes ridisegnati fine a fine schermo di gioco se ridimensiono schermo
+//TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
+//TODO: pausa gioco con spazio usando isGameRunning, private, tubes ridisegnati fino a fine schermo di gioco se ridimensiono schermo
 //TODO: t da inizio gioco, + threads
 
 public class FlappyBirdAI {
