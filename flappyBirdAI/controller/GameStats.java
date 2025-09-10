@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 
 public class GameStats {
 	
+	//TODO NumberFormat?
 	private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("#0.00");
 	
 	//TODO non funziona

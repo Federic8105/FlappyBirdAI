@@ -58,12 +58,6 @@ public class SwingGameView extends JFrame implements GameView {
         return fileChooser;
     }
     
-    //TODO forse sposta in GameStats
-    // StringBuilder Riusabili per Performance Aggiornamento Labels
-    private final StringBuilder fpsBuilder = new StringBuilder(10);
-    private final StringBuilder currLifeTimeBuilder = new StringBuilder(15);
-    private final StringBuilder bestLifeTimeBuilder = new StringBuilder(16);
-    
     // Caching Ultimi Valori di Statistica per Labels
     private int lastGen = -1;
     private boolean lastAutoSaveStatus = false;
@@ -516,14 +510,7 @@ public class SwingGameView extends JFrame implements GameView {
 				
 		// Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
-        	
-        	//TODO
-        	long startTime = System.nanoTime();
         	updateStatsLabels(stats);
-        	long duration = System.nanoTime() - startTime;
-        	System.out.println((duration/1_000_000.0) + "ms");
-        	
-        	
         	updateChronometerLabel(stats);
         	
             currentVGameObj = vGameObj;
@@ -531,27 +518,13 @@ public class SwingGameView extends JFrame implements GameView {
         });
     }
 	
-	//TODO
 	private void updateStatsLabels(GameStats stats) {
-	
-        fpsBuilder.setLength(0);
-        fpsBuilder.append("FPS: ").append(stats.fps);
-        lFPS.setText(fpsBuilder.toString());
+		lFPS.setText("FPS: " + stats.fps);
         
-		//lFPS.setText("FPS: " + stats.fps);
-        
-        currLifeTimeBuilder.setLength(0);
-        currLifeTimeBuilder.append("LT: ").append(GameStats.roundTwoDecimals(stats.currLifeTime)).append("s");
-        lCurrLifeTime.setText(currLifeTimeBuilder.toString());
-        
-        //lCurrLifeTime.setText("LT: " + GameStats.roundTwoDecimals(stats.currLifeTime) + "s");
+        lCurrLifeTime.setText("LT: " + GameStats.roundTwoDecimals(stats.currLifeTime) + "s");
 		
 		if (stats.bestLifeTime != lastBestLifeTime) {
-			bestLifeTimeBuilder.setLength(0);
-			bestLifeTimeBuilder.append("BLT: ").append(GameStats.roundTwoDecimals(stats.bestLifeTime)).append("s");
-			lBestLifeTime.setText(bestLifeTimeBuilder.toString());
-			
-			//lBestLifeTime.setText("BLT: " + GameStats.roundTwoDecimals(stats.bestLifeTime) + "s");
+			lBestLifeTime.setText("BLT: " + GameStats.roundTwoDecimals(stats.bestLifeTime) + "s");
 			lastBestLifeTime = stats.bestLifeTime;
         }
 		

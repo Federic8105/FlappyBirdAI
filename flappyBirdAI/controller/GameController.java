@@ -65,12 +65,16 @@ public class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startGameFor1Gen() throws RuntimeException {
+	public void startGame() throws RuntimeException {
 		List<Rectangle> vTubeHitBox;
 		double dt, time, lastDt;
 		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
 		
-		gameStats.sessionStartTime = System.currentTimeMillis();
+		// Avviare una nuova sessione a inizio gioco (prima generazione)
+		if (isFirstGen()) {
+			gameStats.sessionStartTime = System.currentTimeMillis();
+		}
+		
 		lastDt = System.nanoTime();
 
 		while (gameStats.isGameRunning && gameStats.nBirds > 0) {
@@ -105,6 +109,7 @@ public class GameController {
 			// Aggiornare Statistiche e UI
 			gameStats.fps = updateFPS(dt);
 			
+			//TODO non aggiorna timer a fine gen
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
@@ -240,11 +245,13 @@ public class GameController {
 	}
 	
 	private void nextGeneration() throws IOException {
-		gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
-        ++gameStats.nGen;
-        
-        // Salvataggio automatico
-        if (gameStats.isAutoSaveEnabled && bestBirdBrain != null && gameStats.nGen % gameStats.autoSaveThreshold == 0) {
+		checkAndAutoSave();
+        resetForNewGen();
+    }
+	
+	private void checkAndAutoSave() throws IOException {
+		if (gameStats.isAutoSaveEnabled && bestBirdBrain != null && gameStats.nGen % gameStats.autoSaveThreshold == 0) {
+			
         	// Creare la DIR Se Non Esiste
             try {
                 Files.createDirectories(AUTOSAVE_DIR);
@@ -263,10 +270,10 @@ public class GameController {
                 System.err.println("Error in Automatic Brain Save: " + e.getMessage());
             }
         }
-    }
+	}
 
-	public void resetForNewGen() {
-		gameStats.isGameRunning = false;
+	private void resetForNewGen() {
+		++gameStats.nGen;
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
 		gameStats.currLifeTime = 0;
@@ -274,12 +281,7 @@ public class GameController {
 		newTubes();
 	}
 	
-	//TODO
-	public void resetToFirstGen() {
-		gameStats.isGameRunning = false;
-		vGameObj.clear();
-		bestBirdBrain = null;
-		
+	private void resetToFirstGen() {
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
 		gameStats.nGen = 1;
@@ -287,6 +289,9 @@ public class GameController {
 		gameStats.bestLifeTime = 0;
 		gameStats.nMaxTubePassed = 0;
 		gameStats.totGameTime = 0;
+		
+		vGameObj.clear();
+		bestBirdBrain = null;
 		
 		newTubes();
 	}
@@ -380,8 +385,6 @@ public class GameController {
     //TODO
     public void resumeGame() {
         if (!gameStats.isGameRunning) {
-            // Riavviare una nuova sessione
-        	gameStats.sessionStartTime = System.currentTimeMillis();
             gameStats.isGameRunning = true;
         }
     }

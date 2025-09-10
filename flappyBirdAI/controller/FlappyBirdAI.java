@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 //TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
 //TODO: pausa gioco con spazio usando isGameRunning, private, tubes ridisegnati fino a fine schermo di gioco se ridimensiono schermo
-//TODO: + threads, panel import export non ricalcola altezza
+//TODO: + threads, panel import export non ricalcola altezza, timer si blocca a fine gen
 
 public class FlappyBirdAI {
 
@@ -59,7 +59,7 @@ public class FlappyBirdAI {
 		return vBirds;
 	}
 
-	//TODO implementa un modo per fermare il gioco e resetToFirstGen dopo load brain
+	//TODO implementa un modo per fermare il gioco
 	private void startGame() {
 		int nBirdsRegen = nBirdsXGen * 4 / 5;
 
@@ -75,8 +75,7 @@ public class FlappyBirdAI {
 			//TODO
 			gameController.setGameRunning(true);
 			
-			gameController.startGameFor1Gen();
-			gameController.resetForNewGen();
+			gameController.startGame();
 		}
 	}
 
