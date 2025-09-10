@@ -374,10 +374,10 @@ public class SwingGameView extends JFrame implements GameView {
         lFPS = createStatsLabel("FPS: 0");
         
         // Current Life Time Label
-        lCurrLifeTime = createStatsLabel("LT: 0.00s");
+        lCurrLifeTime = createStatsLabel("LT: 0,00s");
         
         // Best Life Time Label
-        lBestLifeTime = createStatsLabel("BLT: 0.00s");
+        lBestLifeTime = createStatsLabel("BLT: 0,00s");
         
         // Generation Label
         lNGen = createStatsLabel("Gen: 1");
@@ -521,10 +521,10 @@ public class SwingGameView extends JFrame implements GameView {
 	private void updateStatsLabels(GameStats stats) {
 		lFPS.setText("FPS: " + stats.fps);
         
-        lCurrLifeTime.setText("LT: " + GameStats.roundTwoDecimals(stats.currLifeTime) + "s");
+        lCurrLifeTime.setText("LT: " + GameStats.roundAndFormatTwoDecimals(stats.currLifeTime) + "s");
 		
 		if (stats.bestLifeTime != lastBestLifeTime) {
-			lBestLifeTime.setText("BLT: " + GameStats.roundTwoDecimals(stats.bestLifeTime) + "s");
+			lBestLifeTime.setText("BLT: " + GameStats.roundAndFormatTwoDecimals(stats.bestLifeTime) + "s");
 			lastBestLifeTime = stats.bestLifeTime;
         }
 		

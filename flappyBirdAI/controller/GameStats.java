@@ -4,12 +4,11 @@ import java.text.DecimalFormat;
 
 public class GameStats {
 	
-	//TODO NumberFormat?
-	private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("#0.00");
+	// Usa Locale di Default per il formato decimale
+	private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");
 	
-	//TODO non funziona
-	public static double roundTwoDecimals(double value) {
-		return Double.parseDouble(TWO_DECIMALS.format(Math.round(value * 100) / 100.0).replace(',', '.'));
+	public static String roundAndFormatTwoDecimals(double value) {
+		return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
 	}
 	
 	// Default values
