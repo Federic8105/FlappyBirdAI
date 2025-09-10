@@ -70,8 +70,10 @@ public class GameController {
 		double dt, time, lastDt;
 		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
 		
+		//TODO qui o in flappyBirdAI?
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
+			setGameRunning(true);
 			gameStats.sessionStartTime = System.currentTimeMillis();
 		}
 		
@@ -383,29 +385,24 @@ public class GameController {
 	}
     
     //TODO
-    public void resumeGame() {
-        if (!gameStats.isGameRunning) {
-            gameStats.isGameRunning = true;
-        }
-    }
-    
-    //TODO
-    public void pauseGame() {
-    	if (gameStats.isGameRunning) {
-            // Accumulare il tempo della sessione corrente
-            gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
-            gameStats.isGameRunning = false;
-        }
-    }
-    
-    //TODO
     public void togglePause() {
         if (gameStats.isGameRunning) {
         	pauseGame();
-            resumeGame();
         } else {
         	resumeGame();
         }
+    }
+    
+    //TODO
+    private void resumeGame() {
+    	gameStats.isGameRunning = true;
+    }
+    
+    //TODO
+    private void pauseGame() {
+        // Accumulare il tempo della sessione corrente
+        gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
+        gameStats.isGameRunning = false;
     }
     
     public GameStats getCurrentStats() {

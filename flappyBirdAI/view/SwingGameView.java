@@ -20,8 +20,12 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
-public class SwingGameView extends JFrame implements GameView {
+public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -97,7 +101,30 @@ public class SwingGameView extends JFrame implements GameView {
 		initWindow();
 		initPanels();
 		
+		setupKeyListener();
+		
 		setVisible(true);
+	}
+	
+	private void setupKeyListener() {
+		// Aggiungere il KeyListener alla finestra principale
+		addKeyListener(this);
+		
+		// Assicurarsi che la finestra possa ricevere eventi da tastiera
+		setFocusable(true);
+		
+		// Richiedere il focus quando la finestra viene mostrata
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowOpened(WindowEvent e) {
+				requestFocus();
+			}
+			
+			@Override
+			public void windowActivated(WindowEvent e) {
+				requestFocus();
+			}
+		});
 	}
 	
 	private void initWindow() {
@@ -604,6 +631,20 @@ public class SwingGameView extends JFrame implements GameView {
             gamePanel.repaint();
         }
     }
+
+	@Override
+	//TODO grafica di pausa
+	public void keyPressed(KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_SPACE && gameController != null) {
+			gameController.togglePause();
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {}
+	
+	@Override
+	public void keyTyped(KeyEvent e) {}
 	
 }
 
