@@ -66,12 +66,15 @@ public class GameController {
 	}
 	
 	public void startGameFor1Gen() throws RuntimeException {
-		gameStats.isGameRunning = true;
 		List<Rectangle> vTubeHitBox;
+		double dt, time, lastDt;
 		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
-		double dt, time, lastDt = System.nanoTime();
+		
+		gameStats.sessionStartTime = System.currentTimeMillis();
+		lastDt = System.nanoTime();
 
-		do {
+		while (gameStats.isGameRunning && gameStats.nBirds > 0) {
+			
 			time = System.nanoTime();
 
 			// Calcolo del Tempo trascorso in Secondi tra Frames
@@ -112,7 +115,7 @@ public class GameController {
 				throw new RuntimeException(e);
 			}
 
-        } while (gameStats.isGameRunning && gameStats.nBirds > 0);
+        }
 
 		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
 			gameStats.nMaxTubePassed = gameStats.nTubePassed;
@@ -237,6 +240,7 @@ public class GameController {
 	}
 	
 	private void nextGeneration() throws IOException {
+		gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
         ++gameStats.nGen;
         
         // Salvataggio automatico
@@ -270,6 +274,7 @@ public class GameController {
 		newTubes();
 	}
 	
+	//TODO
 	public void resetToFirstGen() {
 		gameStats.isGameRunning = false;
 		vGameObj.clear();
@@ -281,6 +286,7 @@ public class GameController {
 		gameStats.currLifeTime = 0;
 		gameStats.bestLifeTime = 0;
 		gameStats.nMaxTubePassed = 0;
+		gameStats.totGameTime = 0;
 		
 		newTubes();
 	}
@@ -367,13 +373,36 @@ public class GameController {
 		return gameStats.isGameRunning;
 	}
     
-    public long getGameTimeElapsed() {
-    	return gameStats.gameTimeElapsed;
+    public void setGameRunning(boolean isRunning) {
+		gameStats.isGameRunning = isRunning;
+	}
+    
+    //TODO
+    public void resumeGame() {
+        if (!gameStats.isGameRunning) {
+            // Riavviare una nuova sessione
+        	gameStats.sessionStartTime = System.currentTimeMillis();
+            gameStats.isGameRunning = true;
+        }
     }
     
     //TODO
-    public void stopGame() {
-    	gameStats.isGameRunning = false;
+    public void pauseGame() {
+    	if (gameStats.isGameRunning) {
+            // Accumulare il tempo della sessione corrente
+            gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
+            gameStats.isGameRunning = false;
+        }
+    }
+    
+    //TODO
+    public void togglePause() {
+        if (gameStats.isGameRunning) {
+        	pauseGame();
+            resumeGame();
+        } else {
+        	resumeGame();
+        }
     }
     
     public GameStats getCurrentStats() {

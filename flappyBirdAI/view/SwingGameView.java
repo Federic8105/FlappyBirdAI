@@ -58,11 +58,11 @@ public class SwingGameView extends JFrame implements GameView {
         return fileChooser;
     }
     
+    //TODO forse sposta in GameStats
     // StringBuilder Riusabili per Performance Aggiornamento Labels
     private final StringBuilder fpsBuilder = new StringBuilder(10);
     private final StringBuilder currLifeTimeBuilder = new StringBuilder(15);
     private final StringBuilder bestLifeTimeBuilder = new StringBuilder(16);
-    private final StringBuilder chronoBuilder = new StringBuilder(11);
     
     // Caching Ultimi Valori di Statistica per Labels
     private int lastGen = -1;
@@ -340,24 +340,22 @@ public class SwingGameView extends JFrame implements GameView {
         return button;
     }
 	
-	//TODO
 	private void initChronometerUI() {
 		// Spacing
 		chronometerPanel.add(Box.createVerticalStrut(15));
 		
-		// Label "Time:"
 		lTime = new JLabel("Time:");
 		lTime.setAlignmentX(Component.CENTER_ALIGNMENT);
 		lTime.setFont(new Font("Arial", Font.BOLD, 16));
 		lTime.setForeground(Color.BLACK);
 		chronometerPanel.add(lTime);
 		
+		// Spacing
 		chronometerPanel.add(Box.createVerticalStrut(10));
 		
-		// Label con il valore del tempo
 		lTimeValue = new JLabel("00:00:00.00");
 		lTimeValue.setAlignmentX(Component.CENTER_ALIGNMENT);
-		lTimeValue.setFont(new Font("Courier New", Font.BOLD, 18)); // Font monospace per allineamento cifre
+		lTimeValue.setFont(new Font("Courier New", Font.BOLD, 18));
 		lTimeValue.setForeground(Color.DARK_GRAY);
 		lTimeValue.setBorder(BorderFactory.createCompoundBorder(
 			BorderFactory.createLoweredBevelBorder(),
@@ -366,9 +364,6 @@ public class SwingGameView extends JFrame implements GameView {
 		lTimeValue.setOpaque(true);
 		lTimeValue.setBackground(Color.WHITE);
 		chronometerPanel.add(lTimeValue);
-		
-		// Riempire lo spazio rimanente
-		chronometerPanel.add(Box.createVerticalGlue());
 	}
 
 	private void initStatsUI() {
@@ -529,7 +524,7 @@ public class SwingGameView extends JFrame implements GameView {
         	System.out.println((duration/1_000_000.0) + "ms");
         	
         	
-        	updateChronometerLabel();
+        	updateChronometerLabel(stats);
         	
             currentVGameObj = vGameObj;
             gamePanel.repaint();
@@ -583,43 +578,10 @@ public class SwingGameView extends JFrame implements GameView {
        
 	}
 	
-	private void updateChronometerLabel() {
+	private void updateChronometerLabel(GameStats stats) {
 		if (gameController != null && gameController.isGameRunning()) {
-			lTimeValue.setText(formatElapsedTime(gameController.getGameTimeElapsed()));
+			lTimeValue.setText(stats.getFormattedGameTimeElapsed());
 		}
-	}
-	
-	//TODO
-	private String formatElapsedTime(long elapsedMs) {
-		long totalSeconds = elapsedMs / 1000;
-		long hours = totalSeconds / 3600;
-		long minutes = (totalSeconds % 3600) / 60;
-		long seconds = totalSeconds % 60;
-		long centiseconds = (elapsedMs % 1000) / 10;
-		
-		chronoBuilder.setLength(0);
-		
-		if (hours < 10) {
-			chronoBuilder.append('0');
-		}
-	    chronoBuilder.append(hours).append(':');
-
-	    if (minutes < 10) {
-	    	chronoBuilder.append('0');
-	    }
-	    chronoBuilder.append(minutes).append(':');
-
-	    if (seconds < 10) {
-	    	chronoBuilder.append('0');
-	    }
-	    chronoBuilder.append(seconds).append('.');
-
-	    if (centiseconds < 10) {
-	    	chronoBuilder.append('0');
-	    }
-	    chronoBuilder.append(centiseconds);
-
-	    return chronoBuilder.toString();
 	}
 	
 	@Override
