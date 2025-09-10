@@ -8,13 +8,47 @@ import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Random;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Tube extends AbstractGameObject {
 	
-	public static final int DIST_X_BETWEEN_TUBES = 750, DIST_Y_BETWEEN_TUBES = 180;
+	public static final int DIST_X_BETWEEN_TUBES = 750;
+	public static final int DIST_Y_BETWEEN_TUBES = 180;
     public static final int WIDTH = 50;
+    // Percentuale di quanto si può spostare il buco verso l'alto o verso il basso rispetto al centro dello schermo
+    public static final double HOLE_OFFSET_RATIO = 0.3;
     
     public static int lastID = 0;
+    
+    public static List<Tube> createTubePair(int gameWidth, int gameHeight, Random random) {
+        int maxHoleOffset = calcMaxHoleOffset(gameHeight);
+        int tubeHoleOffset = random.nextInt(-maxHoleOffset, maxHoleOffset + 1);
+        
+        int yTubeHoleCenter = (gameHeight / 2) + tubeHoleOffset;
+        int upperTubeHeight = yTubeHoleCenter - DIST_Y_BETWEEN_TUBES / 2;
+        
+        List<Tube> tubePair = new ArrayList<>(2);
+        
+        // Tubo superiore
+        tubePair.add(new Tube(gameWidth, 0, upperTubeHeight, true));
+        
+        // Tubo inferiore
+        tubePair.add(new Tube(gameWidth, upperTubeHeight + DIST_Y_BETWEEN_TUBES, gameHeight - upperTubeHeight - DIST_Y_BETWEEN_TUBES, false));
+        
+        return tubePair;
+    }
+    
+    //TODO
+    private static int calcMaxHoleOffset(int gamePanelHeight) {
+        int maxOffset = (int) (gamePanelHeight * HOLE_OFFSET_RATIO);
+        
+        int safeZone = DIST_Y_BETWEEN_TUBES / 2 + 50;
+        int maxSafeOffset = (gamePanelHeight / 2) - safeZone;
+        
+        return Math.min(maxOffset, maxSafeOffset);
+    }
 
     public final boolean isSuperior;
     

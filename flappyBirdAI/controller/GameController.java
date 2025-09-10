@@ -41,7 +41,7 @@ public class GameController {
     private final GameView gameView;
     private final List<AbstractGameObject> vGameObj = new ArrayList<>();
     private final Map<String, Double> brainInputMap = new HashMap<>();
-    private final int sleepMs = Math.round(1000 / (float) MAX_FPS), tubeHoleOffsetAbsValue = 180;
+    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
     
     // Game Engine Variables
     private BirdBrain bestBirdBrain;
@@ -53,7 +53,8 @@ public class GameController {
 	public GameController(GameView gameView) throws NullPointerException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
 		gameView.setController(this);
-        newTubes();
+		setGameRunning(true);
+		newTubePair();
 	}
 	
 	// Game Logic Methods
@@ -73,13 +74,27 @@ public class GameController {
 		//TODO qui o in flappyBirdAI?
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
-			setGameRunning(true);
 			gameStats.sessionStartTime = System.currentTimeMillis();
 		}
 		
 		lastDt = System.nanoTime();
 
-		while (gameStats.isGameRunning && gameStats.nBirds > 0) {
+		while (gameStats.nBirds > 0) {
+			
+			//TODO
+			if (!gameStats.isGameRunning) {
+	            try {
+	                Thread.sleep(sleepMs);
+	            } catch (InterruptedException e) {
+	                throw new RuntimeException(e);
+	            }
+	            
+	            lastDt = System.nanoTime();
+	            
+	            // Aggiornare solo la vista per mostrare la pausa
+	            gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
+	            continue;
+	        }
 			
 			time = System.nanoTime();
 
@@ -231,19 +246,15 @@ public class GameController {
         }
 
 		if (lastTube != null && lastTube.x + Tube.WIDTH <= gameView.getGameWidth() - Tube.DIST_X_BETWEEN_TUBES) {
-			newTubes();
+			newTubePair();
 		} else if (lastTube == null) {
-			newTubes();
+			newTubePair();
 		}
 	}
 	
-	private void newTubes() {
-		int tubeHoleOffset = rand.nextInt(-tubeHoleOffsetAbsValue, tubeHoleOffsetAbsValue + 1);
-		int yTubeHoleCenter = (getGameHeight() / 2) + tubeHoleOffset;
-		int upperTubeHeight = yTubeHoleCenter - Tube.DIST_Y_BETWEEN_TUBES / 2;
-
-		vGameObj.add(new Tube(gameView.getGameWidth(), 0, upperTubeHeight, true));
-		vGameObj.add(new Tube(gameView.getGameWidth(), upperTubeHeight + Tube.DIST_Y_BETWEEN_TUBES, getGameHeight() - upperTubeHeight - Tube.DIST_Y_BETWEEN_TUBES, false));
+	private void newTubePair() {
+		List<Tube> newTubePair = Tube.createTubePair(gameView.getGameWidth(), getGameHeight(), rand);
+	    vGameObj.addAll(newTubePair);
 	}
 	
 	private void nextGeneration() throws IOException {
@@ -280,7 +291,7 @@ public class GameController {
 		gameStats.nTubePassed = 0;
 		gameStats.currLifeTime = 0;
 		vGameObj.clear();
-		newTubes();
+		newTubePair();
 	}
 	
 	private void resetToFirstGen() {
@@ -295,7 +306,7 @@ public class GameController {
 		vGameObj.clear();
 		bestBirdBrain = null;
 		
-		newTubes();
+		newTubePair();
 	}
 	
 	// Import/Export Methods
@@ -391,10 +402,17 @@ public class GameController {
         } else {
         	resumeGame();
         }
+        
+        // Forzare l'aggiornamento del display
+        if (gameView != null) {
+            gameView.repaintGame();
+        }
     }
     
     //TODO
     private void resumeGame() {
+    	// Riavviare il conteggio del tempo della sessione
+    	gameStats.sessionStartTime = System.currentTimeMillis();
     	gameStats.isGameRunning = true;
     }
     

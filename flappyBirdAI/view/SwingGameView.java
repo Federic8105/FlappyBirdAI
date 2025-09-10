@@ -24,6 +24,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.RoundRectangle2D;
 
 public class SwingGameView extends JFrame implements GameView, KeyListener {
 
@@ -53,6 +54,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
     private static final Color IMPORT_EXPORT_BACKGROUND_COLOR = Color.LIGHT_GRAY;
     private static final Color CHRONOMETER_BACKGROUND_COLOR = Color.decode("#F0E68C");
+    
+    //TODO
+    private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 120);
+    private static final Color PAUSE_SYMBOL_COLOR = new Color(128, 128, 128, 200);
+
     
     // Utility Functions
     
@@ -232,17 +238,25 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
+                // Disegnare l'immagine di sfondo se disponibile
                 if (backgroundImg != null) {
                     g2d.drawImage(backgroundImg, 0, 0, getWidth(), getHeight(), this);
                 }
-
+                
+                // Disegnare tutti gli oggetti di gioco
                 if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
                     for (GameObject obj : currentVGameObj) {
                         if (obj != null) {
                             obj.draw(g2d);
                         }
                     }
+                }
+                
+                // Disegnare overlay di pausa se il gioco è in pausa
+                if (gameController != null && !gameController.isGameRunning()) {
+                    drawPauseOverlay(g2d);
                 }
             }
         };
@@ -259,6 +273,57 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         add(gamePanel, BorderLayout.CENTER);
     }
+	
+	//TODO
+	private void drawPauseOverlay(Graphics2D g2d) {
+	    int width = gamePanel.getWidth();
+	    int height = gamePanel.getHeight();
+	    
+	    // Disegnare overlay scuro semi-trasparente
+	    g2d.setColor(PAUSE_OVERLAY_COLOR);
+	    g2d.fillRect(0, 0, width, height);
+	    
+	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
+	    int symbolSize = Math.min(width, height) / 7;
+	    int symbolX = (width - symbolSize) / 2;
+	    int symbolY = (height - symbolSize) / 2;
+	    
+	    // Disegnare il simbolo di pausa (due rettangoli)
+	    g2d.setColor(PAUSE_SYMBOL_COLOR);
+	    
+	    int barWidth = symbolSize / 5;
+	    int barHeight = (int) (symbolSize * 0.8);
+	    int spacing = symbolSize / 3;
+	    
+	    // Prima barra
+	    int bar1X = symbolX + (symbolSize - 2 * barWidth - spacing) / 2;
+	    int barY = symbolY + (symbolSize - barHeight) / 2;
+	    g2d.fill(new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5));
+	    
+	    // Seconda barra
+	    int bar2X = bar1X + barWidth + spacing;
+	    g2d.fill(new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5));
+	    
+	    // Disegnare testo "PAUSED"
+	    g2d.setColor(Color.WHITE);
+	    Font pauseFont = new Font("Arial", Font.BOLD, symbolSize / 4);
+	    g2d.setFont(pauseFont);
+	    
+	    String pauseText = "PAUSED";
+	    FontMetrics fm = g2d.getFontMetrics();
+	    int textWidth = fm.stringWidth(pauseText);
+	    int textX = (width - textWidth) / 2;
+	    int textY = symbolY + symbolSize + fm.getHeight();
+	    
+	    // Ombra del testo
+	    g2d.setColor(Color.BLACK);
+	    g2d.drawString(pauseText, textX + 2, textY + 2);
+	    
+	    // Testo principale
+	    g2d.setColor(Color.WHITE);
+	    g2d.drawString(pauseText, textX, textY);
+	}
+
 	
 	private Image createGameBackgroundImage() {
         try {
