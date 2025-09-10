@@ -46,7 +46,6 @@ public class GameController {
     // Game Engine Variables
     private BirdBrain bestBirdBrain;
     private double dtMultiplier = 1.0;
-    private boolean isGameRunning = false;
     
     // Game Statistics
     private GameStats gameStats = new GameStats();
@@ -66,11 +65,11 @@ public class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startGame() throws RuntimeException {
-		isGameRunning = true;
+	public void startGameFor1Gen() throws RuntimeException {
+		gameStats.isGameRunning = true;
 		List<Rectangle> vTubeHitBox;
-		double dt, time, lastDt = System.nanoTime();
 		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
+		double dt, time, lastDt = System.nanoTime();
 
 		do {
 			time = System.nanoTime();
@@ -113,16 +112,16 @@ public class GameController {
 				throw new RuntimeException(e);
 			}
 
-        } while (isGameRunning && gameStats.nBirds > 0);
+        } while (gameStats.isGameRunning && gameStats.nBirds > 0);
 
 		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
-			gameStats.nMaxTubePassed = gameStats. nTubePassed;
+			gameStats.nMaxTubePassed = gameStats.nTubePassed;
 		}
 		
 		try {
 			nextGeneration();
 		} catch (IOException e) {
-			System.err.println("Error in Next Generation: " + e.getMessage());
+			System.err.println("Error Starting Next Generation: " + e.getMessage());
 		}
 	}
 	
@@ -263,7 +262,7 @@ public class GameController {
     }
 
 	public void resetForNewGen() {
-		isGameRunning = false;
+		gameStats.isGameRunning = false;
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
 		gameStats.currLifeTime = 0;
@@ -272,7 +271,7 @@ public class GameController {
 	}
 	
 	public void resetToFirstGen() {
-		isGameRunning = false;
+		gameStats.isGameRunning = false;
 		vGameObj.clear();
 		bestBirdBrain = null;
 		
@@ -364,8 +363,17 @@ public class GameController {
         return gameStats.autoSaveThreshold;
     }
     
+    public boolean isGameRunning() {
+		return gameStats.isGameRunning;
+	}
+    
+    public long getGameTimeElapsed() {
+    	return gameStats.gameTimeElapsed;
+    }
+    
+    //TODO
     public void stopGame() {
-        isGameRunning = false;
+    	gameStats.isGameRunning = false;
     }
     
     public GameStats getCurrentStats() {

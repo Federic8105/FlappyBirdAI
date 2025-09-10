@@ -14,14 +14,16 @@ public class GameStats {
 	public static final int DEFAULT_AUTOSAVE_THRESHOLD = 50;
 	
     public int fps = 0, nGen = 1, nBirds = 0, nTubePassed = 0, nMaxTubePassed = 0, autoSaveThreshold = DEFAULT_AUTOSAVE_THRESHOLD;
+    public long gameTimeElapsed = 0;
     public double currLifeTime = 0, bestLifeTime = 0;
-    public boolean isAutoSaveEnabled = true;
+    public boolean isAutoSaveEnabled = true, isGameRunning = false;
     
     public boolean isFirstGen() {
 		return nGen == 1;
 	}
     
     public void reset() {
+    	gameTimeElapsed = 0;
 		fps = 0;
 		nGen = 1;
 		nBirds = 0;
@@ -31,5 +33,6 @@ public class GameStats {
 		bestLifeTime = 0;
 		autoSaveThreshold = DEFAULT_AUTOSAVE_THRESHOLD;
 		isAutoSaveEnabled = true;
+		isGameRunning = false;
 	}
 }

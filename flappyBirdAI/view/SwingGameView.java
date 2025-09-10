@@ -36,7 +36,8 @@ public class SwingGameView extends JFrame implements GameView {
     public static final int MIN_STATS_PANEL_HEIGHT = 40;
     public static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
     public static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
-    public static final int MAX_IMPORT_EXPORT_PANEL_WIDTH = 400;
+    public static final int MIN_CHRONOMETER_PANEL_WIDTH = MIN_IMPORT_EXPORT_PANEL_WIDTH;
+    public static final int MIN_CHRONOMETER_PANEL_HEIGHT = MIN_CONTROLS_PANEL_HEIGHT;
     public static final int MIN_GAME_PANEL_WIDTH = MIN_STATS_PANEL_WIDTH;
     public static final int MIN_GAME_PANEL_HEIGHT = 500;
     public static final int MIN_WINDOW_WIDTH = MIN_STATS_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
@@ -47,6 +48,7 @@ public class SwingGameView extends JFrame implements GameView {
     private static final Color STATS_BACKGROUND_COLOR = Color.DARK_GRAY;
     private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
     private static final Color IMPORT_EXPORT_BACKGROUND_COLOR = Color.LIGHT_GRAY;
+    private static final Color CHRONOMETER_BACKGROUND_COLOR = Color.decode("#F0E68C");
     
     // Utility Functions
     
@@ -60,6 +62,7 @@ public class SwingGameView extends JFrame implements GameView {
     private final StringBuilder fpsBuilder = new StringBuilder(10);
     private final StringBuilder currLifeTimeBuilder = new StringBuilder(15);
     private final StringBuilder bestLifeTimeBuilder = new StringBuilder(16);
+    private final StringBuilder chronoBuilder = new StringBuilder(11);
     
     // Caching Ultimi Valori di Statistica per Labels
     private int lastGen = -1;
@@ -76,7 +79,7 @@ public class SwingGameView extends JFrame implements GameView {
     private List<AbstractGameObject> currentVGameObj;
     
     // UI Panels
-    private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel;
+    private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
     
     // UI Components - Statistiche
 	private JLabel lFPS, lCurrLifeTime, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
@@ -89,6 +92,9 @@ public class SwingGameView extends JFrame implements GameView {
 	private JButton bSaveBrain, bLoadBrain, bToggleAutoSave;
 	private JSpinner autoSaveThresholdSpinner;
 	private JLabel lAutoSaveThreshold;
+	
+	// UI Components - Chronometer
+	private JLabel lTime, lTimeValue;
 
 	public SwingGameView(int width, int height) {
 		this.initialWidth = Math.max(width, MIN_WINDOW_WIDTH);
@@ -112,8 +118,8 @@ public class SwingGameView extends JFrame implements GameView {
 	}
 	
 	private void initPanels() {
-		// Inizializzare per Primo per averlo a SX
-		initImportExportPanel();
+		// Inizializzare per Primi per averli a SX
+		initLeftPanels();
 		
 		JPanel centralPanel = new JPanel(new BorderLayout());
 		centralPanel.setPreferredSize(new Dimension(initialWidth, initialHeight));
@@ -132,16 +138,40 @@ public class SwingGameView extends JFrame implements GameView {
 		pack();
 	}
 	
-	private void initImportExportPanel() {
+	private void initLeftPanels() {
+		JPanel leftPanel = new JPanel(new BorderLayout());
+		
+		// Calcolare la larghezza come percentuale della larghezza totale
+	    int panelWidth = calcImportExportPanelWidth(0.2f);
+	    leftPanel.setPreferredSize(new Dimension(panelWidth, initialHeight));
+	    leftPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, initialHeight));
+	    
+	    initImportExportPanel(panelWidth);
+		initChronometerPanel(panelWidth);
+		
+		// Aggiungere i pannelli al pannello principale di sinistra
+		leftPanel.add(importExportPanel, BorderLayout.NORTH);
+		leftPanel.add(chronometerPanel, BorderLayout.SOUTH);
+	    
+		add(leftPanel, BorderLayout.WEST);
+	}
+	
+	private int calcImportExportPanelWidth(float percOfTotWidth) {
+	    // Calcolare la larghezza come percentuale della larghezza totale
+	    // Controllo Width Min
+        return Math.max((int) (initialWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
+    }
+	
+	private void initImportExportPanel(int panelWidth) {
 		importExportPanel = new JPanel();
 		importExportPanel.setLayout(new BoxLayout(importExportPanel, BoxLayout.Y_AXIS));
 		importExportPanel.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
 		
-		// Calcolare la larghezza come percentuale della larghezza totale
-	    int panelWidth = calcImportExportPanelWidth(0.2f);
-	    importExportPanel.setPreferredSize(new Dimension(panelWidth, initialHeight));
-	    importExportPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, initialHeight));
-	    
+		// Calcolare l'altezza disponibile per il pannello import/export
+	    int panelHeight = initialHeight - MIN_CHRONOMETER_PANEL_HEIGHT;
+	    importExportPanel.setPreferredSize(new Dimension(panelWidth, panelHeight));
+	    importExportPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, panelHeight));
+		
 		// Titolo del Pannello
 		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Bird Brain Import/Export");
 		importExportTitle.setTitleJustification(TitledBorder.CENTER);
@@ -151,19 +181,25 @@ public class SwingGameView extends JFrame implements GameView {
 		importExportPanel.setBorder(importExportTitle);
 		
 		initImportExportUI(panelWidth);
-		
-		add(importExportPanel, BorderLayout.WEST);
 	}
 	
-	private int calcImportExportPanelWidth(float percOfTotWidth) {
-	    // Calcolare la larghezza come percentuale della larghezza totale
-		int panelWidth = (int) (initialWidth * percOfTotWidth);
-	    // Controllo Width Min
-	    panelWidth = Math.max(panelWidth, MIN_IMPORT_EXPORT_PANEL_WIDTH);
-	    // Controllo Width Max
-	    panelWidth = Math.min(panelWidth, MAX_IMPORT_EXPORT_PANEL_WIDTH);
-        return panelWidth;
-    }
+	private void initChronometerPanel(int panelWidth) {
+		chronometerPanel = new JPanel();
+		chronometerPanel.setLayout(new BoxLayout(chronometerPanel, BoxLayout.Y_AXIS));
+		chronometerPanel.setBackground(CHRONOMETER_BACKGROUND_COLOR);
+		chronometerPanel.setPreferredSize(new Dimension(panelWidth, MIN_CHRONOMETER_PANEL_HEIGHT));
+		chronometerPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_CHRONOMETER_PANEL_HEIGHT));
+		
+		// Titolo del Pannello
+		TitledBorder chronometerTitle = BorderFactory.createTitledBorder("Chronometer");
+		chronometerTitle.setTitleJustification(TitledBorder.CENTER);
+		chronometerTitle.setTitlePosition(TitledBorder.TOP);
+		chronometerTitle.setTitleFont(new Font("Arial", Font.BOLD, 14));
+		chronometerTitle.setTitleColor(Color.BLACK);
+		chronometerPanel.setBorder(chronometerTitle);
+		
+		initChronometerUI();
+	}
 	
 	private void initGamePanel() {
 		Image backgroundImg = createGameBackgroundImage();
@@ -303,6 +339,37 @@ public class SwingGameView extends JFrame implements GameView {
         button.setFocusPainted(false);
         return button;
     }
+	
+	//TODO
+	private void initChronometerUI() {
+		// Spacing
+		chronometerPanel.add(Box.createVerticalStrut(15));
+		
+		// Label "Time:"
+		lTime = new JLabel("Time:");
+		lTime.setAlignmentX(Component.CENTER_ALIGNMENT);
+		lTime.setFont(new Font("Arial", Font.BOLD, 16));
+		lTime.setForeground(Color.BLACK);
+		chronometerPanel.add(lTime);
+		
+		chronometerPanel.add(Box.createVerticalStrut(10));
+		
+		// Label con il valore del tempo
+		lTimeValue = new JLabel("00:00:00.00");
+		lTimeValue.setAlignmentX(Component.CENTER_ALIGNMENT);
+		lTimeValue.setFont(new Font("Courier New", Font.BOLD, 18)); // Font monospace per allineamento cifre
+		lTimeValue.setForeground(Color.DARK_GRAY);
+		lTimeValue.setBorder(BorderFactory.createCompoundBorder(
+			BorderFactory.createLoweredBevelBorder(),
+			BorderFactory.createEmptyBorder(5, 10, 5, 10)
+		));
+		lTimeValue.setOpaque(true);
+		lTimeValue.setBackground(Color.WHITE);
+		chronometerPanel.add(lTimeValue);
+		
+		// Riempire lo spazio rimanente
+		chronometerPanel.add(Box.createVerticalGlue());
+	}
 
 	private void initStatsUI() {
 		
@@ -462,6 +529,8 @@ public class SwingGameView extends JFrame implements GameView {
         	System.out.println((duration/1_000_000.0) + "ms");
         	
         	
+        	updateChronometerLabel();
+        	
             currentVGameObj = vGameObj;
             gamePanel.repaint();
         });
@@ -512,6 +581,45 @@ public class SwingGameView extends JFrame implements GameView {
             lastAutoSaveStatus = stats.isAutoSaveEnabled;
 		}
        
+	}
+	
+	private void updateChronometerLabel() {
+		if (gameController != null && gameController.isGameRunning()) {
+			lTimeValue.setText(formatElapsedTime(gameController.getGameTimeElapsed()));
+		}
+	}
+	
+	//TODO
+	private String formatElapsedTime(long elapsedMs) {
+		long totalSeconds = elapsedMs / 1000;
+		long hours = totalSeconds / 3600;
+		long minutes = (totalSeconds % 3600) / 60;
+		long seconds = totalSeconds % 60;
+		long centiseconds = (elapsedMs % 1000) / 10;
+		
+		chronoBuilder.setLength(0);
+		
+		if (hours < 10) {
+			chronoBuilder.append('0');
+		}
+	    chronoBuilder.append(hours).append(':');
+
+	    if (minutes < 10) {
+	    	chronoBuilder.append('0');
+	    }
+	    chronoBuilder.append(minutes).append(':');
+
+	    if (seconds < 10) {
+	    	chronoBuilder.append('0');
+	    }
+	    chronoBuilder.append(seconds).append('.');
+
+	    if (centiseconds < 10) {
+	    	chronoBuilder.append('0');
+	    }
+	    chronoBuilder.append(centiseconds);
+
+	    return chronoBuilder.toString();
 	}
 	
 	@Override

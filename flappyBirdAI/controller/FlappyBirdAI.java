@@ -71,7 +71,7 @@ public class FlappyBirdAI {
 				gameController.addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
 			}
 
-			gameController.startGame();
+			gameController.startGameFor1Gen();
 			gameController.resetForNewGen();
 		}
 	}
