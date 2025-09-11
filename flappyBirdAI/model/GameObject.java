@@ -12,7 +12,6 @@ public interface GameObject {
 	Rectangle getHitBox();
 	void updateXY(double dt_ms);
 	boolean checkCollision(Rectangle[] vHitBox);
-	void setImage();
 	void updateIFrames();
 	void draw(Graphics2D g2d);
 }

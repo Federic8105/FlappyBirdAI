@@ -5,14 +5,20 @@
 package flappyBirdAI.model;
 
 import java.awt.*;
-import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
+
+import javax.imageio.ImageIO;
+
 import java.util.List;
 import java.util.ArrayList;
 
 public class Tube extends AbstractGameObject {
+	
+	public static final int NUM_IMAGES = 2;
+	public static Image[] V_IMAGES = new Image[NUM_IMAGES];
+	public static String IMG_NAME = "/res/TUBE";
 	
 	public static final int DIST_X_BETWEEN_TUBES = 750;
 	public static final int DIST_Y_BETWEEN_TUBES = 180;
@@ -21,6 +27,23 @@ public class Tube extends AbstractGameObject {
     public static final double HOLE_OFFSET_RATIO = 0.3;
     
     public static int lastID = 0;
+    
+    public static void loadImages() {
+    	for (int i = 0; i < V_IMAGES.length; ++i) {
+    		try {
+    			V_IMAGES[i] = ImageIO.read(Tube.class.getResource(IMG_NAME + (i + 1) + IMG_EXT));
+
+    		} catch(IOException e) {
+            	System.err.println("Image Not Found: " + e.getMessage());
+    		}
+    	}
+    	
+    	if (V_IMAGES.length == NUM_IMAGES) {
+			FlappyBird.IS_IMAGES_FOUND = true;
+		} else {
+			FlappyBird.IS_IMAGES_FOUND = false;
+		}
+	}
     
     public static List<Tube> createTubePair(int gameWidth, int gameHeight, Random random) {
         int maxHoleOffset = calcMaxHoleOffset(gameHeight);
@@ -62,7 +85,6 @@ public class Tube extends AbstractGameObject {
 		this.isSuperior = isSuperior;
         this.id = Tube.lastID;
         ++Tube.lastID;
-        nImages = 2;
         x = x0;
         y = y0;
 		w = Tube.WIDTH;
@@ -71,22 +93,10 @@ public class Tube extends AbstractGameObject {
         updateHitBox();
 
         if (showImage) {
-           updateIFrames();
-           setImage();
-        }
-    }
-    
-    @Override
-    public void setImage() {
-        vFrames = new Image[1];
-		try {
-            vFrames[0] = ImageIO.read(getClass().getResource(AbstractGameObject.TUBE_IMG_NAME + (iFrames+1) + IMG_EXT));
-            vFrames[0] = vFrames[0].getScaledInstance(w, h, Image.SCALE_SMOOTH);
-
-            isImageFound = true;
-        } catch(IOException e) {
-            isImageFound = false;
-            System.err.println("Tube Image Not Found for Tube ID: " + id);
+        	updateIFrames();
+        	
+        	// Ridimensiona solo immagine caricata usata dal Tube in base a w e h
+        	V_IMAGES[iFrames] = V_IMAGES[iFrames].getScaledInstance(w, h, Image.SCALE_SMOOTH);
         }
     }
 
@@ -108,11 +118,11 @@ public class Tube extends AbstractGameObject {
 
 	@Override
     public void draw(Graphics2D g2d) {
-        if (!isImageFound) {
+        if (!IS_IMAGES_FOUND) {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);
         } else {
-            g2d.drawImage(vFrames[0], x, y, null);
+            g2d.drawImage(V_IMAGES[iFrames], x, y, null);
         }
     }
 	

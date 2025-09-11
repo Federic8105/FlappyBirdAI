@@ -7,6 +7,7 @@ package flappyBirdAI.controller;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
+import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
@@ -31,6 +32,9 @@ public class FlappyBirdAI {
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	this.nBirdsXGen = nBirdsXGen;
     	this.nBirdsRegen = (int) (nBirdsXGen * PERC_BIRDS_REGEN);
+    	
+    	Tube.loadImages();
+    	FlappyBird.loadImages();
     	
 		gameController = new GameController(useJavaFX ? new SwingGameView(w, h) : new SwingGameView(w, h));
 

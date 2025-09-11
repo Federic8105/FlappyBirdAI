@@ -315,7 +315,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    g2d.draw(bar1);
 	    g2d.draw(bar2);
 	    
-	    
 	    g2d.setColor(Color.WHITE);
 	    g2d.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, symbolSize / 4));
 	    

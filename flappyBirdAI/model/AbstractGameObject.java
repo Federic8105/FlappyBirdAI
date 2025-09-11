@@ -5,21 +5,18 @@
 package flappyBirdAI.model;
 
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.Rectangle;
 import java.util.Objects;
 
 public class AbstractGameObject implements GameObject {
 	
+	public static boolean IS_IMAGES_FOUND = false;
 	public static final String IMG_EXT= ".png";
-	public static final String FB_IMG_NAME = "/res/FB";
-	public static final String TUBE_IMG_NAME = "/res/TUBE";
 	
-	public int x, y, w, h, iFrames = 0, nImages;
+	public int x, y, w, h, iFrames = 0;
 	public boolean isAlive = true;
-	protected boolean showImage = true, isImageFound = false;
+	protected boolean showImage = true;
 	protected Rectangle hitBox;
-	protected Image[] vFrames;
 
 	@Override
 	public void updateHitBox() {
@@ -49,9 +46,6 @@ public class AbstractGameObject implements GameObject {
 
 		return collision;
 	}
-	
-	@Override
-	public void setImage() {}
 	
 	@Override
 	public void updateIFrames() {}

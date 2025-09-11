@@ -6,13 +6,42 @@ package flappyBirdAI.model;
 
 import flappyBirdAI.ai.BirdBrain;
 import java.awt.*;
-import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.util.Objects;
 
+import javax.imageio.ImageIO;
+
 public class FlappyBird extends AbstractGameObject {
 	
-	public static final int WIDTH = 60, HEIGHT = 45;
+	public static int NUM_IMAGES = 4;
+	public static Image[] V_IMAGES = new Image[NUM_IMAGES];
+	public static final String IMG_NAME = "/res/FB";
+	
+	public static final int WIDTH = 60;
+	public static final int HEIGHT = 45;
+	
+	public static void loadImages() {	
+		for (int i = 0; i < V_IMAGES.length; ++i) {
+			try {
+				
+				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + (i + 1) + IMG_EXT));
+				
+				if (V_IMAGES[i] != null) {
+					// Ridimensiona l'immagine caricata
+					V_IMAGES[i] = V_IMAGES[i].getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH);
+				}
+
+			} catch(IOException e) {
+            	System.err.println("Image Not Found: " + e.getMessage());
+			}
+		}
+		
+		if (V_IMAGES.length == NUM_IMAGES) {
+			FlappyBird.IS_IMAGES_FOUND = true;
+		} else {
+			FlappyBird.IS_IMAGES_FOUND = false;
+		}
+	}
 
 	public final double gravity = 700, jumpForce = 300;
     public final int tDelayAnimation = 150;
@@ -22,7 +51,6 @@ public class FlappyBird extends AbstractGameObject {
 
 	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
 		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
-        nImages = 4;
         x = x0;
 		y = y0;
 		w = FlappyBird.WIDTH;
@@ -31,7 +59,6 @@ public class FlappyBird extends AbstractGameObject {
 		updateHitBox();
 
 		if (showImage) {
-			setImage();
 			startAnimation();
 		}
 	}
@@ -54,26 +81,10 @@ public class FlappyBird extends AbstractGameObject {
 		
 		animationThread.start();
     }
-	
-	@Override
-	public void setImage() {
-		vFrames = new Image[nImages];
-		for (int i = 0; i < vFrames.length; ++i) {
-			try {
-				vFrames[i] = ImageIO.read(getClass().getResource(AbstractGameObject.FB_IMG_NAME + (i+1) + IMG_EXT));
-				vFrames[i] = vFrames[i].getScaledInstance(w, h, Image.SCALE_SMOOTH);
-
-				isImageFound = true;
-			} catch(IOException e) {
-				isImageFound = false;
-            	System.err.println("FB Image Not Found");
-			}
-		}
-	}
 
     @Override
 	public void updateIFrames() {
-		if (iFrames == vFrames.length - 1) {
+		if (iFrames == V_IMAGES.length - 1) {
 			iFrames = 0;
 		} else {
 			++iFrames;
@@ -95,11 +106,11 @@ public class FlappyBird extends AbstractGameObject {
 
 	@Override
 	public void draw(Graphics2D g2d) {
-		if (!isImageFound) {
+		if (!IS_IMAGES_FOUND) {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);
         } else {
-            g2d.drawImage(vFrames[iFrames], x, y, null);
+            g2d.drawImage(V_IMAGES[iFrames], x, y, null);
         }
 	}
 	
