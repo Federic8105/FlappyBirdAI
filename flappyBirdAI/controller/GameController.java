@@ -169,12 +169,12 @@ public final class GameController {
                 	// Nuovo Record di Vita
                 	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
 						gameStats.bestLifeTime = currBird.lifeTime;
-						bestBirdBrain = currBird.brain;
+						bestBirdBrain = currBird.getBrain();
 					}
                 }
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
-                if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + FlappyBird.HEIGHT < 0 || currBird.y > getGameHeight()) {
+                if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
                     
                     currBird.isAlive = false;
                     --gameStats.nBirds;
@@ -188,7 +188,7 @@ public final class GameController {
                 	brainInputMap.put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
                 	brainInputMap.put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
 
-                	currBird.brain.setInputs(brainInputMap);
+                	currBird.getBrain().setInputs(brainInputMap);
                     
                     if (currBird.think()) {
                         currBird.jump();
@@ -232,7 +232,7 @@ public final class GameController {
 		Tube firstTopTube = null;
 		for (GameObject motObj : vGameObj) {
 			if (motObj instanceof Tube currTube) {
-				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
+				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
 					firstTopTube = currTube;
 				}
 			}
@@ -241,10 +241,11 @@ public final class GameController {
 		return firstTopTube;
 	}
 
+	//TODO pk isSuperior?
 	private void checkNewTube() {
 		Tube lastTube = null;
         for (AbstractGameObject obj : vGameObj) {
-            if (obj instanceof Tube && obj.isAlive && ((Tube) obj).isSuperior) {
+            if (obj instanceof Tube && obj.isAlive && ((Tube) obj).isSuperior()) {
                 lastTube = (Tube) obj;
             }
         }

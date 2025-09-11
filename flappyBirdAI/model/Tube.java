@@ -16,33 +16,30 @@ import java.util.ArrayList;
 
 public class Tube extends AbstractGameObject {
 	
-	public static final int NUM_IMAGES = 2;
-	public static Image[] V_IMAGES = new Image[NUM_IMAGES];
-	public static String IMG_NAME = "/res/TUBE";
+	private static final int NUM_IMAGES = 2;
+	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
+	private static final String IMG_NAME = "/res/TUBE";
 	
 	public static final int DIST_X_BETWEEN_TUBES = 750;
 	public static final int DIST_Y_BETWEEN_TUBES = 180;
     public static final int WIDTH = 50;
+    
     // Percentuale di quanto si può spostare il buco verso l'alto o verso il basso rispetto al centro dello schermo
-    public static final double HOLE_OFFSET_RATIO = 0.3;
+    private static final double HOLE_OFFSET_RATIO = 0.3;
     
     public static int lastID = 0;
     
     public static void loadImages() {
     	for (int i = 0; i < V_IMAGES.length; ++i) {
     		try {
-    			V_IMAGES[i] = ImageIO.read(Tube.class.getResource(IMG_NAME + (i + 1) + IMG_EXT));
+    			V_IMAGES[i] = ImageIO.read(Tube.class.getResource(IMG_NAME + i + IMG_EXT));
 
     		} catch(IOException e) {
             	System.err.println("Image Not Found: " + e.getMessage());
     		}
     	}
     	
-    	if (V_IMAGES.length == NUM_IMAGES) {
-			FlappyBird.IS_IMAGES_FOUND = true;
-		} else {
-			FlappyBird.IS_IMAGES_FOUND = false;
-		}
+    	IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
 	}
     
     public static List<Tube> createTubePair(int gameWidth, int gameHeight, Random random) {
@@ -76,10 +73,9 @@ public class Tube extends AbstractGameObject {
         //return Math.min(maxOffset, maxSafeOffset);
     }
 
-    public final boolean isSuperior;
-    
     private final int id;
     private final double vx = 250;
+    private final boolean isSuperior;
 
     private Tube(int x0, int y0, int height, boolean isSuperior) {
 		this.isSuperior = isSuperior;
@@ -93,19 +89,23 @@ public class Tube extends AbstractGameObject {
         updateHitBox();
 
         if (showImage) {
-        	updateIFrames();
+        	updateImageIndex();
         	
         	// Ridimensiona solo immagine caricata usata dal Tube in base a w e h
-        	V_IMAGES[iFrames] = V_IMAGES[iFrames].getScaledInstance(w, h, Image.SCALE_SMOOTH);
+        	V_IMAGES[imageIndex] = V_IMAGES[imageIndex].getScaledInstance(w, h, Image.SCALE_SMOOTH);
         }
     }
+    
+    public boolean isSuperior() {
+		return isSuperior;
+	}
 
     @Override
-    public void updateIFrames() {
+    public void updateImageIndex() {
         if (isSuperior) {
-            iFrames = 0;
+        	imageIndex = 0;
         } else {
-            iFrames = 1;
+        	imageIndex = 1;
         }
     }
     
@@ -122,7 +122,7 @@ public class Tube extends AbstractGameObject {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);
         } else {
-            g2d.drawImage(V_IMAGES[iFrames], x, y, null);
+            g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
         }
     }
 	
@@ -162,5 +162,4 @@ public class Tube extends AbstractGameObject {
 	    );
 	}
 	
-
 }

@@ -60,7 +60,7 @@ public class FlappyBirdAI {
 		for (int i = 0; i < nBirds; ++i) {
 			startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 			vBirds.add(new FlappyBird(20, startY, bestBirdBrain));
-			((FlappyBird) vBirds.get(i)).brain.updateWeights();
+			((FlappyBird) vBirds.get(i)).getBrain().updateWeights();
 		}
 		
 		return vBirds;

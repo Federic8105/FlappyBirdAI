@@ -13,18 +13,20 @@ import javax.imageio.ImageIO;
 
 public class FlappyBird extends AbstractGameObject {
 	
-	public static int NUM_IMAGES = 4;
-	public static Image[] V_IMAGES = new Image[NUM_IMAGES];
-	public static final String IMG_NAME = "/res/FB";
+	//TODO qui?
+	private static final int NUM_IMAGES = 4;
+	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
+	private static final String IMG_NAME = "/res/FB";
 	
 	public static final int WIDTH = 60;
 	public static final int HEIGHT = 45;
 	
+	//TODO qui?
 	public static void loadImages() {	
 		for (int i = 0; i < V_IMAGES.length; ++i) {
 			try {
 				
-				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + (i + 1) + IMG_EXT));
+				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + i + IMG_EXT));
 				
 				if (V_IMAGES[i] != null) {
 					// Ridimensiona l'immagine caricata
@@ -36,16 +38,12 @@ public class FlappyBird extends AbstractGameObject {
 			}
 		}
 		
-		if (V_IMAGES.length == NUM_IMAGES) {
-			FlappyBird.IS_IMAGES_FOUND = true;
-		} else {
-			FlappyBird.IS_IMAGES_FOUND = false;
-		}
+		IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
 	}
 
 	public final double gravity = 700, jumpForce = 300;
     public final int tDelayAnimation = 150;
-	public final BirdBrain brain;
+	private final BirdBrain brain;
 
 	public double lifeTime = 0, vy = 0;
 
@@ -62,6 +60,10 @@ public class FlappyBird extends AbstractGameObject {
 			startAnimation();
 		}
 	}
+	
+	public BirdBrain getBrain() {
+		return brain;
+	}
 
 	public boolean think() {
 		return brain.think();
@@ -72,7 +74,7 @@ public class FlappyBird extends AbstractGameObject {
 			while (isAlive) {
 				try {
 					Thread.sleep(tDelayAnimation);
-					updateIFrames();
+					updateImageIndex();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
@@ -83,11 +85,11 @@ public class FlappyBird extends AbstractGameObject {
     }
 
     @Override
-	public void updateIFrames() {
-		if (iFrames == V_IMAGES.length - 1) {
-			iFrames = 0;
+	public void updateImageIndex() {
+		if (imageIndex == V_IMAGES.length - 1) {
+			imageIndex = 0;
 		} else {
-			++iFrames;
+			++imageIndex;
 		}
 	}
 	
@@ -110,7 +112,7 @@ public class FlappyBird extends AbstractGameObject {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);
         } else {
-            g2d.drawImage(V_IMAGES[iFrames], x, y, null);
+            g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
         }
 	}
 	

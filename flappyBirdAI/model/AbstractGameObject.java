@@ -10,11 +10,12 @@ import java.util.Objects;
 
 public class AbstractGameObject implements GameObject {
 	
-	public static boolean IS_IMAGES_FOUND = false;
-	public static final String IMG_EXT= ".png";
+	protected static final String IMG_EXT= ".png";
+	protected static boolean IS_IMAGES_FOUND = false;
 	
-	public int x, y, w, h, iFrames = 0;
+	public int x, y, w, h;
 	public boolean isAlive = true;
+	protected int imageIndex = 0;
 	protected boolean showImage = true;
 	protected Rectangle hitBox;
 
@@ -48,7 +49,7 @@ public class AbstractGameObject implements GameObject {
 	}
 	
 	@Override
-	public void updateIFrames() {}
+	public void updateImageIndex() {}
 	
 	@Override
 	public void draw(Graphics2D g2d) {}
