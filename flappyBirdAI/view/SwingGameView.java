@@ -57,6 +57,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 150);
     private static final Color PAUSE_SYMBOL_COLOR = new Color(150, 150, 150);
     
+    // Pause Symbol Ratios compared to symbol size
+    private static final double BAR_WIDTH_RATIO = 1.0 / 4.5;
+    private static final double BAR_HEIGHT_RATIO = 0.8;
+    private static final double BAR_GAP_RATIO = 1.0 / 3.0;
+    
     // Utility Functions
     
     static JFileChooser createJsonFileChooser() {
@@ -271,7 +276,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         add(gamePanel, BorderLayout.CENTER);
     }
 	
-	//TODO
 	private void drawPauseOverlay(Graphics2D g2d) {
 	    int width = gamePanel.getWidth();
 	    int height = gamePanel.getHeight();
@@ -282,54 +286,55 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    
 	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
 	    int symbolSize = Math.min(width, height) / 6;
+	    // Centrare il simbolo di pausa
 	    int symbolX = (width - symbolSize) / 2;
 	    int symbolY = (height - symbolSize) / 2;
-	    
-	    // Disegnare il simbolo di pausa (due rettangoli)
-	    g2d.setColor(PAUSE_SYMBOL_COLOR);
-	    
-	    int barWidth = symbolSize / 5;
-	    int barHeight = (int) (symbolSize * 0.8);
-	    int spacing = symbolSize / 3;
+
+	    // Dimensioni delle barre del simbolo di pausa
+	    int barWidth = (int) (symbolSize * BAR_WIDTH_RATIO);
+	    int barHeight = (int) (symbolSize * BAR_HEIGHT_RATIO);
+	    int barSpacing = (int) (symbolSize * BAR_GAP_RATIO);
 	    
 	    // Prima barra
-	    int bar1X = symbolX + (symbolSize - 2 * barWidth - spacing) / 2;
 	    int barY = symbolY + (symbolSize - barHeight) / 2;
+	    int bar1X = symbolX + (symbolSize - 2 * barWidth - barSpacing) / 2;
 	    RoundRectangle2D bar1 = new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5);
-	    g2d.fill(bar1);
 	    
 	    // Seconda barra
-	    int bar2X = bar1X + barWidth + spacing;
+	    int bar2X = bar1X + barWidth + barSpacing;
 	    RoundRectangle2D bar2 = new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5);
+	    
+	    g2d.setColor(PAUSE_SYMBOL_COLOR);
+	    g2d.fill(bar1);
 	    g2d.fill(bar2);
 	    
-	    // Spessore del bordo
+	    // Spessore del bordo delle barre
 	    g2d.setStroke(new BasicStroke(1.7f));
-	    // Colore del bordo
+	    // Colore del bordo delle barre
 	    g2d.setColor(Color.BLACK);
 	    g2d.draw(bar1);
 	    g2d.draw(bar2);
 	    
-	    // Disegnare testo "PAUSED"
+	    
 	    g2d.setColor(Color.WHITE);
-	    Font pauseFont = new Font("Arial", Font.BOLD, symbolSize / 4);
-	    g2d.setFont(pauseFont);
+	    g2d.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, symbolSize / 4));
 	    
 	    String pauseText = "PAUSED";
+	    
+	    // Calcolare posizione del testo sotto il simbolo di pausa
 	    FontMetrics fm = g2d.getFontMetrics();
 	    int textWidth = fm.stringWidth(pauseText);
 	    int textX = (width - textWidth) / 2;
 	    int textY = symbolY + symbolSize + fm.getHeight();
 	    
-	    // Ombra del testo
+	    // Ombra del testo (testo nero leggermente spostato)
 	    g2d.setColor(Color.BLACK);
-	    g2d.drawString(pauseText, textX + 2, textY + 2);
+	    g2d.drawString(pauseText, textX + 3, textY + 3);
 	    
-	    // Testo principale
+	    // Testo principale bianco
 	    g2d.setColor(Color.WHITE);
 	    g2d.drawString(pauseText, textX, textY);
 	}
-
 	
 	private Image createGameBackgroundImage() {
         try {
