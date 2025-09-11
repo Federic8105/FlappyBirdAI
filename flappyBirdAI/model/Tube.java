@@ -40,14 +40,17 @@ public class Tube extends AbstractGameObject {
         return tubePair;
     }
     
-    //TODO
+    //TODO controllo no buco fuori schermo e parametro dist minimo tra buco e bordo schermo
     private static int calcMaxHoleOffset(int gamePanelHeight) {
+    	// Calcolare offset massimo come percentuale dell'altezza
         int maxOffset = (int) (gamePanelHeight * HOLE_OFFSET_RATIO);
         
-        int safeZone = DIST_Y_BETWEEN_TUBES / 2 + 50;
-        int maxSafeOffset = (gamePanelHeight / 2) - safeZone;
+        return maxOffset;
         
-        return Math.min(maxOffset, maxSafeOffset);
+        //int safeZone = DIST_Y_BETWEEN_TUBES / 2 + 50;
+        //int maxSafeOffset = (gamePanelHeight / 2) - safeZone;
+        
+        //return Math.min(maxOffset, maxSafeOffset);
     }
 
     public final boolean isSuperior;
@@ -55,7 +58,7 @@ public class Tube extends AbstractGameObject {
     private final int id;
     private final double vx = 250;
 
-    public Tube(int x0, int y0, int height, boolean isSuperior) {
+    private Tube(int x0, int y0, int height, boolean isSuperior) {
 		this.isSuperior = isSuperior;
         this.id = Tube.lastID;
         ++Tube.lastID;

@@ -2,7 +2,7 @@ package flappyBirdAI.controller;
 
 import java.text.DecimalFormat;
 
-public class GameStats {
+public final class GameStats {
 	
 	// Usa Locale di Default per il formato decimale
 	private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");

@@ -54,11 +54,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
     private static final Color IMPORT_EXPORT_BACKGROUND_COLOR = Color.LIGHT_GRAY;
     private static final Color CHRONOMETER_BACKGROUND_COLOR = Color.decode("#F0E68C");
-    
-    //TODO
-    private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 120);
-    private static final Color PAUSE_SYMBOL_COLOR = new Color(128, 128, 128, 200);
-
+    private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 150);
+    private static final Color PAUSE_SYMBOL_COLOR = new Color(150, 150, 150);
     
     // Utility Functions
     
@@ -284,7 +281,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    g2d.fillRect(0, 0, width, height);
 	    
 	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
-	    int symbolSize = Math.min(width, height) / 7;
+	    int symbolSize = Math.min(width, height) / 6;
 	    int symbolX = (width - symbolSize) / 2;
 	    int symbolY = (height - symbolSize) / 2;
 	    
@@ -298,11 +295,20 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    // Prima barra
 	    int bar1X = symbolX + (symbolSize - 2 * barWidth - spacing) / 2;
 	    int barY = symbolY + (symbolSize - barHeight) / 2;
-	    g2d.fill(new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5));
+	    RoundRectangle2D bar1 = new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5);
+	    g2d.fill(bar1);
 	    
 	    // Seconda barra
 	    int bar2X = bar1X + barWidth + spacing;
-	    g2d.fill(new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5));
+	    RoundRectangle2D bar2 = new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5);
+	    g2d.fill(bar2);
+	    
+	    // Spessore del bordo
+	    g2d.setStroke(new BasicStroke(1.7f));
+	    // Colore del bordo
+	    g2d.setColor(Color.BLACK);
+	    g2d.draw(bar1);
+	    g2d.draw(bar2);
 	    
 	    // Disegnare testo "PAUSED"
 	    g2d.setColor(Color.WHITE);
@@ -698,7 +704,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 
 	@Override
-	//TODO grafica di pausa
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE && gameController != null) {
 			gameController.togglePause();

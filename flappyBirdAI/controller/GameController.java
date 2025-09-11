@@ -26,9 +26,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.awt.Rectangle;
 
-public class GameController {
+public final class GameController {
 	
 	public static final int MAX_FPS = 60;
+	private static final int PAUSE_SLEEP_MS = 100;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
@@ -41,9 +42,9 @@ public class GameController {
     private final GameView gameView;
     private final List<AbstractGameObject> vGameObj = new ArrayList<>();
     private final Map<String, Double> brainInputMap = new HashMap<>();
-    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
     
     // Game Engine Variables
+    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
     private BirdBrain bestBirdBrain;
     private double dtMultiplier = 1.0;
     
@@ -66,12 +67,13 @@ public class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startGame() throws RuntimeException {
+	public void startGame() throws NullPointerException, RuntimeException {
+		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
+		
 		List<Rectangle> vTubeHitBox;
 		double dt, time, lastDt;
-		Tube previousFirstTopTube = getFirstTopTube(getRandomBird());
+		Tube previousFirstTopTube = getFirstTopTube(randBird);
 		
-		//TODO qui o in flappyBirdAI?
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
 			gameStats.sessionStartTime = System.currentTimeMillis();
@@ -81,17 +83,19 @@ public class GameController {
 
 		while (gameStats.nBirds > 0) {
 			
-			//TODO
 			if (!gameStats.isGameRunning) {
+				
+				// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 	            try {
-	                Thread.sleep(sleepMs);
+	                Thread.sleep(PAUSE_SLEEP_MS);
 	            } catch (InterruptedException e) {
 	                throw new RuntimeException(e);
 	            }
 	            
+	            //TODO modificabile quando gioco riprende?
 	            lastDt = System.nanoTime();
 	            
-	            // Aggiornare solo la vista per mostrare la pausa
+	            // Aggiornare la vista per mostrare lo stato di pausa e animazioni
 	            gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
 	            continue;
 	        }
@@ -395,7 +399,7 @@ public class GameController {
 		gameStats.isGameRunning = isRunning;
 	}
     
-    //TODO
+    //TODO sbloccare subito sleep di pausa
     public void togglePause() {
         if (gameStats.isGameRunning) {
         	pauseGame();
@@ -403,20 +407,18 @@ public class GameController {
         	resumeGame();
         }
         
-        // Forzare l'aggiornamento del display
+        // Forzare l'aggiornamento del display per feedback visivo istantaneo
         if (gameView != null) {
             gameView.repaintGame();
         }
     }
     
-    //TODO
     private void resumeGame() {
     	// Riavviare il conteggio del tempo della sessione
     	gameStats.sessionStartTime = System.currentTimeMillis();
     	gameStats.isGameRunning = true;
     }
     
-    //TODO
     private void pauseGame() {
         // Accumulare il tempo della sessione corrente
         gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;

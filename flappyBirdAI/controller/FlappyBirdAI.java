@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 //TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
 //TODO: private, tubes ridisegnati fino a fine schermo di gioco se ridimensiono schermo
-//TODO: + threads, panel import export non ricalcola altezza, timer si blocca a fine gen
+//TODO: + threads anche per gestire fine pausa senza attesa e times, panel import export non ricalcola altezza, timer si blocca a fine gen
 
 public class FlappyBirdAI {
 
@@ -23,11 +23,14 @@ public class FlappyBirdAI {
 		new FlappyBirdAI(w, h, nBirdsXGen, useJavaFX);
 	}
 
-	private final int nBirdsXGen;
+	private static final double PERC_BIRDS_REGEN = 0.8;
+	
+	private final int nBirdsXGen, nBirdsRegen;
 	private final GameController gameController;
 
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	this.nBirdsXGen = nBirdsXGen;
+    	this.nBirdsRegen = (int) (nBirdsXGen * PERC_BIRDS_REGEN);
     	
 		gameController = new GameController(useJavaFX ? new SwingGameView(w, h) : new SwingGameView(w, h));
 
@@ -58,20 +61,20 @@ public class FlappyBirdAI {
 		
 		return vBirds;
 	}
+	
+	private void addNewGenBirds() {
+		gameController.addBirds(createBirds(nBirdsRegen, gameController.getBestBirdBrain()));
+		gameController.addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
+	}
 
-	//TODO implementa un modo per fermare il gioco
 	private void startGame() {
-		int nBirdsRegen = nBirdsXGen * 4 / 5;
 		
-		//TODO qui o in gameController?
 		// Solo per la prima generazione
 		gameController.addBirds(createRandomBirds(nBirdsXGen));
 		
 		while (true) {
 			gameController.startGame();
-			
-			gameController.addBirds(createBirds(nBirdsRegen, gameController.getBestBirdBrain()));
-			gameController.addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
+			addNewGenBirds();
 		}
 	}
 
