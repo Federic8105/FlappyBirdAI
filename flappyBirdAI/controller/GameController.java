@@ -237,10 +237,10 @@ public final class GameController {
 		return firstTopTube;
 	}
 
-	//TODO pk isSuperior?
 	private void checkNewTube() {
 		Tube lastTube = null;
         for (AbstractGameObject obj : vGameObj) {
+        	// Controllo anche se il tubo è il superiore per non pendere stessa coppia 2 volte perchè hanno stessa x
             if (obj instanceof Tube && obj.isAlive() && ((Tube) obj).isSuperior()) {
                 lastTube = (Tube) obj;
             }
@@ -357,8 +357,16 @@ public final class GameController {
         bestBirdBrain = brain;
     }
     
+    public boolean isAutoSaveEnabled() {
+        return gameStats.isAutoSaveEnabled;
+    }
+    
     public void toggleAutoSave() {
     	gameStats.isAutoSaveEnabled = !gameStats.isAutoSaveEnabled;
+    }
+    
+    public int getAutoSaveThreshold() {
+        return gameStats.autoSaveThreshold;
     }
     
     public void setAutoSaveThreshold(int threshold) {
@@ -367,13 +375,9 @@ public final class GameController {
         }
     }
     
-    public boolean isAutoSaveEnabled() {
-        return gameStats.isAutoSaveEnabled;
-    }
-    
-    public int getAutoSaveThreshold() {
-        return gameStats.autoSaveThreshold;
-    }
+    public boolean isFirstGen() {
+		return gameStats.isFirstGen();
+	}
     
     public boolean isGameRunning() {
 		return gameClock.isGameRunning();
@@ -397,16 +401,6 @@ public final class GameController {
         }
     }
     
-    public GameStats getCurrentStats() {
-        return gameStats;
-    }
     
-    public GameClock getGameClock() {
-		return gameClock;
-	}
-    
-    public boolean isFirstGen() {
-		return gameStats.isFirstGen();
-	}
     
 }

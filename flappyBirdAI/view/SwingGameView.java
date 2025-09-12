@@ -607,13 +607,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 	
 	@Override
-	//TODO passo GameClock e GameStats o uso controller?
     public void updateDisplay(GameClock clock, GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(clock, "Game Clock Cannot be Null");
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 				
-		// Aggiorna UI Thread-Safe
+		// Aggiornare UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
         	updateChronometerLabel(clock);
