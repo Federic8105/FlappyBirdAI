@@ -24,14 +24,14 @@ public class FlappyBirdAI {
 		new FlappyBirdAI(w, h, nBirdsXGen, useJavaFX);
 	}
 
-	private static final double PERC_BIRDS_REGEN = 0.8;
+	private static final double BIRDS_REGEN_PERC = 0.8;
 	
 	private final int nBirdsXGen, nBirdsRegen;
 	private final GameController gameController;
 
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	this.nBirdsXGen = nBirdsXGen;
-    	this.nBirdsRegen = (int) (nBirdsXGen * PERC_BIRDS_REGEN);
+    	this.nBirdsRegen = (int) (nBirdsXGen * BIRDS_REGEN_PERC);
     	
     	Tube.loadImages();
     	FlappyBird.loadImages();

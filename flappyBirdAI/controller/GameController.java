@@ -46,15 +46,17 @@ public final class GameController {
     // Game Engine Variables
     private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
     private BirdBrain bestBirdBrain;
-    private double dtMultiplier = 1.0;
     
     // Game Statistics
-    private GameStats gameStats = new GameStats();
+    private final GameStats gameStats = new GameStats();
+    
+    // Game Clock
+    private final GameClock gameClock = new GameClock();
 
 	public GameController(GameView gameView) throws NullPointerException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
 		gameView.setController(this);
-		setGameRunning(true);
+		gameClock.start();
 		newTubePair();
 	}
 	
@@ -71,19 +73,19 @@ public final class GameController {
 		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
 		
 		List<Rectangle> vTubeHitBox;
-		double dt, time, lastDt;
+		double dt;
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
 		
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
-			gameStats.sessionStartTime = System.currentTimeMillis();
+			gameClock.startSession();
 		}
 		
-		lastDt = System.nanoTime();
+		gameClock.setLastTimeNow();
 
 		while (gameStats.nBirds > 0) {
 			
-			if (!gameStats.isGameRunning) {
+			if (!gameClock.isGameRunning()) {
 				
 				// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 	            try {
@@ -92,19 +94,13 @@ public final class GameController {
 	                throw new RuntimeException(e);
 	            }
 	            
-	            //TODO modificabile quando gioco riprende?
-	            lastDt = System.nanoTime();
-	            
 	            // Aggiornare la vista per mostrare lo stato di pausa e animazioni
-	            gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
+	            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
 	            continue;
 	        }
-			
-			time = System.nanoTime();
 
 			// Calcolo del Tempo trascorso in Secondi tra Frames
-			dt = (time - lastDt) / 1e9 * dtMultiplier;
-			lastDt = time;
+			dt = gameClock.getDeltaTime();
 			
 			// Ottenere Primo Tube Superiore a Destra
 			Tube firstTopTube = getFirstTopTube(getRandomBird());
@@ -133,7 +129,7 @@ public final class GameController {
 			//TODO non aggiorna timer a fine gen
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
-            gameView.updateDisplay(gameStats, new ArrayList<>(vGameObj));
+            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
 
 			try {
 				Thread.sleep(sleepMs);
@@ -161,14 +157,14 @@ public final class GameController {
         	// Debug
         	//System.out.println(obj + System.lineSeparator());
         	
-            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
             	
-            	if (currBird.lifeTime > gameStats.currLifeTime) {
-                	gameStats.currLifeTime = currBird.lifeTime;
+            	if (currBird.getLifeTime() > gameStats.currLifeTime) {
+                	gameStats.currLifeTime = currBird.getLifeTime();
                 	
                 	// Nuovo Record di Vita
                 	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
-						gameStats.bestLifeTime = currBird.lifeTime;
+						gameStats.bestLifeTime = currBird.getLifeTime();
 						bestBirdBrain = currBird.getBrain();
 					}
                 }
@@ -176,7 +172,7 @@ public final class GameController {
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
                     
-                    currBird.isAlive = false;
+                    currBird.setAlive(false);
                     --gameStats.nBirds;
                     continue;
                     
@@ -184,7 +180,7 @@ public final class GameController {
                 } else if (firstTopTube != null) {
                 	
                 	brainInputMap.put("yBird", (double) currBird.y);
-                	brainInputMap.put("vyBird", currBird.vy);
+                	brainInputMap.put("vyBird", currBird.getVy());
                 	brainInputMap.put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
                 	brainInputMap.put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
 
@@ -197,9 +193,9 @@ public final class GameController {
                 
                 currBird.updateXY(dt);
                 
-            } else if (obj instanceof Tube currTube && currTube.isAlive) {
+            } else if (obj instanceof Tube currTube && currTube.isAlive()) {
                 if (currTube.x + currTube.w < 0) {
-                    currTube.isAlive = false;
+                    currTube.setAlive(false);
                 } else {
                     currTube.updateXY(dt);
                 }
@@ -208,16 +204,16 @@ public final class GameController {
     }
 	
 	private int updateFPS(double dt) {
-		return (int) (1 / dt * dtMultiplier);
+		return (int) (1 / dt * gameClock.getDtMultiplier());
 	}
 	
 	private void deleteDeadObjects() {
-        vGameObj.removeIf(obj -> !obj.isAlive);
+        vGameObj.removeIf(obj -> !obj.isAlive());
 	}
 	
 	private FlappyBird getRandomBird() {
         for (GameObject obj : vGameObj) {
-            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
                 return currBird;
             }
         }
@@ -232,7 +228,7 @@ public final class GameController {
 		Tube firstTopTube = null;
 		for (GameObject motObj : vGameObj) {
 			if (motObj instanceof Tube currTube) {
-				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
+				if (firstTopTube == null || ( currTube.isAlive() && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
 					firstTopTube = currTube;
 				}
 			}
@@ -245,7 +241,7 @@ public final class GameController {
 	private void checkNewTube() {
 		Tube lastTube = null;
         for (AbstractGameObject obj : vGameObj) {
-            if (obj instanceof Tube && obj.isAlive && ((Tube) obj).isSuperior()) {
+            if (obj instanceof Tube && obj.isAlive() && ((Tube) obj).isSuperior()) {
                 lastTube = (Tube) obj;
             }
         }
@@ -300,13 +296,8 @@ public final class GameController {
 	}
 	
 	private void resetToFirstGen() {
-		gameStats.nBirds = 0;
-		gameStats.nTubePassed = 0;
-		gameStats.nGen = 1;
-		gameStats.currLifeTime = 0;
-		gameStats.bestLifeTime = 0;
-		gameStats.nMaxTubePassed = 0;
-		gameStats.totGameTime = 0;
+		gameStats.resetToFirstGen();
+		gameClock.reset();
 		
 		vGameObj.clear();
 		bestBirdBrain = null;
@@ -357,14 +348,6 @@ public final class GameController {
 	public int getGameWidth() {
 		return gameView.getGameWidth();
 	}
-	
-	public void setDtMultiplier(double multiplier) {
-        dtMultiplier = multiplier;
-    }
-    
-    public double getDtMultiplier() {
-        return dtMultiplier;
-    }
     
     public BirdBrain getBestBirdBrain() {
         return bestBirdBrain;
@@ -393,19 +376,19 @@ public final class GameController {
     }
     
     public boolean isGameRunning() {
-		return gameStats.isGameRunning;
-	}
+		return gameClock.isGameRunning();
+    }
     
-    public void setGameRunning(boolean isRunning) {
-		gameStats.isGameRunning = isRunning;
+    public void setDtMultiplier(double multiplier) {
+		gameClock.setDtMultiplier(multiplier);
 	}
     
     //TODO sbloccare subito sleep di pausa
     public void togglePause() {
-        if (gameStats.isGameRunning) {
-        	pauseGame();
+        if (gameClock.isGameRunning()) {
+        	gameClock.pause();
         } else {
-        	resumeGame();
+        	gameClock.resume();
         }
         
         // Forzare l'aggiornamento del display per feedback visivo istantaneo
@@ -414,21 +397,13 @@ public final class GameController {
         }
     }
     
-    private void resumeGame() {
-    	// Riavviare il conteggio del tempo della sessione
-    	gameStats.sessionStartTime = System.currentTimeMillis();
-    	gameStats.isGameRunning = true;
-    }
-    
-    private void pauseGame() {
-        // Accumulare il tempo della sessione corrente
-        gameStats.totGameTime += System.currentTimeMillis() - gameStats.sessionStartTime;
-        gameStats.isGameRunning = false;
-    }
-    
     public GameStats getCurrentStats() {
         return gameStats;
     }
+    
+    public GameClock getGameClock() {
+		return gameClock;
+	}
     
     public boolean isFirstGen() {
 		return gameStats.isFirstGen();

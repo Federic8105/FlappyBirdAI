@@ -14,10 +14,18 @@ public class AbstractGameObject implements GameObject {
 	protected static boolean IS_IMAGES_FOUND = false;
 	
 	public int x, y, w, h;
-	public boolean isAlive = true;
+	
 	protected int imageIndex = 0;
-	protected boolean showImage = true;
+	protected boolean isAlive = true, showImage = true;
 	protected Rectangle hitBox;
+	
+	public boolean isAlive() {
+		return isAlive;
+	}
+	
+	public void setAlive(boolean isAlive) {
+		this.isAlive = isAlive;
+	}
 
 	@Override
 	public void updateHitBox() {

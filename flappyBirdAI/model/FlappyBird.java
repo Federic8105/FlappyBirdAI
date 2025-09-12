@@ -45,7 +45,7 @@ public class FlappyBird extends AbstractGameObject {
     public final int tDelayAnimation = 150;
 	private final BirdBrain brain;
 
-	public double lifeTime = 0, vy = 0;
+	private double lifeTime = 0, vy = 0;
 
 	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
 		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
@@ -59,6 +59,14 @@ public class FlappyBird extends AbstractGameObject {
 		if (showImage) {
 			startAnimation();
 		}
+	}
+	
+	public double getLifeTime() {
+		return lifeTime;
+	}
+	
+	public double getVy() {
+		return vy;
 	}
 	
 	public BirdBrain getBrain() {

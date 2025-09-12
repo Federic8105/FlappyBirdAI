@@ -60,17 +60,29 @@ public class Tube extends AbstractGameObject {
         return tubePair;
     }
     
-    //TODO controllo no buco fuori schermo e parametro dist minimo tra buco e bordo schermo
     private static int calcMaxHoleOffset(int gamePanelHeight) {
     	// Calcolare offset massimo come percentuale dell'altezza
-        int maxOffset = (int) (gamePanelHeight * HOLE_OFFSET_RATIO);
+        int maxOffsetByPercentage = (int) (gamePanelHeight * HOLE_OFFSET_RATIO);
         
-        return maxOffset;
+        // Calcolare l'offset massimo che mantiene il buco dentro i confini dello schermo
+    
+        // Il buco si estende DIST_Y_BETWEEN_TUBES/2 sopra e sotto il centro
+        int halfHoleSize = DIST_Y_BETWEEN_TUBES / 2;
+        int screenCenter = gamePanelHeight / 2;
         
-        //int safeZone = DIST_Y_BETWEEN_TUBES / 2 + 50;
-        //int maxSafeOffset = (gamePanelHeight / 2) - safeZone;
+        // Offset massimo verso l'alto
+        // Il centro può spostarsi fino a quando la parte superiore del buco (centro - halfHoleSize) tocca il bordo superiore ( yGamePanel = 0)
+        int maxOffsetUp = screenCenter - halfHoleSize;
         
-        //return Math.min(maxOffset, maxSafeOffset);
+        // Offset massimo verso il basso
+        // Il centro può spostarsi fino a quando la parte inferiore del buco (centro + halfHoleSize) tocca il bordo inferiore (gamePanelHeight)
+        int maxOffsetDown = (gamePanelHeight - screenCenter) - halfHoleSize;
+        
+        // Prendere il minimo tra i due per garantire che il buco non esca dai confini
+        int maxOffsetByBounds = Math.min(maxOffsetUp, maxOffsetDown);
+        
+        // Ritornare il minimo tra l'offset basato sulla percentuale e quello basato sui confini
+        return Math.min(maxOffsetByPercentage, maxOffsetByBounds);
     }
 
     private final int id;

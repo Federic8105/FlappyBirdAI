@@ -5,6 +5,7 @@
 package flappyBirdAI.view;
 
 import flappyBirdAI.controller.GameController;
+import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.GameObject;
@@ -606,14 +607,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 	
 	@Override
-    public void updateDisplay(GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
+	//TODO passo GameClock e GameStats o uso controller?
+    public void updateDisplay(GameClock clock, GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
+		Objects.requireNonNull(clock, "Game Clock Cannot be Null");
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 				
 		// Aggiorna UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
-        	updateChronometerLabel(stats);
+        	updateChronometerLabel(clock);
         	
             currentVGameObj = vGameObj;
             gamePanel.repaint();
@@ -623,10 +626,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private void updateStatsLabels(GameStats stats) {
 		lFPS.setText("FPS: " + stats.fps);
         
-        lCurrLifeTime.setText("LT: " + GameStats.roundAndFormatTwoDecimals(stats.currLifeTime) + "s");
+        lCurrLifeTime.setText("LT: " + GameClock.roundAndFormatTwoDecimals(stats.currLifeTime) + "s");
 		
 		if (stats.bestLifeTime != lastBestLifeTime) {
-			lBestLifeTime.setText("BLT: " + GameStats.roundAndFormatTwoDecimals(stats.bestLifeTime) + "s");
+			lBestLifeTime.setText("BLT: " + GameClock.roundAndFormatTwoDecimals(stats.bestLifeTime) + "s");
 			lastBestLifeTime = stats.bestLifeTime;
         }
 		
@@ -650,12 +653,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
             lastAutoSaveStatus = stats.isAutoSaveEnabled;
 		}
-       
 	}
 	
-	private void updateChronometerLabel(GameStats stats) {
+	private void updateChronometerLabel(GameClock clock) {
 		if (gameController != null && gameController.isGameRunning()) {
-			lTimeValue.setText(stats.getFormattedGameTimeElapsed());
+			lTimeValue.setText(clock.getFormattedGameTimeElapsed());
 		}
 	}
 	
