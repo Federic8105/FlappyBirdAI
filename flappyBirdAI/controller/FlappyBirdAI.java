@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 //TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
-//TODO: private, tubes ridisegnati fino a fine schermo di gioco se ridimensiono schermo
+//TODO: tubes ridisegnati fino a fine schermo di gioco se ridimensiono schermo
 //TODO: + threads anche per gestire fine pausa senza attesa e times, timer si blocca a fine gen, richiest focus dopo input import/export
 
 public class FlappyBirdAI {

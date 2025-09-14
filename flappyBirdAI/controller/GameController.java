@@ -157,14 +157,14 @@ public final class GameController {
         	// Debug
         	//System.out.println(obj + System.lineSeparator());
         	
-            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
             	
-            	if (currBird.getLifeTime() > gameStats.currLifeTime) {
-                	gameStats.currLifeTime = currBird.getLifeTime();
+            	if (currBird.lifeTime > gameStats.currLifeTime) {
+                	gameStats.currLifeTime = currBird.lifeTime;
                 	
                 	// Nuovo Record di Vita
                 	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
-						gameStats.bestLifeTime = currBird.getLifeTime();
+						gameStats.bestLifeTime = currBird.lifeTime;
 						bestBirdBrain = currBird.getBrain();
 					}
                 }
@@ -172,7 +172,7 @@ public final class GameController {
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
                     
-                    currBird.setAlive(false);
+                    currBird.isAlive = false;
                     --gameStats.nBirds;
                     continue;
                     
@@ -180,7 +180,7 @@ public final class GameController {
                 } else if (firstTopTube != null) {
                 	
                 	brainInputMap.put("yBird", (double) currBird.y);
-                	brainInputMap.put("vyBird", currBird.getVy());
+                	brainInputMap.put("vyBird", currBird.vy);
                 	brainInputMap.put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
                 	brainInputMap.put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
 
@@ -193,9 +193,9 @@ public final class GameController {
                 
                 currBird.updateXY(dt);
                 
-            } else if (obj instanceof Tube currTube && currTube.isAlive()) {
+            } else if (obj instanceof Tube currTube && currTube.isAlive) {
                 if (currTube.x + currTube.w < 0) {
-                    currTube.setAlive(false);
+                    currTube.isAlive = false;
                 } else {
                     currTube.updateXY(dt);
                 }
@@ -208,12 +208,12 @@ public final class GameController {
 	}
 	
 	private void deleteDeadObjects() {
-        vGameObj.removeIf(obj -> !obj.isAlive());
+        vGameObj.removeIf(obj -> !obj.isAlive);
 	}
 	
 	private FlappyBird getRandomBird() {
         for (GameObject obj : vGameObj) {
-            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
                 return currBird;
             }
         }
@@ -228,7 +228,7 @@ public final class GameController {
 		Tube firstTopTube = null;
 		for (GameObject motObj : vGameObj) {
 			if (motObj instanceof Tube currTube) {
-				if (firstTopTube == null || ( currTube.isAlive() && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
+				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
 					firstTopTube = currTube;
 				}
 			}
@@ -241,7 +241,7 @@ public final class GameController {
 		Tube lastTube = null;
         for (AbstractGameObject obj : vGameObj) {
         	// Controllo anche se il tubo è il superiore per non pendere stessa coppia 2 volte perchè hanno stessa x
-            if (obj instanceof Tube && obj.isAlive() && ((Tube) obj).isSuperior()) {
+            if (obj instanceof Tube && obj.isAlive && ((Tube) obj).isSuperior()) {
                 lastTube = (Tube) obj;
             }
         }

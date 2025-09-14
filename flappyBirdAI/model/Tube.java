@@ -16,6 +16,7 @@ import java.util.ArrayList;
 
 public class Tube extends AbstractGameObject {
 	
+	//TODO
 	private static final int NUM_IMAGES = 2;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/TUBE";
@@ -29,6 +30,7 @@ public class Tube extends AbstractGameObject {
     
     private static int lastID = 0;
     
+    //TODO
     public static void loadImages() {
     	for (int i = 0; i < V_IMAGES.length; ++i) {
     		try {
@@ -126,8 +128,8 @@ public class Tube extends AbstractGameObject {
     }
     
     @Override
-    public void updateXY(double dt) {
-        x -= (int) ((int) vx * dt);
+    public void updateXY(double dt_s) {
+        x -= (int) ((int) vx * dt_s);
 
         updateHitBox();
     }

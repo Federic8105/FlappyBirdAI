@@ -41,11 +41,11 @@ public class FlappyBird extends AbstractGameObject {
 		IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
 	}
 
+	public double lifeTime = 0, vy = 0;
+	
     private final int tDelayAnimation = 150;
     private final double gravity = 700, jumpForce = 300;
 	private final BirdBrain brain;
-
-	private double lifeTime = 0, vy = 0;
 
 	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
 		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
@@ -63,14 +63,6 @@ public class FlappyBird extends AbstractGameObject {
 		if (showImage) {
 			startAnimation();
 		}
-	}
-	
-	public double getLifeTime() {
-		return lifeTime;
-	}
-	
-	public double getVy() {
-		return vy;
 	}
 	
 	public BirdBrain getBrain() {
@@ -106,12 +98,12 @@ public class FlappyBird extends AbstractGameObject {
 	}
 	
 	@Override
-	public void updateXY(double dt) {
-		vy += gravity * dt;
-		y += (int) (vy * dt + 0.5 * gravity * Math.pow(dt, 2));
+	public void updateXY(double dt_s) {
+		vy += gravity * dt_s;
+		y += (int) (vy * dt_s + 0.5 * gravity * Math.pow(dt_s, 2));
 
 		updateHitBox();
-		lifeTime += dt;
+		lifeTime += dt_s;
 	}
 
 	public void jump() {

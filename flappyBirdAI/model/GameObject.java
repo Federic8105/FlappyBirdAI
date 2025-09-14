@@ -10,7 +10,7 @@ import java.awt.Rectangle;
 public interface GameObject {
 	void updateHitBox();
 	Rectangle getHitBox();
-	void updateXY(double dt_ms);
+	void updateXY(double dt_s);
 	boolean checkCollision(Rectangle[] vHitBox);
 	void updateImageIndex();
 	void draw(Graphics2D g2d);

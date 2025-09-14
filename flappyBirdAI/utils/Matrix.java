@@ -455,7 +455,7 @@ public class Matrix implements Serializable {
 		Matrix mClone = new Matrix(getNRows(), getNCols());
 		
 		for (int i = 0; i < getNRows(); ++i) {
-			System.arraycopy(data[i], 0, mClone.data[i], 0, getNCols());
+			System.arraycopy(getRow(i), 0, mClone.data[i], 0, getNCols());
 		}
 		
 		return mClone;
