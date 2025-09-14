@@ -23,6 +23,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
@@ -128,14 +130,22 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowOpened(WindowEvent e) {
-				requestFocus();
+				requestFocusInWindow();
 			}
 			
 			@Override
 			public void windowActivated(WindowEvent e) {
-				requestFocus();
+				requestFocusInWindow();
 			}
 		});
+		
+		// Restituire il focus quando si clicca sulla finestra in un punto qualsiasi non focusable
+		addMouseListener(new MouseAdapter() {
+	        @Override
+	        public void mouseClicked(MouseEvent e) {
+	            requestFocusInWindow();
+	        }
+	    });
 	}
 	
 	private void initWindow() {
@@ -262,13 +272,23 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             }
         };
         
+        gamePanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Click sinistro per pausa/riprendi
+                if (e.getButton() == MouseEvent.BUTTON1 && gameController != null) {
+                    gameController.togglePause();
+                }
+            }
+        });
+        
         // Se l'immagine di sfondo non è disponibile, usare un colore di sfondo
         gamePanel.setBackground(GAME_BACKGROUND_COLOR);
         gamePanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_GAME_PANEL_HEIGHT));
         
         add(gamePanel, BorderLayout.CENTER);
     }
-	
+
 	private void drawPauseOverlay(Graphics2D g2d) {
 	    int width = gamePanel.getWidth();
 	    int height = gamePanel.getHeight();
@@ -316,9 +336,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    // Calcolare posizione del testo sotto il simbolo di pausa
 	    FontMetrics fm = g2d.getFontMetrics();
 	    int textWidth = fm.stringWidth(pauseText);
-	    int textX = (width - textWidth) / 2;
+	    int textX = symbolX + (symbolSize - textWidth) / 2;
 	    int textY = symbolY + symbolSize + fm.getHeight();
-	    
+	   
 	    // Ombra del testo (testo nero leggermente spostato)
 	    g2d.setColor(Color.BLACK);
 	    g2d.drawString(pauseText, textX + 3, textY + 3);
@@ -386,14 +406,18 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		thresholdPanel.add(Box.createVerticalStrut(5));
 		
-		// JSpinner con Valore di Default 50, Min 1, Max Integer.MAX_VALUE, Step 1
-		autoSaveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 1, Integer.MAX_VALUE, 1));
+		// JSpinner con Valore di Default di AutoSaveThreshold, Min 1, Max Integer.MAX_VALUE, Step 1
+		autoSaveThresholdSpinner = new JSpinner(new SpinnerNumberModel(GameStats.DEFAULT_AUTOSAVE_THRESHOLD, 1, Integer.MAX_VALUE, 1));
 		autoSaveThresholdSpinner.setMaximumSize(new Dimension(100, 25));
 		autoSaveThresholdSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
 		
 		// Centrare il Testo del Campo di Input del JSpinner
 		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
 		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
+		
+		// Configurare gestione focus per il campo di testo e pulsanti freccia, per evitare che il focus rimanga a spinner dopo input
+		//TODO
+		
 		spinnerTextField.addActionListener(_ -> validateSpinnerValue(spinnerTextField));
 		
 		thresholdPanel.add(autoSaveThresholdSpinner);
