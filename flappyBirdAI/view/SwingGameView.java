@@ -415,10 +415,48 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
 		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
 		
-		// Configurare gestione focus per il campo di testo e pulsanti freccia, per evitare che il focus rimanga a spinner dopo input
 		//TODO
+		autoSaveThresholdSpinner.addChangeListener(_ -> {
+			if (gameController != null) {
+				validateAutoSaveThresoldSpinnerValue();
+				requestFocusInWindow();
+			}
+		});
 		
-		spinnerTextField.addActionListener(_ -> validateSpinnerValue(spinnerTextField));
+		// Gestione della Validazione dell'Input del Campo di Testo del JSpinner
+		// Ritorno del focus alla finestra dopo modifica campo di testo, per evitare che il focus rimanga a spinner dopo input		
+		/*spinnerTextField.addActionListener(_ -> {
+			validateSpinnerValue(spinnerTextField);
+			requestFocusInWindow();
+		});
+		
+		// Gestione dei pulsanti freccia del spinner per ritornare il focus alla finestra principale
+		Component[] spinnerComponents = autoSaveThresholdSpinner.getComponents();
+		for (Component component : spinnerComponents) {
+		    if (component instanceof JButton) {
+		        JButton button = (JButton) component;
+		        button.addActionListener(_ -> {
+		            SwingUtilities.invokeLater(() -> requestFocusInWindow());
+		        });
+		    }
+		}
+		
+		// Aggiungere listener per i tasti freccia su e giù quando il spinner ha il focus
+		autoSaveThresholdSpinner.addKeyListener(new java.awt.event.KeyAdapter() {
+		    @Override
+		    public void keyPressed(java.awt.event.KeyEvent e) {
+		        if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP || 
+		            e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN) {
+		            // Dopo un breve delay per permettere l'aggiornamento del valore
+		            SwingUtilities.invokeLater(() -> {
+		                if (gameController != null) {
+		                    gameController.setAutoSaveThreshold((Integer) autoSaveThresholdSpinner.getValue());
+		                }
+		                requestFocusInWindow();
+		            });
+		        }
+		    }
+		});*/
 		
 		thresholdPanel.add(autoSaveThresholdSpinner);
 		
@@ -574,7 +612,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		}
 	}
 	
-	private void validateSpinnerValue(JFormattedTextField textField) {
+	private void validateAutoSaveThresoldSpinnerValue() {
+		JFormattedTextField textField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
 	    String input = textField.getText().trim();
 	    
 	    try {
@@ -598,7 +637,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	        // Forza l'aggiornamento del display
 	        SwingUtilities.invokeLater(() -> {
 	            textField.setValue(validValue);
-	            textField.selectAll(); // seleziona tutto per facilitare la riscrittura
 	        });
 	    }
 	}
