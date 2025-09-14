@@ -28,13 +28,13 @@ import java.awt.Rectangle;
 
 public final class GameController {
 	
-	public static final int MAX_FPS = 60;
+	private static final int MAX_FPS = 60;
 	private static final int PAUSE_SLEEP_MS = 100;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
-	public static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_score_%d_time_%s.json";
-	public static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_score_%d_time_%s.json";
+	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_score_%d_time_%s.json";
+	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_score_%d_time_%s.json";
 	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
     private final Random rand = new Random();
@@ -144,7 +144,7 @@ public final class GameController {
 		}
 		
 		try {
-			nextGeneration();
+			prepareNextGen();
 		} catch (IOException e) {
 			System.err.println("Error Starting Next Generation: " + e.getMessage());
 		}
@@ -258,7 +258,7 @@ public final class GameController {
 	    vGameObj.addAll(newTubePair);
 	}
 	
-	private void nextGeneration() throws IOException {
+	private void prepareNextGen() throws IOException {
 		checkAndAutoSave();
         resetForNewGen();
     }
@@ -400,7 +400,5 @@ public final class GameController {
             gameView.repaintGame();
         }
     }
-    
-    
     
 }

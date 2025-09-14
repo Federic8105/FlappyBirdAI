@@ -38,16 +38,17 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
     
     // Panel Minimum Dimensions Constants
-    public static final int MIN_STATS_PANEL_WIDTH = 950;
-    public static final int MIN_STATS_PANEL_HEIGHT = 40;
-    public static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
-    public static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
-    public static final int MIN_CHRONOMETER_PANEL_WIDTH = MIN_IMPORT_EXPORT_PANEL_WIDTH;
-    public static final int MIN_CHRONOMETER_PANEL_HEIGHT = MIN_CONTROLS_PANEL_HEIGHT;
-    public static final int MIN_GAME_PANEL_WIDTH = MIN_STATS_PANEL_WIDTH;
-    public static final int MIN_GAME_PANEL_HEIGHT = 500;
-    public static final int MIN_WINDOW_WIDTH = MIN_STATS_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
-    public static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
+    private static final int MIN_STATS_PANEL_WIDTH = 950;
+    private static final int MIN_STATS_PANEL_HEIGHT = 40;
+    private static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
+    private static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
+    private static final int MIN_CHRONOMETER_PANEL_WIDTH = MIN_IMPORT_EXPORT_PANEL_WIDTH;
+    private static final int MIN_CHRONOMETER_PANEL_HEIGHT = MIN_CONTROLS_PANEL_HEIGHT;
+    private static final int MIN_GAME_PANEL_WIDTH = MIN_STATS_PANEL_WIDTH;
+    private static final int MIN_GAME_PANEL_HEIGHT = 500;
+    private static final int MIN_IMPORT_EXPORT_PANEL_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT;
+    private static final int MIN_WINDOW_WIDTH = MIN_STATS_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
+    private static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
     
     // Colors
     private static final Color GAME_BACKGROUND_COLOR = Color.CYAN;
@@ -65,21 +66,22 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // Utility Functions
     
-    static JFileChooser createJsonFileChooser() {
+    protected static JFileChooser createJsonFileChooser() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileFilter(new FileNameExtensionFilter("JSON File", "json"));
         return fileChooser;
     }
     
+    // Initial Window Dimensions
+ 	private final int initialWidth, initialHeight;
+    
     // Caching Ultimi Valori di Statistica per Labels
     private int lastGen = -1;
     private boolean lastAutoSaveStatus = false;
     private double lastBestLifeTime = -1.0;
-
-    // Initial Window Dimensions
-	private final int initialWidth, initialHeight;
 	
 	// Controller Reference
+    // Visibilità package-private per permettere l'accessso solo alle classi dello stesso package (Classi Listeners)
 	GameController gameController;
 	
 	// Game Objects for Rendering
@@ -122,7 +124,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// Assicurarsi che la finestra possa ricevere eventi da tastiera
 		setFocusable(true);
 		
-		// Richiedere il focus quando la finestra viene mostrata
+		// Richiedere il focus per input quando la finestra viene mostrata
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowOpened(WindowEvent e) {
@@ -174,13 +176,13 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// Calcolare la larghezza come percentuale della larghezza totale
 	    int panelWidth = calcImportExportPanelWidth(0.2f);
 	    leftPanel.setPreferredSize(new Dimension(panelWidth, initialHeight));
-	    leftPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, initialHeight));
+	    leftPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_IMPORT_EXPORT_PANEL_HEIGHT + MIN_CHRONOMETER_PANEL_HEIGHT));
 	    
 	    initImportExportPanel(panelWidth);
 		initChronometerPanel(panelWidth);
 		
 		// Aggiungere i pannelli al pannello principale di sinistra
-		leftPanel.add(importExportPanel, BorderLayout.NORTH);
+		leftPanel.add(importExportPanel, BorderLayout.CENTER);
 		leftPanel.add(chronometerPanel, BorderLayout.SOUTH);
 	    
 		add(leftPanel, BorderLayout.WEST);
@@ -196,11 +198,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		importExportPanel = new JPanel();
 		importExportPanel.setLayout(new BoxLayout(importExportPanel, BoxLayout.Y_AXIS));
 		importExportPanel.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
-		
-		// Calcolare l'altezza disponibile per il pannello import/export
-	    int panelHeight = initialHeight - MIN_CHRONOMETER_PANEL_HEIGHT;
-	    importExportPanel.setPreferredSize(new Dimension(panelWidth, panelHeight));
-	    importExportPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, panelHeight));
+	    importExportPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_IMPORT_EXPORT_PANEL_HEIGHT));
 		
 		// Titolo del Pannello
 		TitledBorder importExportTitle = BorderFactory.createTitledBorder("Bird Brain Import/Export");
@@ -218,7 +216,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		chronometerPanel.setLayout(new BoxLayout(chronometerPanel, BoxLayout.Y_AXIS));
 		chronometerPanel.setBackground(CHRONOMETER_BACKGROUND_COLOR);
 		chronometerPanel.setPreferredSize(new Dimension(panelWidth, MIN_CHRONOMETER_PANEL_HEIGHT));
-		chronometerPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_CHRONOMETER_PANEL_HEIGHT));
+		chronometerPanel.setMinimumSize(new Dimension(MIN_CHRONOMETER_PANEL_WIDTH, MIN_CHRONOMETER_PANEL_HEIGHT));
 		
 		// Titolo del Pannello
 		TitledBorder chronometerTitle = BorderFactory.createTitledBorder("Chronometer");
@@ -266,12 +264,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         // Se l'immagine di sfondo non è disponibile, usare un colore di sfondo
         gamePanel.setBackground(GAME_BACKGROUND_COLOR);
-        
-        // Calcolare l'altezza disponibile: altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (GameController.SLIDER_HEIGHT)
-        int availableHeight = Math.max(initialHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
-        int availableWidth = Math.max(initialWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
-        
-        gamePanel.setPreferredSize(new Dimension(availableWidth, availableHeight));
         gamePanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_GAME_PANEL_HEIGHT));
         
         add(gamePanel, BorderLayout.CENTER);
@@ -350,7 +342,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
 		statsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		statsPanel.setPreferredSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
-		statsPanel.setMinimumSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
+		statsPanel.setMinimumSize(new Dimension(MIN_STATS_PANEL_WIDTH, MIN_STATS_PANEL_HEIGHT));
 		
 		initStatsUI();
 		
@@ -361,7 +353,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		controlsPanel = new JPanel(new BorderLayout());
 		controlsPanel.setBackground(CONTROLS_BACKGROUND_COLOR);
 		controlsPanel.setPreferredSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
-		controlsPanel.setMinimumSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
+		controlsPanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_CONTROLS_PANEL_HEIGHT));
 		
 		initControlsUI();
 		

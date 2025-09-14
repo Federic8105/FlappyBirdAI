@@ -41,8 +41,8 @@ public class FlappyBird extends AbstractGameObject {
 		IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
 	}
 
-	public final double gravity = 700, jumpForce = 300;
-    public final int tDelayAnimation = 150;
+    private final int tDelayAnimation = 150;
+    private final double gravity = 700, jumpForce = 300;
 	private final BirdBrain brain;
 
 	private double lifeTime = 0, vy = 0;
@@ -55,6 +55,10 @@ public class FlappyBird extends AbstractGameObject {
 		h = FlappyBird.HEIGHT;
 
 		updateHitBox();
+		
+		if (showImage && !IS_IMAGES_FOUND) {
+			showImage = false;
+		}
 
 		if (showImage) {
 			startAnimation();
@@ -116,11 +120,11 @@ public class FlappyBird extends AbstractGameObject {
 
 	@Override
 	public void draw(Graphics2D g2d) {
-		if (!IS_IMAGES_FOUND) {
-            g2d.setColor(Color.red);
-            g2d.draw(hitBox);
-        } else {
+		if (showImage) {
             g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
+        } else {
+        	g2d.setColor(Color.red);
+            g2d.draw(hitBox); 
         }
 	}
 	

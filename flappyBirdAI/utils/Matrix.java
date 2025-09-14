@@ -21,6 +21,7 @@ public class Matrix implements Serializable {
 	
     public static Matrix identity(int size) {
         Matrix m = new Matrix(size, size);
+        
         for (int i = 0; i < size; ++i)  {
         	m.set(i, i, 1.0);
         }
@@ -35,10 +36,11 @@ public class Matrix implements Serializable {
 
     public static Matrix ones(int nRows, int nCols) {
         Matrix m = new Matrix(nRows, nCols);
+        double[] onesRow = new double[nCols];
+        Arrays.fill(onesRow, 1.0);
+        
         for (int i = 0; i < nRows; ++i) {
-        	for (int j = 0; j < nCols; ++j) {
-        		m.set(i, j, 1.0);
-        	}
+        	System.arraycopy(onesRow, 0, m.data[i], 0, nCols);
         }
             
         return m;
@@ -47,6 +49,7 @@ public class Matrix implements Serializable {
     public static Matrix random(int nRows, int nCols, double minValue, double maxValue) {
         Random rand = new Random();
         Matrix m = new Matrix(nRows, nCols);
+        
         for (int i = 0; i < nRows; ++i) {
         	for (int j = 0; j < nCols; ++j) {
         		m.set(i, j, minValue + (maxValue - minValue) * rand.nextDouble());
@@ -124,6 +127,9 @@ public class Matrix implements Serializable {
 	
     private final double[][] data;
 
+    // Constructors
+    
+    // Inizializza tutti gli elementi a 0.0 di default
     public Matrix(int nRows, int nCols) throws IllegalArgumentException {
     	if (nRows <= 0) {
     		throw new IllegalArgumentException("Number of Rows Must be Greater than Zero");
@@ -135,10 +141,67 @@ public class Matrix implements Serializable {
         data = new double[nRows][nCols];
     }
     
+    public Matrix(Matrix otherMatrix) throws NullPointerException {
+		Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
+		
+		data = new double[otherMatrix.getNRows()][otherMatrix.getNCols()];
+		
+		for (int i = 0; i < otherMatrix.getNRows(); ++i) {
+			System.arraycopy(otherMatrix.getRow(i), 0, data[i], 0, otherMatrix.getNCols());
+		}
+	}
+    
+    public Matrix(double[][] dataArray) throws NullPointerException, IllegalArgumentException {
+		Objects.requireNonNull(dataArray, "Input Array Cannot be Null");
+		
+		if (dataArray.length == 0) {
+			throw new IllegalArgumentException("Input Array Must Have at Least One Row");
+		}
+		
+		int nCols = dataArray[0].length;
+		if (nCols == 0) {
+			throw new IllegalArgumentException("Input Array Must Have at Least One Column");
+		}
+		
+		for (int i = 0; i < dataArray.length; ++i) {
+			Objects.requireNonNull(dataArray[i], "Data Array Row " + i + " Cannot be Null");
+			if (dataArray[i].length != nCols) {
+				throw new IllegalArgumentException("All Rows in Input Array Must Have the Same Number of Columns");
+			}
+		}
+		
+		data = new double[dataArray.length][nCols];
+		
+		for (int i = 0; i < dataArray.length; ++i) {
+			System.arraycopy(dataArray[i], 0, data[i], 0, nCols);
+		}
+	}
+    
+    public Matrix(double[] vData, int nRows, int nCols) throws NullPointerException, IllegalArgumentException {
+    	Objects.requireNonNull(vData, "Input Array Cannot be Null");
+    	
+    	if (nRows <= 0 || nCols <= 0) {
+            throw new IllegalArgumentException("Dimensions Must be Positive");
+        }
+        
+        if (vData.length != nRows * nCols) {
+            throw new IllegalArgumentException("Array Length (" + vData.length + ") Must Equal nRows * nCols (" + (nRows * nCols) + ")");
+        } 
+    	
+        data = new double[nRows][nCols];
+        for (int i = 0; i < nRows; ++i) {
+			for (int j = 0; j < nCols; ++j) {
+				data[i][j] = vData[i * nCols + j];
+			}
+		}
+    }
+    	
+    // Utility Methods
+    
     public boolean checkDimensions(Matrix otherMatrix) throws NullPointerException {
     	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
     	
-    	if (this.getNRows() == otherMatrix.getNRows() && this.getNCols() == otherMatrix.getNCols()) {
+    	if (getNRows() == otherMatrix.getNRows() && getNCols() == otherMatrix.getNCols()) {
         	return true;
         } else {
             return false;
@@ -151,7 +214,7 @@ public class Matrix implements Serializable {
     	Matrix mResult = new Matrix(getNRows(), getNCols());
         for (int i = 0; i < getNRows(); ++i) {
             for (int j = 0; j < getNCols(); ++j) {
-            	mResult.set(i, j, func.applyAsDouble(this.get(i, j)));
+            	mResult.set(i, j, func.applyAsDouble(get(i, j)));
             }
         }
         
@@ -164,7 +227,7 @@ public class Matrix implements Serializable {
         Matrix mResult = new Matrix(getNCols(), getNRows());
         for (int i = 0; i < getNRows(); ++i) {
             for (int j = 0; j < getNCols(); ++j) {
-            	mResult.set(j, i, this.get(i, j));
+            	mResult.set(j, i, get(i, j));
             }
         }
         
@@ -174,17 +237,19 @@ public class Matrix implements Serializable {
     public Matrix multiply(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
     	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
     	
-    	if (this.getNCols() != otherMatrix.getNRows()) {
+    	if (getNCols() != otherMatrix.getNRows()) {
             throw new IllegalArgumentException("Incompatible Matrix Sizes for Matrix Multiplication");
         }
 
         Matrix mResult = new Matrix(getNRows(), otherMatrix.getNCols());
-        for (int i = 0; i < this.getNRows(); ++i) {
-            double sum = 0;
-            for (int j = 0; j < this.getNCols(); ++j) {
-                sum += this.get(i, j) * otherMatrix.get(j, 0);
+        for (int i = 0; i < getNRows(); ++i) {
+            for (int j = 0; j < otherMatrix.getNCols(); ++j) {
+                double sum = 0;
+                for (int k = 0; k < getNCols(); ++k) {
+                    sum += get(i, k) * otherMatrix.get(k, j);
+                }
+                mResult.set(i, j, sum);
             }
-            mResult.set(i, 0, sum);
         }
 
         return mResult;
@@ -198,12 +263,12 @@ public class Matrix implements Serializable {
 		}
 
 		Matrix mResult = new Matrix(getNRows(), getNCols());
-		for (int i = 0; i < this.getNRows(); ++i) {
-			for (int j = 0; j < this.getNCols(); ++j) {
+		for (int i = 0; i < getNRows(); ++i) {
+			for (int j = 0; j < getNCols(); ++j) {
 				if (otherMatrix.get(i, j) == 0) {
 					throw new ArithmeticException("Division by Zero at [" + i + "][" + j + "]");
 				} else {
-					mResult.set(i, j, this.get(i, j) / otherMatrix.get(i, j));
+					mResult.set(i, j, get(i, j) / otherMatrix.get(i, j));
 				}
 			}
 		}
@@ -219,9 +284,9 @@ public class Matrix implements Serializable {
 		}
 
 		Matrix mResult = new Matrix(getNRows(), getNCols());
-		for (int i = 0; i < this.getNRows(); ++i) {
-			for (int j = 0; j < this.getNCols(); ++j) {
-				mResult.set(i, j, this.get(i, j) + otherMatrix.get(i, j));
+		for (int i = 0; i < getNRows(); ++i) {
+			for (int j = 0; j < getNCols(); ++j) {
+				mResult.set(i, j, get(i, j) + otherMatrix.get(i, j));
 			}
 		}
 
@@ -236,9 +301,9 @@ public class Matrix implements Serializable {
 		}
 
 		Matrix mResult = new Matrix(getNRows(), getNCols());
-		for (int i = 0; i < this.getNRows(); ++i) {
-			for (int j = 0; j < this.getNCols(); ++j) {
-				mResult.set(i, j, this.get(i, j) - otherMatrix.get(i, j));
+		for (int i = 0; i < getNRows(); ++i) {
+			for (int j = 0; j < getNCols(); ++j) {
+				mResult.set(i, j, get(i, j) - otherMatrix.get(i, j));
 			}
 		}
 
@@ -255,9 +320,9 @@ public class Matrix implements Serializable {
 		}
 
 		Matrix mResult = new Matrix(getNRows(), getNCols());
-		for (int i = 0; i < this.getNRows(); ++i) {
-			for (int j = 0; j < this.getNCols(); ++j) {
-				mResult.set(i, j, this.get(i, j) * otherMatrix.get(i, j));
+		for (int i = 0; i < getNRows(); ++i) {
+			for (int j = 0; j < getNCols(); ++j) {
+				mResult.set(i, j, get(i, j) * otherMatrix.get(i, j));
 			}
 		}
 
@@ -305,6 +370,96 @@ public class Matrix implements Serializable {
     public void set(int row, int col, double value) {
         data[row][col] = value;
     }
+    
+    // Ritorna una copia della riga per evitare modifiche esterne
+    public double[] getRow(int rowIndex) throws IndexOutOfBoundsException {
+    	if (rowIndex < 0 || rowIndex >= getNRows()) {
+            throw new IndexOutOfBoundsException("Row Index " + rowIndex + " Out of Bounds [0, " + (getNRows() - 1) + "]");
+        }
+    	
+    	double[] rowCopy = new double[getNCols()];
+    	System.arraycopy(data[rowIndex], 0, rowCopy, 0, getNCols());
+    	return rowCopy;
+    }
+    
+    public void setRow(int rowIndex, double[] newRow) throws NullPointerException, IndexOutOfBoundsException, IllegalArgumentException {
+		Objects.requireNonNull(newRow, "New Row Cannot be Null");
+    	
+    	if (rowIndex < 0 || rowIndex >= getNRows()) {
+			throw new IndexOutOfBoundsException("Row Index " + rowIndex + " Out of Bounds [0, " + (getNRows() - 1) + "]");
+		}
+		
+		if (newRow.length != getNCols()) {
+			throw new IllegalArgumentException("Array Length (" + newRow.length + ") Must Match Number of Columns (" + getNCols() + ")");
+		}
+		
+		System.arraycopy(newRow, 0, data[rowIndex], 0, getNCols());
+    }
+    
+    // Ritorna una copia della colonna per evitare modifiche esterne
+    public double[] getCol(int colIndex) throws IndexOutOfBoundsException {
+    	if (colIndex < 0 || colIndex >= getNCols()) {
+			throw new IndexOutOfBoundsException("Column Index " + colIndex + " Out of Bounds [0, " + (getNCols() - 1) + "]");
+		}
+		
+		double[] colCopy = new double[getNRows()];
+		
+		for (int i = 0; i < getNRows(); ++i) {
+			colCopy[i] = get(i, colIndex);
+		}
+		
+		return colCopy;
+    }
+    
+    public void setCol(int colIndex, double[] newCol) throws NullPointerException, IndexOutOfBoundsException, IllegalArgumentException {
+    	Objects.requireNonNull(newCol, "New Column Cannot be Null");
+		
+		if (colIndex < 0 || colIndex >= getNCols()) {
+			throw new IndexOutOfBoundsException("Column Index " + colIndex + " Out of Bounds [0, " + (getNCols() - 1) + "]");
+		}
+		
+		if (newCol.length != getNRows()) {
+			throw new IllegalArgumentException("Array Length (" + newCol.length + ") Must Match Number of Rows (" + getNRows() + ")");
+		}
+		
+		for (int i = 0; i < getNRows(); ++i) {
+			set(i, colIndex, newCol[i]);
+		}
+    }
+   
+    // Restituisce una copia dell'array per evitare modifiche esterne
+    public double[][] getDataCopy() {
+		double[][] dataCopyArray = new double[getNRows()][getNCols()];
+		
+		for (int i = 0; i < getNRows(); ++i) {
+			System.arraycopy(getRow(i), 0, dataCopyArray[i], 0, getNCols());
+		}
+		
+		return dataCopyArray;
+	}
+    
+    public double[] toArray() {
+		double[] dataArray = new double[getNRows() * getNCols()];
+		
+		for (int dataArrayIndex = 0, i = 0; i < getNRows(); ++i) {
+			for (int j = 0; j < getNCols(); ++j) {
+				dataArray[dataArrayIndex++] = get(i, j);
+			}
+		}
+		
+		return dataArray;
+	}
+    
+    @Override
+    public Matrix clone() {
+		Matrix mClone = new Matrix(getNRows(), getNCols());
+		
+		for (int i = 0; i < getNRows(); ++i) {
+			System.arraycopy(data[i], 0, mClone.data[i], 0, getNCols());
+		}
+		
+		return mClone;
+	}
 
     @Override
 	public int hashCode() {
@@ -339,7 +494,7 @@ public class Matrix implements Serializable {
         for (int i = 0; i < getNRows(); ++i) {
             JsonArray jsonRow = new JsonArray();
             for (int j = 0; j < getNCols(); ++j) {
-                jsonRow.add(data[i][j]);
+                jsonRow.add(get(i, j));
             }
             jsonData.add(jsonRow);
         }
@@ -353,9 +508,9 @@ public class Matrix implements Serializable {
 		StringJoiner sj = new StringJoiner(System.lineSeparator());
 	    StringBuilder rowBuilder = new StringBuilder();
 	    
-	    for (double[] row : data) {
-	        for (double value : row) {
-	            rowBuilder.append("[").append(String.format("%.3f", value)).append("]");
+	    for (int i = 0; i < getNRows(); ++i) {
+	        for (int j = 0; j < getNCols(); ++j) {
+	            rowBuilder.append("[").append(String.format("%.3f", get(i, j))).append("]");
 	        }
 	        
 	        sj.add(rowBuilder.toString());

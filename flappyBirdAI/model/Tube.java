@@ -27,7 +27,7 @@ public class Tube extends AbstractGameObject {
     // Percentuale di quanto si può spostare il buco verso l'alto o verso il basso rispetto al centro dello schermo
     private static final double HOLE_OFFSET_RATIO = 0.3;
     
-    public static int lastID = 0;
+    private static int lastID = 0;
     
     public static void loadImages() {
     	for (int i = 0; i < V_IMAGES.length; ++i) {
@@ -99,6 +99,10 @@ public class Tube extends AbstractGameObject {
 		h = height;
 
         updateHitBox();
+        
+        if (showImage && !IS_IMAGES_FOUND) {
+			showImage = false;
+		}
 
         if (showImage) {
         	updateImageIndex();
@@ -130,11 +134,11 @@ public class Tube extends AbstractGameObject {
 
 	@Override
     public void draw(Graphics2D g2d) {
-        if (!IS_IMAGES_FOUND) {
+        if (showImage) {
+        	g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
+        } else {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);
-        } else {
-            g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
         }
     }
 	
