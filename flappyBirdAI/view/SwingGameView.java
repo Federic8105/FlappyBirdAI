@@ -406,8 +406,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		thresholdPanel.add(Box.createVerticalStrut(5));
 		
-		// JSpinner con Valore di Default di AutoSaveThreshold, Min 1, Max Integer.MAX_VALUE, Step 1
-		autoSaveThresholdSpinner = new JSpinner(new SpinnerNumberModel(GameStats.DEFAULT_AUTOSAVE_THRESHOLD, 1, Integer.MAX_VALUE, 1));
+		autoSaveThresholdSpinner = new JSpinner();
+		autoSaveThresholdSpinner.setValue(GameStats.DEFAULT_AUTOSAVE_THRESHOLD);
 		autoSaveThresholdSpinner.setMaximumSize(new Dimension(100, 25));
 		autoSaveThresholdSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
 		
@@ -415,49 +415,52 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
 		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
 		
-		//TODO
-		autoSaveThresholdSpinner.addChangeListener(_ -> {
-			if (gameController != null) {
-				validateAutoSaveThresoldSpinnerValue();
-				requestFocusInWindow();
-			}
-		});
-		
-		// Gestione della Validazione dell'Input del Campo di Testo del JSpinner
-		// Ritorno del focus alla finestra dopo modifica campo di testo, per evitare che il focus rimanga a spinner dopo input		
-		/*spinnerTextField.addActionListener(_ -> {
-			validateSpinnerValue(spinnerTextField);
-			requestFocusInWindow();
-		});
-		
-		// Gestione dei pulsanti freccia del spinner per ritornare il focus alla finestra principale
-		Component[] spinnerComponents = autoSaveThresholdSpinner.getComponents();
-		for (Component component : spinnerComponents) {
-		    if (component instanceof JButton) {
-		        JButton button = (JButton) component;
-		        button.addActionListener(_ -> {
-		            SwingUtilities.invokeLater(() -> requestFocusInWindow());
-		        });
-		    }
-		}
-		
-		// Aggiungere listener per i tasti freccia su e giù quando il spinner ha il focus
-		autoSaveThresholdSpinner.addKeyListener(new java.awt.event.KeyAdapter() {
-		    @Override
-		    public void keyPressed(java.awt.event.KeyEvent e) {
-		        if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP || 
-		            e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN) {
-		            // Dopo un breve delay per permettere l'aggiornamento del valore
-		            SwingUtilities.invokeLater(() -> {
-		                if (gameController != null) {
-		                    gameController.setAutoSaveThreshold((Integer) autoSaveThresholdSpinner.getValue());
-		                }
-		                requestFocusInWindow();
-		            });
-		        }
-		    }
-		});*/
-		
+		// Listener per tutti i cambiamenti di valore
+	    autoSaveThresholdSpinner.addChangeListener(_ -> {
+	        if (gameController != null) {
+	            validateAutoSaveThresholdSpinnerValue();
+	            // Rimettere il focus alla finestra principale
+	            requestFocusInWindow();
+	        }
+	    });
+	    
+	    //TODO
+		// Intercettare i clic sui pulsanti freccia per validare prima dell'azione
+	    Component[] spinnerComponents = autoSaveThresholdSpinner.getComponents();
+	    for (Component component : spinnerComponents) {
+	        if (component instanceof JButton) {
+	            JButton arrowButton = (JButton) component;
+	            // Rimuovere i listener esistenti e aggiungere il nostro
+	            ActionListener[] listeners = arrowButton.getActionListeners();
+	            for (ActionListener listener : listeners) {
+	                arrowButton.removeActionListener(listener);
+	            }
+	            
+	            // Aggiungere il nostro listener che valida prima e poi esegue l'azione originale
+	            arrowButton.addActionListener(_ -> {
+	                // Prima valida il campo corrente
+	                validateAutoSaveThresholdSpinnerValue();
+	                
+	                // Poi simula l'azione originale delle frecce
+	                Object currentValue = autoSaveThresholdSpinner.getValue();
+	                try {
+	                    int intValue = Integer.parseInt(currentValue.toString());
+	                    
+	                    // Determina se è il pulsante su o giù dal nome dell'azione
+	                    if (arrowButton.getName() != null && arrowButton.getName().contains("next")) {
+	                        autoSaveThresholdSpinner.setValue(intValue + 1);
+	                    } else {
+	                        // Pulsante giù - ma non andare sotto 1
+	                        autoSaveThresholdSpinner.setValue(Math.max(1, intValue - 1));
+	                    }
+	                } catch (NumberFormatException ex) {
+	                    // Se anche dopo la validazione c'è un problema, usa valore di default
+	                    autoSaveThresholdSpinner.setValue(GameStats.DEFAULT_AUTOSAVE_THRESHOLD);
+	                }
+	            });
+	        }
+	    }
+	    
 		thresholdPanel.add(autoSaveThresholdSpinner);
 		
 		importExportPanel.add(thresholdPanel);
@@ -612,12 +615,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		}
 	}
 	
-	private void validateAutoSaveThresoldSpinnerValue() {
-		JFormattedTextField textField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
-	    String input = textField.getText().trim();
-	    
+	private void validateAutoSaveThresholdSpinnerValue() {
 	    try {
-	        int value = Integer.parseInt(input);
+	        int value = Integer.parseInt(autoSaveThresholdSpinner.getValue().toString().trim());
 	        
 	        if (value < 1 || value > Integer.MAX_VALUE) {
 	            throw new NumberFormatException();
@@ -636,7 +636,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	        
 	        // Forza l'aggiornamento del display
 	        SwingUtilities.invokeLater(() -> {
-	            textField.setValue(validValue);
+	        	autoSaveThresholdSpinner.setValue(validValue);
 	        });
 	    }
 	}

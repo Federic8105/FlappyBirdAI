@@ -44,6 +44,7 @@ public final class GameController {
     private final Map<String, Double> brainInputMap = new HashMap<>();
     
     // Game Engine Variables
+    //TODO
     private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
     private BirdBrain bestBirdBrain;
     
