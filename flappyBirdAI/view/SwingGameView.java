@@ -729,7 +729,7 @@ class ValidatedIntegerSpinner extends JSpinner {
      */
     public ValidatedIntegerSpinner(int minValue, int defaultValue) {
         super();
-        this.minValue = Math.max(1, minValue); // Assicura che sia almeno 1
+        this.minValue = minValue;
         this.defaultValue = Math.max(this.minValue, defaultValue);
         
         initializeSpinner();
@@ -748,22 +748,9 @@ class ValidatedIntegerSpinner extends JSpinner {
      * Ottiene il valore corrente come intero, garantendo che sia valido
      */
     public int getValidatedValue() {
-        try {
-            int value = Integer.parseInt(getValue().toString().trim());
-            return Math.max(minValue, value);
-        } catch (NumberFormatException e) {
-        	return lastValidValue;
-        }
+        return (int) getValue();
     }
-    
-    /**
-     * Imposta un valore valido
-     */
-    public void setValidatedValue(int value) {
-    	int validValue = Math.max(minValue, value);
-        setValue(validValue);
-        lastValidValue = validValue;
-    }
+
     
     private void initializeSpinner() {
         setValue(defaultValue);
@@ -779,22 +766,18 @@ class ValidatedIntegerSpinner extends JSpinner {
     
     private void setupValidation() {
         // Listener per tutti i cambiamenti di valore
-        addChangeListener(_ -> validateAndNotify());
+        addChangeListener(_ -> validateValue());
     }
     
     private void setupTextFieldValidation(JFormattedTextField textField) {
-        // Gestire il caso quando si preme ENTER
-       // textField.addActionListener(_ -> validateTextFieldInput(textField));
-        
         // Gestire il caso quando il campo perde il focus
         textField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                validateTextFieldInput(textField);
+            	validateValue();
             }
         });
         
-        // Opzionale: gestire ESC per annullare le modifiche
         textField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -804,38 +787,13 @@ class ValidatedIntegerSpinner extends JSpinner {
                 }
                 
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-					validateTextFieldInput(textField);
+                	validateValue();
 				}
             }
         });
     }
     
-    private void validateTextFieldInput(JFormattedTextField textField) {
-        String inputText = textField.getText().trim();
-      
-        try {
-            int inputValue = Integer.parseInt(inputText);
-            
-            if (inputValue < minValue || inputValue > Integer.MAX_VALUE) {
-                throw new NumberFormatException();
-            }
-            
-            // Valore valido - aggiorna tutto
-            lastValidValue = inputValue;
-            setValue(inputValue);
-            
-            // Notifica il callback se presente
-            if (onValidValueChange != null) {
-                onValidValueChange.accept(inputValue);
-            }
-            
-        } catch (NumberFormatException e) {
-            // Input non valido (lettere, simboli, ecc.) - ripristina l'ultimo valore valido
-            textField.setValue(lastValidValue);
-        }
-    }
-    
-    private void validateAndNotify() {
+    private void validateValue() {
         try {
             int value = Integer.parseInt(getValue().toString().trim());
            
@@ -852,6 +810,8 @@ class ValidatedIntegerSpinner extends JSpinner {
             }
             
         } catch (NumberFormatException e) {
+        	//TODO rimuovi suono di errore
+			
         	setValue(lastValidValue);
         }
     }
@@ -882,6 +842,13 @@ class ValidatedIntegerSpinner extends JSpinner {
         return lastValidValue;
     }
     
+    public void setLastValidValue(int value) {
+		if (value >= minValue) {
+			lastValidValue = value;
+			setValue(value);
+		}
+	}
+    
     /**
      * Ripristina l'ultimo valore valido
      */
@@ -890,7 +857,7 @@ class ValidatedIntegerSpinner extends JSpinner {
     }
     
     private void handleArrowButtonClick(JButton arrowButton) {
-        int currentValue = getValidatedValue();
+        int currValue = getValidatedValue();
         
         // Determina la direzione basandosi sulla posizione del pulsante
         // Il pulsante "su" è generalmente il primo componente
@@ -899,10 +866,12 @@ class ValidatedIntegerSpinner extends JSpinner {
         
         if (isUpButton) {
             // Incrementa
-            setValidatedValue(currentValue + 1);
+            setValue(currValue + 1);
+            lastValidValue = currValue + 1;
         } else {
             // Decrementa (ma non sotto il minimo)
-            setValidatedValue(Math.max(minValue, currentValue - 1));
+        	setValue(Math.max(minValue, currValue - 1));
+        	lastValidValue = Math.max(minValue, currValue - 1);
         }
     }
     
