@@ -147,7 +147,7 @@ public class Matrix implements Serializable {
 		data = new double[otherMatrix.getNRows()][otherMatrix.getNCols()];
 		
 		for (int i = 0; i < otherMatrix.getNRows(); ++i) {
-			System.arraycopy(otherMatrix.getRow(i), 0, data[i], 0, otherMatrix.getNCols());
+			System.arraycopy(otherMatrix.data[i], 0, data[i], 0, otherMatrix.getNCols());
 		}
 	}
     
@@ -432,7 +432,7 @@ public class Matrix implements Serializable {
 		double[][] dataCopyArray = new double[getNRows()][getNCols()];
 		
 		for (int i = 0; i < getNRows(); ++i) {
-			System.arraycopy(getRow(i), 0, dataCopyArray[i], 0, getNCols());
+			System.arraycopy(data[i], 0, dataCopyArray[i], 0, getNCols());
 		}
 		
 		return dataCopyArray;
@@ -450,16 +450,39 @@ public class Matrix implements Serializable {
 		return dataArray;
 	}
     
-    @Override
-    public Matrix clone() {
-		Matrix mClone = new Matrix(getNRows(), getNCols());
-		
-		for (int i = 0; i < getNRows(); ++i) {
-			System.arraycopy(getRow(i), 0, mClone.data[i], 0, getNCols());
+    public Matrix getSubMatrix(int rowStart, int rowEnd, int colStart, int colEnd) throws IndexOutOfBoundsException, IllegalArgumentException {
+		if (rowStart < 0 || rowStart >= getNRows()) {
+			throw new IndexOutOfBoundsException("Row Start Index " + rowStart + " Out of Bounds [0, " + (getNRows() - 1) + "]");
+		}
+		if (rowEnd < 0 || rowEnd >= getNRows()) {
+			throw new IndexOutOfBoundsException("Row End Index " + rowEnd + " Out of Bounds [0, " + (getNRows() - 1) + "]");
+		}
+		if (colStart < 0 || colStart >= getNCols()) {
+			throw new IndexOutOfBoundsException("Column Start Index " + colStart + " Out of Bounds [0, " + (getNCols() - 1) + "]");
+		}
+		if (colEnd < 0 || colEnd >= getNCols()) {
+			throw new IndexOutOfBoundsException("Column End Index " + colEnd + " Out of Bounds [0, " + (getNCols() - 1) + "]");
+		}
+		if (rowStart > rowEnd) {
+			throw new IllegalArgumentException("Row Start Index Cannot be Greater than Row End Index");
+		}
+		if (colStart > colEnd) {
+			throw new IllegalArgumentException("Column Start Index Cannot be Greater than Column End Index");
 		}
 		
-		return mClone;
-	}
+		Matrix subMatrix = new Matrix(rowEnd - rowStart + 1, colEnd - colStart + 1);
+		for (int i = rowStart; i <= rowEnd; ++i) {
+			for (int j = colStart; j <= colEnd; ++j) {
+				subMatrix.set(i - rowStart, j - colStart, get(i, j));
+			}
+		}
+		
+		return subMatrix;
+    }
+    
+    public Matrix copy() {
+    	return new Matrix(this);
+    }
 
     @Override
 	public int hashCode() {

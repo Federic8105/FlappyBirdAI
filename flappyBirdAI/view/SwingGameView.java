@@ -15,12 +15,16 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -406,60 +410,14 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		thresholdPanel.add(Box.createVerticalStrut(5));
 		
-		autoSaveThresholdSpinner = new JSpinner();
-		autoSaveThresholdSpinner.setValue(GameStats.DEFAULT_AUTOSAVE_THRESHOLD);
-		autoSaveThresholdSpinner.setMaximumSize(new Dimension(100, 25));
-		autoSaveThresholdSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
-		
-		// Centrare il Testo del Campo di Input del JSpinner
-		JFormattedTextField spinnerTextField = ((JSpinner.DefaultEditor) autoSaveThresholdSpinner.getEditor()).getTextField();
-		spinnerTextField.setHorizontalAlignment(JTextField.CENTER);
-		
-		// Listener per tutti i cambiamenti di valore
-	    autoSaveThresholdSpinner.addChangeListener(_ -> {
-	        if (gameController != null) {
-	            validateAutoSaveThresholdSpinnerValue();
-	            // Rimettere il focus alla finestra principale
-	            requestFocusInWindow();
-	        }
-	    });
-	    
-	    //TODO
-		// Intercettare i clic sui pulsanti freccia per validare prima dell'azione
-	    Component[] spinnerComponents = autoSaveThresholdSpinner.getComponents();
-	    for (Component component : spinnerComponents) {
-	        if (component instanceof JButton) {
-	            JButton arrowButton = (JButton) component;
-	            // Rimuovere i listener esistenti e aggiungere il nostro
-	            ActionListener[] listeners = arrowButton.getActionListeners();
-	            for (ActionListener listener : listeners) {
-	                arrowButton.removeActionListener(listener);
-	            }
-	            
-	            // Aggiungere il nostro listener che valida prima e poi esegue l'azione originale
-	            arrowButton.addActionListener(_ -> {
-	                // Prima valida il campo corrente
-	                validateAutoSaveThresholdSpinnerValue();
-	                
-	                // Poi simula l'azione originale delle frecce
-	                Object currentValue = autoSaveThresholdSpinner.getValue();
-	                try {
-	                    int intValue = Integer.parseInt(currentValue.toString());
-	                    
-	                    // Determina se è il pulsante su o giù dal nome dell'azione
-	                    if (arrowButton.getName() != null && arrowButton.getName().contains("next")) {
-	                        autoSaveThresholdSpinner.setValue(intValue + 1);
-	                    } else {
-	                        // Pulsante giù - ma non andare sotto 1
-	                        autoSaveThresholdSpinner.setValue(Math.max(1, intValue - 1));
-	                    }
-	                } catch (NumberFormatException ex) {
-	                    // Se anche dopo la validazione c'è un problema, usa valore di default
-	                    autoSaveThresholdSpinner.setValue(GameStats.DEFAULT_AUTOSAVE_THRESHOLD);
-	                }
-	            });
-	        }
-	    }
+		autoSaveThresholdSpinner = new ValidatedIntegerSpinner(1, GameStats.DEFAULT_AUTOSAVE_THRESHOLD).withMaximumSize(100, 25);
+
+		// Impostare il callback per i cambiamenti di valore validi
+		((ValidatedIntegerSpinner) autoSaveThresholdSpinner).setOnValidValueChange(value -> {	
+		    gameController.setAutoSaveThreshold(value);
+		    // Rimetti il focus alla finestra principale
+		 	requestFocusInWindow();
+		});
 	    
 		thresholdPanel.add(autoSaveThresholdSpinner);
 		
@@ -615,32 +573,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		}
 	}
 	
-	private void validateAutoSaveThresholdSpinnerValue() {
-	    try {
-	        int value = Integer.parseInt(autoSaveThresholdSpinner.getValue().toString().trim());
-	        
-	        if (value < 1 || value > Integer.MAX_VALUE) {
-	            throw new NumberFormatException();
-	        }
-	        
-	        // Valore valido - aggiorna tutto
-	        autoSaveThresholdSpinner.setValue(value);
-	        if (gameController != null) {
-	            gameController.setAutoSaveThreshold(value);
-	        }
-	        
-	    } catch (NumberFormatException e) {
-	        // Forza il ripristino del valore corretto
-	        int validValue = gameController != null ? gameController.getAutoSaveThreshold() : GameStats.DEFAULT_AUTOSAVE_THRESHOLD;
-	        autoSaveThresholdSpinner.setValue(validValue);
-	        
-	        // Forza l'aggiornamento del display
-	        SwingUtilities.invokeLater(() -> {
-	        	autoSaveThresholdSpinner.setValue(validValue);
-	        });
-	    }
-	}
-	
 	void updateAutoSaveButton() {
 		if (gameController != null) {
 			if (gameController.isAutoSaveEnabled()) {
@@ -775,6 +707,212 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	@Override
 	public void keyTyped(KeyEvent e) {}
 	
+}
+
+// Class for Custom JSpinner to Allow Only Positive Integers
+//TODO
+/**
+ * JSpinner personalizzato che accetta solo valori interi positivi (>= 1)
+ * e notifica automaticamente i cambiamenti di valore validi.
+ */
+class ValidatedIntegerSpinner extends JSpinner {
+    
+    private static final long serialVersionUID = 1L;
+    
+    private final int minValue;
+    private final int defaultValue;
+    private int lastValidValue;
+    private Consumer<Integer> onValidValueChange;
+    
+    /**
+     * Costruttore con valore minimo e default personalizzati
+     */
+    public ValidatedIntegerSpinner(int minValue, int defaultValue) {
+        super();
+        this.minValue = Math.max(1, minValue); // Assicura che sia almeno 1
+        this.defaultValue = Math.max(this.minValue, defaultValue);
+        
+        initializeSpinner();
+        setupValidation();
+        customizeArrowButtons();
+    }
+    
+    /**
+     * Imposta il callback che viene chiamato quando il valore cambia ed è valido
+     */
+    public void setOnValidValueChange(Consumer<Integer> callback) {
+        this.onValidValueChange = callback;
+    }
+    
+    /**
+     * Ottiene il valore corrente come intero, garantendo che sia valido
+     */
+    public int getValidatedValue() {
+        try {
+            int value = Integer.parseInt(getValue().toString().trim());
+            return Math.max(minValue, value);
+        } catch (NumberFormatException e) {
+        	return lastValidValue;
+        }
+    }
+    
+    /**
+     * Imposta un valore valido
+     */
+    public void setValidatedValue(int value) {
+    	int validValue = Math.max(minValue, value);
+        setValue(validValue);
+        lastValidValue = validValue;
+    }
+    
+    private void initializeSpinner() {
+        setValue(defaultValue);
+        lastValidValue = defaultValue;
+        setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        // Centra il testo del campo di input
+        JFormattedTextField textField = ((JSpinner.DefaultEditor) getEditor()).getTextField();
+        textField.setHorizontalAlignment(JTextField.CENTER);
+        
+        setupTextFieldValidation(textField);
+    }
+    
+    private void setupValidation() {
+        // Listener per tutti i cambiamenti di valore
+        addChangeListener(_ -> validateAndNotify());
+    }
+    
+    private void setupTextFieldValidation(JFormattedTextField textField) {
+        // Gestire il caso quando si preme ENTER
+       // textField.addActionListener(_ -> validateTextFieldInput(textField));
+        
+        // Gestire il caso quando il campo perde il focus
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                validateTextFieldInput(textField);
+            }
+        });
+        
+        // Opzionale: gestire ESC per annullare le modifiche
+        textField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    // Ripristina l'ultimo valore valido senza validazione
+                    textField.setValue(lastValidValue);
+                }
+                
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					validateTextFieldInput(textField);
+				}
+            }
+        });
+    }
+    
+    private void validateTextFieldInput(JFormattedTextField textField) {
+        String inputText = textField.getText().trim();
+      
+        try {
+            int inputValue = Integer.parseInt(inputText);
+            
+            if (inputValue < minValue || inputValue > Integer.MAX_VALUE) {
+                throw new NumberFormatException();
+            }
+            
+            // Valore valido - aggiorna tutto
+            lastValidValue = inputValue;
+            setValue(inputValue);
+            
+            // Notifica il callback se presente
+            if (onValidValueChange != null) {
+                onValidValueChange.accept(inputValue);
+            }
+            
+        } catch (NumberFormatException e) {
+            // Input non valido (lettere, simboli, ecc.) - ripristina l'ultimo valore valido
+            textField.setValue(lastValidValue);
+        }
+    }
+    
+    private void validateAndNotify() {
+        try {
+            int value = Integer.parseInt(getValue().toString().trim());
+           
+            if (value < minValue || value > Integer.MAX_VALUE) {
+                throw new NumberFormatException();
+            }
+            
+            lastValidValue = value;
+            setValue(value);
+            
+            // Notifica il callback se presente
+            if (onValidValueChange != null) {
+                onValidValueChange.accept(value);
+            }
+            
+        } catch (NumberFormatException e) {
+        	setValue(lastValidValue);
+        }
+    }
+    
+    private void customizeArrowButtons() {
+        // Trova e personalizza i pulsanti freccia
+        Component[] components = getComponents();
+        for (Component component : components) {
+            if (component instanceof JButton) {
+                JButton arrowButton = (JButton) component;
+                
+                // Rimuovi tutti i listener esistenti
+                ActionListener[] listeners = arrowButton.getActionListeners();
+                for (ActionListener listener : listeners) {
+                    arrowButton.removeActionListener(listener);
+                }
+                
+                // Aggiungi il nostro listener personalizzato
+                arrowButton.addActionListener(_ -> handleArrowButtonClick(arrowButton));
+            }
+        }
+    }
+    
+    /**
+     * Ottiene l'ultimo valore valido che è stato impostato
+     */
+    public int getLastValidValue() {
+        return lastValidValue;
+    }
+    
+    /**
+     * Ripristina l'ultimo valore valido
+     */
+    public void restoreLastValidValue() {
+        setValue(lastValidValue);
+    }
+    
+    private void handleArrowButtonClick(JButton arrowButton) {
+        int currentValue = getValidatedValue();
+        
+        // Determina la direzione basandosi sulla posizione del pulsante
+        // Il pulsante "su" è generalmente il primo componente
+        Component[] components = getComponents();
+        boolean isUpButton = components.length > 0 && components[0] == arrowButton;
+        
+        if (isUpButton) {
+            // Incrementa
+            setValidatedValue(currentValue + 1);
+        } else {
+            // Decrementa (ma non sotto il minimo)
+            setValidatedValue(Math.max(minValue, currentValue - 1));
+        }
+    }
+    
+    /**
+     * Metodo di utilità per creare uno spinner con dimensioni specifiche
+     */
+    public ValidatedIntegerSpinner withMaximumSize(int width, int height) {
+        setMaximumSize(new Dimension(width, height));
+        return this;
+    }
 }
 
 // Classes for Action Listeners

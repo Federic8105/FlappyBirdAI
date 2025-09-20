@@ -44,15 +44,16 @@ public final class GameController {
     private final Map<String, Double> brainInputMap = new HashMap<>();
     
     // Game Engine Variables
-    //TODO
-    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
-    private BirdBrain bestBirdBrain;
     
     // Game Statistics
     private final GameStats gameStats = new GameStats();
     
     // Game Clock
     private final GameClock gameClock = new GameClock();
+    
+    //TODO
+    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
+    private BirdBrain bestBirdBrain;
 
 	public GameController(GameView gameView) throws NullPointerException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");

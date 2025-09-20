@@ -25,7 +25,6 @@ public class FlappyBird extends AbstractGameObject {
 	public static void loadImages() {	
 		for (int i = 0; i < V_IMAGES.length; ++i) {
 			try {
-				
 				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + i + IMG_EXT));
 				
 				if (V_IMAGES[i] != null) {
