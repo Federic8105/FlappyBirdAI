@@ -410,12 +410,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		thresholdPanel.add(Box.createVerticalStrut(5));
 		
-		autoSaveThresholdSpinner = new ValidatedIntegerSpinner(1, GameStats.DEFAULT_AUTOSAVE_THRESHOLD).withMaximumSize(100, 25);
+		autoSaveThresholdSpinner = new ValidatedIntegerSpinner(1, 1000, GameStats.DEFAULT_AUTOSAVE_THRESHOLD).withMaximumSize(100, 25);
 
 		// Impostare il callback per i cambiamenti di valore validi
 		((ValidatedIntegerSpinner) autoSaveThresholdSpinner).setOnValidValueChange(value -> {	
 		    gameController.setAutoSaveThreshold(value);
-		    // Rimetti il focus alla finestra principale
+		    // Rimettere il focus alla finestra principale
 		 	requestFocusInWindow();
 		});
 	    
@@ -710,7 +710,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 }
 
 // Class for Custom JSpinner to Allow Only Positive Integers
-//TODO
+
 /**
  * JSpinner personalizzato che accetta solo valori interi positivi (>= 1)
  * e notifica automaticamente i cambiamenti di valore validi.
@@ -720,16 +720,15 @@ class ValidatedIntegerSpinner extends JSpinner {
     private static final long serialVersionUID = 1L;
     
     private final int minValue;
+    private final int maxValue;
     private final int defaultValue;
     private int lastValidValue;
     private Consumer<Integer> onValidValueChange;
     
-    /**
-     * Costruttore con valore minimo e default personalizzati
-     */
-    public ValidatedIntegerSpinner(int minValue, int defaultValue) {
+    public ValidatedIntegerSpinner(int minValue, int maxValue, int defaultValue) {
         super();
         this.minValue = minValue;
+        this.maxValue = maxValue;
         this.defaultValue = Math.max(this.minValue, defaultValue);
         
         initializeSpinner();
@@ -737,27 +736,20 @@ class ValidatedIntegerSpinner extends JSpinner {
         customizeArrowButtons();
     }
     
-    /**
-     * Imposta il callback che viene chiamato quando il valore cambia ed è valido
-     */
     public void setOnValidValueChange(Consumer<Integer> callback) {
         this.onValidValueChange = callback;
     }
-    
-    /**
-     * Ottiene il valore corrente come intero, garantendo che sia valido
-     */
+   
     public int getValidatedValue() {
         return (int) getValue();
     }
 
-    
     private void initializeSpinner() {
         setValue(defaultValue);
         lastValidValue = defaultValue;
         setFont(new Font("Arial", Font.PLAIN, 12));
         
-        // Centra il testo del campo di input
+        // Centrare il testo del campo di input
         JFormattedTextField textField = ((JSpinner.DefaultEditor) getEditor()).getTextField();
         textField.setHorizontalAlignment(JTextField.CENTER);
         
@@ -770,11 +762,11 @@ class ValidatedIntegerSpinner extends JSpinner {
     }
     
     private void setupTextFieldValidation(JFormattedTextField textField) {
-        // Gestire il caso quando il campo perde il focus
+    	// Gestire il caso quando il campo perde il focus
         textField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-            	validateValue();
+                validateValue();
             }
         });
         
@@ -790,29 +782,47 @@ class ValidatedIntegerSpinner extends JSpinner {
                 	validateValue();
 				}
             }
+            
+            @Override
+            public void keyTyped(KeyEvent e) {
+                // Prevenire inserimento di caratteri non numerici a parte backspace e delete
+                char c = e.getKeyChar();
+                if (!Character.isDigit(c) && c != KeyEvent.VK_BACK_SPACE && c != KeyEvent.VK_DELETE) {
+                	// Intercettare evento e consumarlo per fermarlo
+                	// Per Rimuovere anche il Beep di Default per caratteri non validi
+                    e.consume();
+                }
+            }
         });
     }
     
     private void validateValue() {
-        try {
-            int value = Integer.parseInt(getValue().toString().trim());
-           
-            if (value < minValue || value > Integer.MAX_VALUE) {
-                throw new NumberFormatException();
-            }
-            
-            lastValidValue = value;
-            setValue(value);
-            
-            // Notifica il callback se presente
-            if (onValidValueChange != null) {
-                onValidValueChange.accept(value);
-            }
-            
-        } catch (NumberFormatException e) {
-        	//TODO rimuovi suono di errore
-			
-        	setValue(lastValidValue);
+    	// Campo contiene solo numeri, quindi parse sicuro
+    	
+        String valueStr = getValue().toString().trim();
+       
+        // Gestire campo vuoto
+        if (valueStr.isEmpty()) {
+            setValue(lastValidValue);
+            return;
+        }
+        
+        long longValue = Long.parseLong(valueStr);
+		
+		// Controllare se il valore è valido
+        if (longValue < minValue || longValue > maxValue) {
+			// Valore non valido, ripristina l'ultimo valore valido
+			setValue(lastValidValue);
+			return;
+		}
+        
+        int value = (int) longValue;
+        
+        lastValidValue = value;
+        
+        // Notifica il callback se presente
+        if (onValidValueChange != null) {
+            onValidValueChange.accept(value);
         }
     }
     
