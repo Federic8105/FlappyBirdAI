@@ -90,6 +90,7 @@ public class Tube extends AbstractGameObject {
     private final int id;
     private final double vx = 250;
     private final boolean isSuperior;
+    private final Image img;
 
     private Tube(int x0, int y0, int height, boolean isSuperior) {
 		this.isSuperior = isSuperior;
@@ -110,7 +111,9 @@ public class Tube extends AbstractGameObject {
         	updateImageIndex();
         	
         	// Ridimensiona solo immagine caricata usata dal Tube in base a w e h
-        	V_IMAGES[imageIndex] = V_IMAGES[imageIndex].getScaledInstance(w, h, Image.SCALE_SMOOTH);
+        	img = V_IMAGES[imageIndex].getScaledInstance(w, h, Image.SCALE_SMOOTH);
+        } else {
+			img = null;
         }
     }
     
@@ -120,11 +123,7 @@ public class Tube extends AbstractGameObject {
 
     @Override
     public void updateImageIndex() {
-        if (isSuperior) {
-        	imageIndex = 0;
-        } else {
-        	imageIndex = 1;
-        }
+        imageIndex = isSuperior ? 0 : 1;
     }
     
     @Override
@@ -137,7 +136,7 @@ public class Tube extends AbstractGameObject {
 	@Override
     public void draw(Graphics2D g2d) {
         if (showImage) {
-        	g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
+        	g2d.drawImage(img, x, y, null);
         } else {
             g2d.setColor(Color.red);
             g2d.draw(hitBox);

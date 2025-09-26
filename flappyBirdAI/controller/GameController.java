@@ -156,9 +156,6 @@ public final class GameController {
 		
         for (GameObject obj : new ArrayList<>(vGameObj)) {
         	
-        	// Debug
-        	//System.out.println(obj + System.lineSeparator());
-        	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
             	
             	if (currBird.lifeTime > gameStats.currLifeTime) {
