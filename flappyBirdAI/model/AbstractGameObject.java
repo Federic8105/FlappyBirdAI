@@ -11,7 +11,8 @@ import java.util.Objects;
 public class AbstractGameObject implements GameObject {
 	
 	protected static final String IMG_EXT= ".png";
-	protected static boolean IS_IMAGES_FOUND = false;
+	protected static boolean ARE_IMAGES_FOUND = false;
+	protected static boolean ARE_IMAGES_LOADED = false;
 	
 	// Pubblici per Performance in Game Loop
 	public int x, y, w, h;

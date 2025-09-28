@@ -13,7 +13,6 @@ import javax.imageio.ImageIO;
 
 public class FlappyBird extends AbstractGameObject {
 	
-	//TODO qui?
 	private static final int NUM_IMAGES = 4;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/FB";
@@ -21,8 +20,11 @@ public class FlappyBird extends AbstractGameObject {
 	public static final int WIDTH = 60;
 	public static final int HEIGHT = 45;
 	
-	//TODO qui?
-	public static void loadImages() {	
+	public static void loadImages() {
+		if (ARE_IMAGES_LOADED) {
+			return;
+		}
+		
 		for (int i = 0; i < V_IMAGES.length; ++i) {
 			try {
 				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + i + IMG_EXT));
@@ -37,7 +39,10 @@ public class FlappyBird extends AbstractGameObject {
 			}
 		}
 		
-		IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+		ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+		if (ARE_IMAGES_FOUND) {
+			ARE_IMAGES_LOADED = true;
+		}
 	}
 
 	public double lifeTime = 0, vy = 0;
@@ -55,7 +60,7 @@ public class FlappyBird extends AbstractGameObject {
 
 		updateHitBox();
 		
-		if (showImage && !IS_IMAGES_FOUND) {
+		if (showImage && !ARE_IMAGES_FOUND) {
 			showImage = false;
 		}
 

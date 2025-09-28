@@ -16,7 +16,6 @@ import java.util.ArrayList;
 
 public class Tube extends AbstractGameObject {
 	
-	//TODO
 	private static final int NUM_IMAGES = 2;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/TUBE";
@@ -30,8 +29,11 @@ public class Tube extends AbstractGameObject {
     
     private static int lastID = 0;
     
-    //TODO
     public static void loadImages() {
+    	if (ARE_IMAGES_LOADED) {
+    		return;
+    	}
+    	
     	for (int i = 0; i < V_IMAGES.length; ++i) {
     		try {
     			V_IMAGES[i] = ImageIO.read(Tube.class.getResource(IMG_NAME + i + IMG_EXT));
@@ -41,7 +43,10 @@ public class Tube extends AbstractGameObject {
     		}
     	}
     	
-    	IS_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+    	ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+    	if (ARE_IMAGES_FOUND) {
+			ARE_IMAGES_LOADED = true;
+		}
 	}
     
     public static List<Tube> createTubePair(int gameWidth, int gameHeight, Random random) {
@@ -103,7 +108,7 @@ public class Tube extends AbstractGameObject {
 
         updateHitBox();
         
-        if (showImage && !IS_IMAGES_FOUND) {
+        if (showImage && !ARE_IMAGES_FOUND) {
 			showImage = false;
 		}
 

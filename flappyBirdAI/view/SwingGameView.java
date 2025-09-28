@@ -132,11 +132,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		// Richiedere il focus per input quando la finestra viene mostrata
 		addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowOpened(WindowEvent e) {
-				requestFocusInWindow();
-			}
-			
+			// Chiamato quando la finestra diventa visibile (prima apertura, click, primo piano)
 			@Override
 			public void windowActivated(WindowEvent e) {
 				requestFocusInWindow();
