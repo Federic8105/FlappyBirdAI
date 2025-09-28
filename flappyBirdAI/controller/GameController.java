@@ -202,9 +202,8 @@ public final class GameController {
                 } else {
                     currTube.updateXY(dt);
                     
-                    if (!currTube.isSuperior() && lastGameHeight != (gameHeight = getGameHeight())) {
-        				currTube.updateHeight(gameHeight);
-        				lastGameHeight = gameHeight;
+                    if (lastGameHeight != (gameHeight = getGameHeight())) {
+        				//TODO ricrea tubi esistenti con nuova altezza
         			}
                 }
             }
