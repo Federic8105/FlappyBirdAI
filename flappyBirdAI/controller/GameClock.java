@@ -78,7 +78,8 @@ public final class GameClock {
         double dt = (now - lastTime) / 1e9 * dtMultiplier;
         lastTime = now;
         
-        return dt;
+        // Limitare il dt massimo a 1/30 secondi per evitare salti di tempo anomali
+        return Math.min(dt, 1.0/30.0);
     }
 
     // Ottenere il tempo totale di gioco in millisecondi

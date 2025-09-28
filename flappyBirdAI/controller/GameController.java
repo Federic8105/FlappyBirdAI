@@ -28,7 +28,8 @@ import java.awt.Rectangle;
 
 public final class GameController {
 	
-	private static final int MAX_FPS = 60;
+	private static final int MAX_FPS = 90;
+	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
 	private static final int PAUSE_SLEEP_MS = 100;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
@@ -51,9 +52,7 @@ public final class GameController {
     // Game Clock
     private final GameClock gameClock = new GameClock();
     
-    //TODO
-    private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
-    private int lastGameHeight = -1;
+    private int lastGameHeight;
     private BirdBrain bestBirdBrain;
 
 	public GameController(GameView gameView) throws NullPointerException {
@@ -76,8 +75,8 @@ public final class GameController {
 		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
 		
 		int gameHeight;
-		List<Rectangle> vTubeHitBox;
 		double dt;
+		List<Rectangle> vTubeHitBox;
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
 		
 		lastGameHeight = getGameHeight();
@@ -90,6 +89,8 @@ public final class GameController {
 		gameClock.setLastTimeNow();
 
 		while (gameStats.nBirds > 0) {
+			//TODO
+			long frameStartTime = System.nanoTime();
 			
 			if (!gameClock.isGameRunning()) {
 				
@@ -143,13 +144,30 @@ public final class GameController {
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
-
-			try {
-				Thread.sleep(sleepMs);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+            
+            //TODO
+            long frameEnd = System.nanoTime();
+            long frameDuration = frameEnd - frameStartTime;
+            long sleepTime = TARGET_FRAME_TIME_NS - frameDuration;
+            
+            //TODO
+            if (sleepTime > 0) {
+				try {
+					
+					long sleepTimeMs = sleepTime / 1_000_000L;
+					int sleepTimeNs = (int) (sleepTime % 1_000_000L);
+					
+					if (sleepTimeMs > 0 || sleepTimeNs > 0) {
+						Thread.sleep(sleepTimeMs, sleepTimeNs);
+					} else {
+						// Yield per frame troppo lunghi
+						Thread.yield();
+					}
+					
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
 			}
-
         }
 
 		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
@@ -420,9 +438,7 @@ public final class GameController {
         }
         
         // Forzare l'aggiornamento del display per feedback visivo istantaneo
-        if (gameView != null) {
-            gameView.repaintGame();
-        }
+        gameView.repaintGame();
     }
     
 }
