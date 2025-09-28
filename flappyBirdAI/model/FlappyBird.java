@@ -16,6 +16,8 @@ public class FlappyBird extends AbstractGameObject {
 	private static final int NUM_IMAGES = 4;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/FB";
+	protected static boolean ARE_IMAGES_FOUND = false;
+	protected static boolean ARE_IMAGES_LOADED = false;
 	
 	public static final int WIDTH = 60;
 	public static final int HEIGHT = 45;

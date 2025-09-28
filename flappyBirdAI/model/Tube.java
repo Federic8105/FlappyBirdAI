@@ -19,6 +19,8 @@ public class Tube extends AbstractGameObject {
 	private static final int NUM_IMAGES = 2;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/TUBE";
+	protected static boolean ARE_IMAGES_FOUND = false;
+	protected static boolean ARE_IMAGES_LOADED = false;
 	
 	public static final int DIST_X_BETWEEN_TUBES = 750;
 	public static final int DIST_Y_BETWEEN_TUBES = 180;
@@ -95,7 +97,8 @@ public class Tube extends AbstractGameObject {
     private final int id;
     private final double vx = 250;
     private final boolean isSuperior;
-    private final Image img;
+    
+    private Image img;
 
     private Tube(int x0, int y0, int height, boolean isSuperior) {
 		this.isSuperior = isSuperior;
@@ -121,6 +124,16 @@ public class Tube extends AbstractGameObject {
 			img = null;
         }
     }
+    
+    public void updateHeight(int gameHeight) {
+		h += gameHeight - (y + h);
+		updateHitBox();
+		
+		if (showImage) {
+			// Ridimensiona solo immagine caricata usata dal Tube in base a w e h
+			img = V_IMAGES[imageIndex].getScaledInstance(w, h, Image.SCALE_SMOOTH);
+		}
+	}
     
     public boolean isSuperior() {
 		return isSuperior;

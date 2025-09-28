@@ -53,6 +53,7 @@ public final class GameController {
     
     //TODO
     private final int sleepMs = Math.round(1000 / (float) MAX_FPS);
+    private int lastGameHeight = -1;
     private BirdBrain bestBirdBrain;
 
 	public GameController(GameView gameView) throws NullPointerException {
@@ -77,6 +78,8 @@ public final class GameController {
 		List<Rectangle> vTubeHitBox;
 		double dt;
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
+		
+		lastGameHeight = getGameHeight();
 		
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
@@ -153,6 +156,7 @@ public final class GameController {
 	}
 	
 	private void updateGameObjects(double dt, List<Rectangle> tubeHitBoxes, Tube firstTopTube) {
+		int gameHeight;
 		
         for (GameObject obj : new ArrayList<>(vGameObj)) {
         	
@@ -197,6 +201,11 @@ public final class GameController {
                     currTube.isAlive = false;
                 } else {
                     currTube.updateXY(dt);
+                    
+                    if (!currTube.isSuperior() && lastGameHeight != (gameHeight = getGameHeight())) {
+        				currTube.updateHeight(gameHeight);
+        				lastGameHeight = gameHeight;
+        			}
                 }
             }
         }
