@@ -75,6 +75,7 @@ public final class GameController {
 	public void startGame() throws NullPointerException, RuntimeException {
 		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
 		
+		int gameHeight;
 		List<Rectangle> vTubeHitBox;
 		double dt;
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
@@ -106,6 +107,13 @@ public final class GameController {
 
 			// Calcolo del Tempo trascorso in Secondi tra Frames
 			dt = gameClock.getDeltaTime();
+			
+			// Controllo se l'Altezza della Finestra di Gioco è Cambiata
+			if (lastGameHeight != (gameHeight = getGameHeight())) {
+				// Ricreare tutti i Tube con la Nuova Altezza
+				recreateTubes();
+				lastGameHeight = gameHeight;
+			}
 			
 			// Ottenere Primo Tube Superiore a Destra
 			Tube firstTopTube = getFirstTopTube(getRandomBird());
@@ -155,8 +163,21 @@ public final class GameController {
 		}
 	}
 	
+	private void recreateTubes() {
+		List<Tube> newTubes = new ArrayList<>();
+		
+		for (AbstractGameObject obj : vGameObj) {
+			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
+				newTubes.addAll(Tube.createTubePair(currTube.x, getGameHeight(), rand));
+			}
+		}
+		
+		// Rimuovere tutti i Tube esistenti e aggiungere i nuovi Tube
+		vGameObj.removeIf(obj -> obj instanceof Tube);
+		vGameObj.addAll(newTubes);
+	}
+	
 	private void updateGameObjects(double dt, List<Rectangle> tubeHitBoxes, Tube firstTopTube) {
-		int gameHeight;
 		
         for (GameObject obj : new ArrayList<>(vGameObj)) {
         	
@@ -201,10 +222,6 @@ public final class GameController {
                     currTube.isAlive = false;
                 } else {
                     currTube.updateXY(dt);
-                    
-                    if (lastGameHeight != (gameHeight = getGameHeight())) {
-        				//TODO ricrea tubi esistenti con nuova altezza
-        			}
                 }
             }
         }
@@ -253,7 +270,7 @@ public final class GameController {
             }
         }
 
-		if (lastTube != null && lastTube.x + Tube.WIDTH <= gameView.getGameWidth() - Tube.DIST_X_BETWEEN_TUBES) {
+		if (lastTube != null && lastTube.x + Tube.WIDTH <= getGameWidth() - Tube.DIST_X_BETWEEN_TUBES) {
 			newTubePair();
 		} else if (lastTube == null) {
 			newTubePair();
@@ -261,7 +278,7 @@ public final class GameController {
 	}
 	
 	private void newTubePair() {
-		List<Tube> newTubePair = Tube.createTubePair(gameView.getGameWidth(), getGameHeight(), rand);
+		List<Tube> newTubePair = Tube.createTubePair(getGameWidth(), getGameHeight(), rand);
 	    vGameObj.addAll(newTubePair);
 	}
 	

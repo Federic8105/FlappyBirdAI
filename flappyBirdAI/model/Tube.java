@@ -29,8 +29,6 @@ public class Tube extends AbstractGameObject {
     // Percentuale di quanto si può spostare il buco verso l'alto o verso il basso rispetto al centro dello schermo
     private static final double HOLE_OFFSET_RATIO = 0.3;
     
-    private static int lastID = 0;
-    
     public static void loadImages() {
     	if (ARE_IMAGES_LOADED) {
     		return;
@@ -51,7 +49,7 @@ public class Tube extends AbstractGameObject {
 		}
 	}
     
-    public static List<Tube> createTubePair(int gameWidth, int gameHeight, Random random) {
+    public static List<Tube> createTubePair(int x0, int gameHeight, Random random) {
         int maxHoleOffset = calcMaxHoleOffset(gameHeight);
         int tubeHoleOffset = random.nextInt(-maxHoleOffset, maxHoleOffset + 1);
         
@@ -61,10 +59,10 @@ public class Tube extends AbstractGameObject {
         List<Tube> tubePair = new ArrayList<>(2);
         
         // Tubo superiore
-        tubePair.add(new Tube(gameWidth, 0, upperTubeHeight, true));
+        tubePair.add(new Tube(x0, 0, upperTubeHeight, true));
         
         // Tubo inferiore
-        tubePair.add(new Tube(gameWidth, upperTubeHeight + DIST_Y_BETWEEN_TUBES, gameHeight - upperTubeHeight - DIST_Y_BETWEEN_TUBES, false));
+        tubePair.add(new Tube(x0, upperTubeHeight + DIST_Y_BETWEEN_TUBES, gameHeight - upperTubeHeight - DIST_Y_BETWEEN_TUBES, false));
         
         return tubePair;
     }
@@ -94,15 +92,12 @@ public class Tube extends AbstractGameObject {
         return Math.min(maxOffsetByPercentage, maxOffsetByBounds);
     }
 
-    private final int id;
     private final double vx = 250;
     private final boolean isSuperior;
     private final Image img;
 
     private Tube(int x0, int y0, int height, boolean isSuperior) {
 		this.isSuperior = isSuperior;
-        this.id = Tube.lastID;
-        ++Tube.lastID;
         x = x0;
         y = y0;
 		w = Tube.WIDTH;
@@ -122,6 +117,17 @@ public class Tube extends AbstractGameObject {
         } else {
 			img = null;
         }
+    }
+    
+    public boolean isItsOppositeTube(Tube otherTube) throws NullPointerException {
+    	Objects.requireNonNull(otherTube, "otherTube Cannot be Null");
+    	
+		// Due tubi sono opposti se hanno la stessa x ma uno è superiore e l'altro inferiore e sono vivi
+		if (!isAlive || !otherTube.isAlive) {
+			return false;
+		}
+		
+		return x == otherTube.x && isSuperior() != otherTube.isSuperior();
     }
     
     public boolean isSuperior() {
@@ -150,11 +156,11 @@ public class Tube extends AbstractGameObject {
         }
     }
 	
-	 @Override
+	@Override
 	public int hashCode() {
-		return Objects.hash(id);
+		return Objects.hash(x, isSuperior, isAlive);
 	}
-
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) {
@@ -168,7 +174,9 @@ public class Tube extends AbstractGameObject {
 		}
 		
 		Tube other = (Tube) obj;
-		return id == other.id;
+		return x == other.x
+				&& isSuperior == other.isSuperior
+				&& isAlive == other.isAlive;
 	}
 	
 	@Override
@@ -178,7 +186,7 @@ public class Tube extends AbstractGameObject {
 	    }
 		
 		return "Tube --> " + String.join(" - ",
-	        "ID: " + id,
+	        "Sup: " + isSuperior(),
 	        "X: " + x,
 	        "Y: " + y,
 	        "W: " + w,
