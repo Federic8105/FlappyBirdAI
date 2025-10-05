@@ -44,7 +44,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
     
     // Panel Minimum Dimensions Constants
-    private static final int MIN_STATS_PANEL_WIDTH = 950;
+    private static final int MIN_STATS_PANEL_WIDTH = 1000;
     private static final int MIN_STATS_PANEL_HEIGHT = 40;
     private static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
     private static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
@@ -485,7 +485,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		leftStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
 		
 		// FPS Label
-        lFPS = createStatsLabel("FPS: 0");
+        lFPS = createStatsLabel("FPS: 0/" + GameClock.MAX_FPS);
         
         // Current Life Time Label
         lCurrLifeTime = createStatsLabel("LT: 0,00s");
@@ -605,7 +605,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 	
 	private void updateStatsLabels(GameStats stats) {
-		lFPS.setText("FPS: " + stats.fps);
+		lFPS.setText("FPS: " + stats.fps + "/" + GameClock.MAX_FPS);
         
         lCurrLifeTime.setText("LT: " + GameClock.roundAndFormatTwoDecimals(stats.currLifeTime) + "s");
 		

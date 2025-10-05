@@ -145,11 +145,11 @@ public final class GameController {
 			checkNewTube();
 			deleteDeadObjects();
 			
-			// Aggiornare Statistica FPS
-			gameStats.fps = gameClock.getCurrentFPS();
-			//gameStats.fps = gameClock.getEMAFPS();
-			//gameStats.fps = gameClock.getAvgFPS();
+			//TODO ordine corretto?
 			sleepTime = gameClock.setFrameEndTime();
+			
+			// Aggiornare Statistica FPS
+			gameStats.fps = gameClock.getEMAFPS();
 			
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)

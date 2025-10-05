@@ -14,14 +14,14 @@ public final class GameClock {
     private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");
     
     public static final int PAUSE_SLEEP_MS = 100;
-  	private static final int MAX_FPS = 60;
+  	public static final int MAX_FPS = 60;
   	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
   	// Numero di frame da considerare per la media mobile
     private static final int FPS_SAMPLE_SIZE = 30;
     // Fattore di smoothing per la media pesata esponenziale (EMA)
     // Valori più alti danno più peso ai valori passati, rendendo la media più "smooth"
     // Valori più bassi danno più peso ai valori recenti, rendendo la media più reattiva
-    private static final double FPS_SMOOTHING_FACTOR = 0.5;
+    private static final double FPS_SMOOTHING_FACTOR = 0.9;
     
     public static String roundAndFormatTwoDecimals(double value) {
         return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
@@ -30,8 +30,8 @@ public final class GameClock {
     // --- FPS ---
     
     // Coda per memorizzare i tempi dei frame più recenti (in nanosecondi)
-    private final Deque<Long> frameTimesNs = new ArrayDeque<>(FPS_SAMPLE_SIZE);
-    private long frameStartTime, frameEndTime;
+    private final Deque<Long> dequeFrameDurationsNs = new ArrayDeque<>(FPS_SAMPLE_SIZE);
+    private long frameStartTime, frameEndTime, lastFrameStartTime;
     private double smoothedFPS = 0;
 
     // --- Delta Time ---
@@ -52,80 +52,85 @@ public final class GameClock {
     
     // --- Metodi privati ---
     
-    private void registerFrameTime(long frameDurationNs) {
-        frameTimesNs.addLast(frameDurationNs);
+    private void registerFrameDuration(long frameDurationNs) {
+        dequeFrameDurationsNs.addLast(frameDurationNs);
         
         // Mantenere solo gli ultimi FPS_SAMPLE_SIZE frame
-        if (frameTimesNs.size() > FPS_SAMPLE_SIZE) {
-            frameTimesNs.removeFirst();
+        if (dequeFrameDurationsNs.size() > FPS_SAMPLE_SIZE) {
+            dequeFrameDurationsNs.removeFirst();
         }
     }
 
     // --- API pubblica ---
     
     public void setFrameStartTime() {
+    	lastFrameStartTime = frameStartTime;
     	frameStartTime = System.nanoTime();
     }
     
     // Ritorna lo sleepTime in ns
     public long setFrameEndTime() {
 		frameEndTime = System.nanoTime();
-		long frameDurationNs = frameEndTime - frameStartTime;
-		registerFrameTime(frameDurationNs);
-        return TARGET_FRAME_TIME_NS - frameDurationNs;
+		// Durata totale del frame con sleep - Differenza tra inizio del frame corrente e inizio del frame precedente
+		long totFrameDurationNs = frameStartTime - lastFrameStartTime;
+		
+		// Registrare il tempo del frame solo se è positivo (non contare il primo frame)
+		if (totFrameDurationNs > 0) {
+			registerFrameDuration(totFrameDurationNs);
+		}
+		
+		// Calcolare il tempo di sleep necessario per mantenere gli FPS target
+        return TARGET_FRAME_TIME_NS - (frameEndTime - frameStartTime);
 	}
     
     // Calcolare gli FPS con media mobile sugli ultimi frame
     public int getAvgFPS() {
-        if (frameTimesNs.isEmpty()) {
+        if (dequeFrameDurationsNs.isEmpty()) {
             return 0;
         }
         
-        long totalFrameTime = 0;
-        for (long frameTime : frameTimesNs) {
-            totalFrameTime += frameTime;
+        long totFrameDurations = 0;
+        for (long frameDuration : dequeFrameDurationsNs) {
+        	totFrameDurations += frameDuration;
         }
         
         // Calcolare il tempo medio per frame in nanosecondi
-        double avgFrameTimeNs = (double) totalFrameTime / frameTimesNs.size();
+        double avgFrameTimeNs = (double) totFrameDurations / dequeFrameDurationsNs.size();
         
         // Convertire in FPS (1 secondo = 1_000_000_000 nanosecondi)   
-        return (avgFrameTimeNs > 0) ? (int) (1_000_000_000.0 / avgFrameTimeNs) : 0;
+        return (int) (1_000_000_000.0 / avgFrameTimeNs);
     }
     
     // Calcolare gli FPS con media pesata esponenziale
     public int getEMAFPS() {
-    	if (frameTimesNs.isEmpty()) {
+    	if (dequeFrameDurationsNs.isEmpty()) {
             return 0;
         }
         
-        long lastFrameTime = frameTimesNs.getLast();
+        long lastFrameDuration = dequeFrameDurationsNs.getLast();
+        double instantFPS = 1_000_000_000.0 / lastFrameDuration;
         
-        if (lastFrameTime > 0) {
-            double instantFPS = 1_000_000_000.0 / lastFrameTime;
-            
-            // Formula EMA: smoothed = smoothed * alpha + instant * (1 - alpha)
-            if (smoothedFPS == 0) {
-            	// Prima inizializzazione
-                smoothedFPS = instantFPS;
-            } else {
-                smoothedFPS = smoothedFPS * FPS_SMOOTHING_FACTOR + instantFPS * (1 - FPS_SMOOTHING_FACTOR);
-            }
-            
-            return (int) smoothedFPS;
+        // Formula EMA: smoothed = smoothed * alpha + instant * (1 - alpha)
+        if (smoothedFPS != 0) {
+        	smoothedFPS = smoothedFPS * FPS_SMOOTHING_FACTOR + instantFPS * (1 - FPS_SMOOTHING_FACTOR);
+        } else {
+        	// Prima inizializzazione
+            smoothedFPS = instantFPS;
         }
         
-        return 0;
+        return (int) smoothedFPS;
     }
    
     // Calcolare gli FPS attuali basati sull'ultimo frame
     public int getCurrentFPS() {    
-         // Calcolare il tempo reale trascorso tra l'inizio di questo frame 
-         // e la fine del frame precedente
-         long frameDurationNs = frameStartTime - frameEndTime;
+         if (dequeFrameDurationsNs.isEmpty()) {
+			return 0;
+         }
+         
+         long lastFrameDuration = dequeFrameDurationsNs.getLast();
          
          // Convertire in FPS (1 secondo = 1_000_000_000 nanosecondi)
-         return (frameDurationNs > 0) ? (int) (1_000_000_000.0 / frameDurationNs) : 0;
+         return (int) (1_000_000_000.0 / lastFrameDuration);
     }
 
     // Avvio Clock
