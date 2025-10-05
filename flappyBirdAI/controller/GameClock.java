@@ -5,33 +5,43 @@
 package flappyBirdAI.controller;
 
 import java.text.DecimalFormat;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public final class GameClock {
 
 	// Usa Locale di Default per il formato decimale
     private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");
     
-    //TODO
     public static final int PAUSE_SLEEP_MS = 100;
-  	private static final int MAX_FPS = 90;
+  	private static final int MAX_FPS = 60;
   	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
+  	// Numero di frame da considerare per la media mobile
+    private static final int FPS_SAMPLE_SIZE = 30;
+    // Fattore di smoothing per la media pesata esponenziale (EMA)
+    // Valori più alti danno più peso ai valori passati, rendendo la media più "smooth"
+    // Valori più bassi danno più peso ai valori recenti, rendendo la media più reattiva
+    private static final double FPS_SMOOTHING_FACTOR = 0.5;
     
     public static String roundAndFormatTwoDecimals(double value) {
         return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
     }
     
-    // --- Calcolo FPS ---
+    // --- FPS ---
     
-    private long frameStartTime;
+    // Coda per memorizzare i tempi dei frame più recenti (in nanosecondi)
+    private final Deque<Long> frameTimesNs = new ArrayDeque<>(FPS_SAMPLE_SIZE);
+    private long frameStartTime, frameEndTime;
+    private double smoothedFPS = 0;
 
-    // --- Delta time ---
+    // --- Delta Time ---
     
     // Ultimo timestamp usato per dt
-    private long lastTime;
+    private long lastUpdateTime;
     // Permette slow-motion o fast-forward
     private double dtMultiplier = 1.0; 
 
-    // --- Cronometro totale ---
+    // --- Cronometro Totale ---
     
     // Tempo accumulato (ms)
     private long totElapsedGameTime = 0; 
@@ -39,6 +49,17 @@ public final class GameClock {
     private boolean isGameRunning = false;
 
     private final StringBuilder chronoBuilder = new StringBuilder(11);
+    
+    // --- Metodi privati ---
+    
+    private void registerFrameTime(long frameDurationNs) {
+        frameTimesNs.addLast(frameDurationNs);
+        
+        // Mantenere solo gli ultimi FPS_SAMPLE_SIZE frame
+        if (frameTimesNs.size() > FPS_SAMPLE_SIZE) {
+            frameTimesNs.removeFirst();
+        }
+    }
 
     // --- API pubblica ---
     
@@ -46,17 +67,66 @@ public final class GameClock {
     	frameStartTime = System.nanoTime();
     }
     
-    // Ritorna lo sleepTime
-   public long setFrameEndTime() {
-		long frameEndTime = System.nanoTime();
-		long frameDuration = frameEndTime - frameStartTime;
-        return TARGET_FRAME_TIME_NS - frameDuration;
+    // Ritorna lo sleepTime in ns
+    public long setFrameEndTime() {
+		frameEndTime = System.nanoTime();
+		long frameDurationNs = frameEndTime - frameStartTime;
+		registerFrameTime(frameDurationNs);
+        return TARGET_FRAME_TIME_NS - frameDurationNs;
 	}
+    
+    // Calcolare gli FPS con media mobile sugli ultimi frame
+    public int getAvgFPS() {
+        if (frameTimesNs.isEmpty()) {
+            return 0;
+        }
+        
+        long totalFrameTime = 0;
+        for (long frameTime : frameTimesNs) {
+            totalFrameTime += frameTime;
+        }
+        
+        // Calcolare il tempo medio per frame in nanosecondi
+        double avgFrameTimeNs = (double) totalFrameTime / frameTimesNs.size();
+        
+        // Convertire in FPS (1 secondo = 1_000_000_000 nanosecondi)   
+        return (avgFrameTimeNs > 0) ? (int) (1_000_000_000.0 / avgFrameTimeNs) : 0;
+    }
+    
+    // Calcolare gli FPS con media pesata esponenziale
+    public int getEMAFPS() {
+    	if (frameTimesNs.isEmpty()) {
+            return 0;
+        }
+        
+        long lastFrameTime = frameTimesNs.getLast();
+        
+        if (lastFrameTime > 0) {
+            double instantFPS = 1_000_000_000.0 / lastFrameTime;
+            
+            // Formula EMA: smoothed = smoothed * alpha + instant * (1 - alpha)
+            if (smoothedFPS == 0) {
+            	// Prima inizializzazione
+                smoothedFPS = instantFPS;
+            } else {
+                smoothedFPS = smoothedFPS * FPS_SMOOTHING_FACTOR + instantFPS * (1 - FPS_SMOOTHING_FACTOR);
+            }
+            
+            return (int) smoothedFPS;
+        }
+        
+        return 0;
+    }
    
-   // Calcolare gli FPS attuali
-   public int getCurrentFPS(double dt) {
-		return (int) (1 / dt * dtMultiplier);
-   }
+    // Calcolare gli FPS attuali basati sull'ultimo frame
+    public int getCurrentFPS() {    
+         // Calcolare il tempo reale trascorso tra l'inizio di questo frame 
+         // e la fine del frame precedente
+         long frameDurationNs = frameStartTime - frameEndTime;
+         
+         // Convertire in FPS (1 secondo = 1_000_000_000 nanosecondi)
+         return (frameDurationNs > 0) ? (int) (1_000_000_000.0 / frameDurationNs) : 0;
+    }
 
     // Avvio Clock
     public void start() {
@@ -89,7 +159,7 @@ public final class GameClock {
         // Riavviare il conteggio del tempo della sessione
         sessionStartTime = System.currentTimeMillis();
         // Resettare il lastDt per evitare un salto di tempo anomalo quando il gioco riprende
-        lastTime = System.nanoTime();
+        lastUpdateTime = System.nanoTime();
         isGameRunning = true;
     }
 
@@ -100,11 +170,11 @@ public final class GameClock {
         }
 
         long now = System.nanoTime();
-        double dt = (now - lastTime) / 1e9 * dtMultiplier;
-        lastTime = now;
+        double realDt = (now - lastUpdateTime) / 1e9;
+        lastUpdateTime = now;
         
         // Limitare il dt massimo a 1/30 secondi per evitare salti di tempo anomali
-        return Math.min(dt, 1.0/30.0);
+        return Math.min(realDt, 1.0/30.0) * dtMultiplier;
     }
 
     // Ottenere il tempo totale di gioco in millisecondi
@@ -155,7 +225,7 @@ public final class GameClock {
     public void reset() {
     	totElapsedGameTime = 0;
         sessionStartTime = 0;
-        lastTime = 0;
+        lastUpdateTime = 0;
     }
 
     // --- Getter/Setter ---
@@ -167,8 +237,8 @@ public final class GameClock {
         dtMultiplier = multiplier;
     }
     
-    public void setLastTimeNow() {
-		lastTime = System.nanoTime();
+    public void setLastUpdateTimeNow() {
+		lastUpdateTime = System.nanoTime();
 	}
 
 }

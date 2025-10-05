@@ -295,7 +295,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    
 	    // Disegnare overlay scuro semi-trasparente
 	    g2d.setColor(PAUSE_OVERLAY_COLOR);
-	    g2d.fillRect(0, 0, width, height);
+	    g2d.fillRect(0, -1, width, height + 1);
 	    
 	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
 	    int symbolSize = Math.min(width, height) / 6;
@@ -377,7 +377,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		initControlsUI();
 		
-		add(controlsPanel, BorderLayout.SOUTH);
+		add(controlsPanel, BorderLayout.CENTER);
 	}
 	
 	private void initImportExportUI(int importExportPanelWidth) {

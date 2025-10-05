@@ -43,6 +43,10 @@ public final class GameController {
     
     // Game Engine Variables
     
+    // Oggetto di Lock (usato solo per Lock) per Gestire la Pausa in Modo Thread-Safe
+    // Usato come Monitor per wait() e notify() per la pausa del gioco
+    private final Object pauseLock = new Object();
+    
     // Game Statistics
     private final GameStats gameStats = new GameStats();
     
@@ -72,6 +76,7 @@ public final class GameController {
 		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
 		
 		int gameHeight;
+		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
 		List<Rectangle> vTubeHitBox;
@@ -84,27 +89,32 @@ public final class GameController {
 			gameClock.startSession();
 		}
 		
-		gameClock.setLastTimeNow();
+		gameClock.setLastUpdateTimeNow();
 
 		while (gameStats.nBirds > 0) {
-			//TODO
 			gameClock.setFrameStartTime();
 			
 			if (!gameClock.isGameRunning()) {
 				
-				// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
-	            try {
-	                Thread.sleep(GameClock.PAUSE_SLEEP_MS);
-	            } catch (InterruptedException e) {
-	                throw new RuntimeException(e);
-	            }
+				synchronized (pauseLock) {
+				
+					// Aggiornare la vista per mostrare lo stato di pausa e animazioni
+		            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
+					
+					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
+		            try {
+		            	// Rilascia Momentaneamente il Lock per Permettere la Notifica di Ripresa
+		            	// Thread si Sospende Qui Fino a Notifica o Timeout (dopo sleep di PAUSE_SLEEP_MS)
+		            	pauseLock.wait(GameClock.PAUSE_SLEEP_MS);
+		            } catch (InterruptedException e) {
+		                throw new RuntimeException(e);
+		            }
+				}
 	            
-	            // Aggiornare la vista per mostrare lo stato di pausa e animazioni
-	            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
 	            continue;
 	        }
 
-			// Calcolo del Tempo trascorso in Secondi tra Frames
+			// Calcolo del Tempo trascorso in Secondi tra Frames (Delta Time del Gioco - Influenzato dal Dt Multiplier)
 			dt = gameClock.getDeltaTime();
 			
 			// Controllo se l'Altezza della Finestra di Gioco è Cambiata
@@ -136,30 +146,22 @@ public final class GameController {
 			deleteDeadObjects();
 			
 			// Aggiornare Statistica FPS
-			//TODO
-			gameStats.fps = gameClock.getCurrentFPS(dt);
+			gameStats.fps = gameClock.getCurrentFPS();
+			//gameStats.fps = gameClock.getEMAFPS();
+			//gameStats.fps = gameClock.getAvgFPS();
+			sleepTime = gameClock.setFrameEndTime();
 			
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
             
-            //TODO
-            sleepTime = gameClock.setFrameEndTime();
-            
-            //TODO
+            // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
+            	long sleepTimeMs = sleepTime / 1_000_000L;
+				int sleepTimeNs = (int) (sleepTime % 1_000_000L);
+				
 				try {
-					
-					long sleepTimeMs = sleepTime / 1_000_000L;
-					int sleepTimeNs = (int) (sleepTime % 1_000_000L);
-					
-					if (sleepTimeMs > 0 || sleepTimeNs > 0) {
-						Thread.sleep(sleepTimeMs, sleepTimeNs);
-					} else {
-						// Yield per frame troppo lunghi
-						Thread.yield();
-					}
-					
+					Thread.sleep(sleepTimeMs, sleepTimeNs);
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
@@ -421,12 +423,16 @@ public final class GameController {
 		gameClock.setDtMultiplier(multiplier);
 	}
     
-    //TODO sbloccare subito sleep di pausa
     public void togglePause() {
         if (gameClock.isGameRunning()) {
         	gameClock.pause();
         } else {
         	gameClock.resume();
+        	
+        	// Sbloccare subito il thread di gioco se in attesa senza aspettare il prossimo ciclo di sleep
+        	synchronized (pauseLock) {
+				pauseLock.notifyAll();
+        	}
         }
         
         // Forzare l'aggiornamento del display per feedback visivo istantaneo

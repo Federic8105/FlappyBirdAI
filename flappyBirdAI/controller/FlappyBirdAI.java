@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 //TODO: opzioni di autosave con BLT e nMaxTubePassed, javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, calcolo fps migliore
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
 public class FlappyBirdAI {
 
