@@ -11,9 +11,18 @@ public final class GameClock {
 	// Usa Locale di Default per il formato decimale
     private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");
     
+    //TODO
+    public static final int PAUSE_SLEEP_MS = 100;
+  	private static final int MAX_FPS = 90;
+  	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
+    
     public static String roundAndFormatTwoDecimals(double value) {
         return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
     }
+    
+    // --- Calcolo FPS ---
+    
+    private long frameStartTime;
 
     // --- Delta time ---
     
@@ -32,6 +41,22 @@ public final class GameClock {
     private final StringBuilder chronoBuilder = new StringBuilder(11);
 
     // --- API pubblica ---
+    
+    public void setFrameStartTime() {
+    	frameStartTime = System.nanoTime();
+    }
+    
+    // Ritorna lo sleepTime
+   public long setFrameEndTime() {
+		long frameEndTime = System.nanoTime();
+		long frameDuration = frameEndTime - frameStartTime;
+        return TARGET_FRAME_TIME_NS - frameDuration;
+	}
+   
+   // Calcolare gli FPS attuali
+   public int getCurrentFPS(double dt) {
+		return (int) (1 / dt * dtMultiplier);
+   }
 
     // Avvio Clock
     public void start() {
@@ -136,10 +161,6 @@ public final class GameClock {
     // --- Getter/Setter ---
     public boolean isGameRunning() {
         return isGameRunning;
-    }
-
-    public double getDtMultiplier() {
-        return dtMultiplier;
     }
     
     public void setDtMultiplier(double multiplier) {

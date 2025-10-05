@@ -28,9 +28,6 @@ import java.awt.Rectangle;
 
 public final class GameController {
 	
-	private static final int MAX_FPS = 90;
-	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
-	private static final int PAUSE_SLEEP_MS = 100;
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
@@ -76,6 +73,7 @@ public final class GameController {
 		
 		int gameHeight;
 		double dt;
+		long sleepTime;
 		List<Rectangle> vTubeHitBox;
 		Tube previousFirstTopTube = getFirstTopTube(randBird);
 		
@@ -90,13 +88,13 @@ public final class GameController {
 
 		while (gameStats.nBirds > 0) {
 			//TODO
-			long frameStartTime = System.nanoTime();
+			gameClock.setFrameStartTime();
 			
 			if (!gameClock.isGameRunning()) {
 				
 				// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 	            try {
-	                Thread.sleep(PAUSE_SLEEP_MS);
+	                Thread.sleep(GameClock.PAUSE_SLEEP_MS);
 	            } catch (InterruptedException e) {
 	                throw new RuntimeException(e);
 	            }
@@ -137,18 +135,16 @@ public final class GameController {
 			checkNewTube();
 			deleteDeadObjects();
 			
-			// Aggiornare Statistiche e UI
-			gameStats.fps = updateFPS(dt);
+			// Aggiornare Statistica FPS
+			//TODO
+			gameStats.fps = gameClock.getCurrentFPS(dt);
 			
-			//TODO non aggiorna timer a fine gen
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
             
             //TODO
-            long frameEnd = System.nanoTime();
-            long frameDuration = frameEnd - frameStartTime;
-            long sleepTime = TARGET_FRAME_TIME_NS - frameDuration;
+            sleepTime = gameClock.setFrameEndTime();
             
             //TODO
             if (sleepTime > 0) {
@@ -244,10 +240,6 @@ public final class GameController {
             }
         }
     }
-	
-	private int updateFPS(double dt) {
-		return (int) (1 / dt * gameClock.getDtMultiplier());
-	}
 	
 	private void deleteDeadObjects() {
         vGameObj.removeIf(obj -> !obj.isAlive);
