@@ -104,7 +104,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private JSlider velocitySlider;
 	
 	// UI Components - Import/Export
-	private JButton bSaveBrain, bLoadBrain, bToggleAutoSave;
+	private JButton bSaveBrain, bLoadBrain;
 	private JCheckBox cbAutoSaveOnGen, cbAutoSaveOnBLT, cbAutoSaveOnMaxTubePassed;
 	private JSpinner autoSaveGenThresholdSpinner, autoSaveBLThresholdSpinner, autoSaveMaxTubePassedThresholdSpinner;
 	
@@ -468,13 +468,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		importExportPanel.add(Box.createVerticalStrut(15));
 		
-		// Bottone Toggle Auto-Save
-		bToggleAutoSave = createImportExportButton("Disable Auto-Save", Color.ORANGE, componentsWidth);
-		bToggleAutoSave.addActionListener(new ToggleAutoSaveListener(this));
-		importExportPanel.add(bToggleAutoSave);
-		
-		importExportPanel.add(Box.createVerticalStrut(20));
-		
 		// Bottone Carica Cervello
 		bLoadBrain = createImportExportButton("Load Brain From File", Color.CYAN, componentsWidth);
 		bLoadBrain.addActionListener(new LoadBrainListener(this));
@@ -624,16 +617,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		gameController.setDtMultiplier(velocitySlider.getValue());
 	}
 	
-	void updateAutoSaveButton() {
-		if (gameController.isAutoSaveEnabled()) {
-			bToggleAutoSave.setText("Disable Auto-Save");
-			bToggleAutoSave.setBackground(Color.ORANGE);
-		} else {
-			bToggleAutoSave.setText("Enable Auto-Save");
-			bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
-		}
-	}
-	
 	// GameView Interface Methods
 	
 	@Override
@@ -682,10 +665,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);
         }
         
-        if (stats.isAutoSaveEnabled != lastAutoSaveStatus) {
-        	lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled ? "ON" : "OFF"));
-            lAutoSave.setBackground(stats.isAutoSaveEnabled ? Color.GREEN : Color.GRAY);
-            lastAutoSaveStatus = stats.isAutoSaveEnabled;
+        if (stats.isAutoSaveEnabled() != lastAutoSaveStatus) {
+        	lAutoSave.setText("Auto-Save: " + (stats.isAutoSaveEnabled() ? "ON" : "OFF"));
+            lAutoSave.setBackground(stats.isAutoSaveEnabled() ? Color.GREEN : Color.GRAY);
+            lastAutoSaveStatus = stats.isAutoSaveEnabled();
 		}
 	}
 	
@@ -1009,19 +992,5 @@ class LoadBrainListener implements ActionListener {
                 }
 			}
 		}
-	}
-}
-
-class ToggleAutoSaveListener implements ActionListener {
-	private final SwingGameView parentView;
-	
-	public ToggleAutoSaveListener(SwingGameView parentView) throws NullPointerException {
-		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
-	}
-	
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		parentView.gameController.toggleAutoSave();
-		parentView.updateAutoSaveButton();
 	}
 }

@@ -13,7 +13,6 @@ public final class GameStats {
 	public static final int DEFAULT_AUTOSAVE_BLT_THRESHOLD = 30;
 	public static final int DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD = 10;
 
-	public static final boolean DEFAULT_IS_AUTOSAVE_ENABLED = true;
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED = true;
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED = false;
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED = false;
@@ -27,17 +26,21 @@ public final class GameStats {
     // in secondi
     public double currLifeTime = 0, bestLifeTime = 0;
     
-    private int autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD, autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD, autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
+    private int autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD;
+    private int autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
+    private int autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
     
     // Stati di autosave
-    //TODO gestione isAutoSaveEnabled per disabilitare tutte le altre
-    public boolean isAutoSaveEnabled = DEFAULT_IS_AUTOSAVE_ENABLED;
     public boolean isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
     public boolean isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
     public boolean isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;
     
     public boolean isFirstGen() {
 		return nGen == 1;
+	}
+    
+    public boolean isAutoSaveEnabled() {
+		return isAutoSaveOnGenEnabled || isAutoSaveOnBLTEnabled || isAutoSaveOnMaxTubePassedEnabled;
 	}
     
     public int getAutoSaveGenThreshold() {
@@ -87,7 +90,6 @@ public final class GameStats {
     	autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD;
     	autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
     	autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
-    	isAutoSaveEnabled = DEFAULT_IS_AUTOSAVE_ENABLED;
     	isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
     	isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
     	isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;

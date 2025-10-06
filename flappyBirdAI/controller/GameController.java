@@ -299,7 +299,7 @@ public final class GameController {
     }
 	
 	private void checkAndAutoSave() throws IOException {
-		if (!gameStats.isAutoSaveEnabled || bestBirdBrain == null) {
+		if (bestBirdBrain == null) {
     		return;
     	}
 		
@@ -415,11 +415,7 @@ public final class GameController {
     }
     
     public boolean isAutoSaveEnabled() {
-        return gameStats.isAutoSaveEnabled;
-    }
-    
-    public void toggleAutoSave() {
-    	gameStats.isAutoSaveEnabled = !gameStats.isAutoSaveEnabled;
+        return gameStats.isAutoSaveEnabled();
     }
     
     public void setAutoSaveOnGenEnabled(boolean enabled) {
