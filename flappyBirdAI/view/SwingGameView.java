@@ -105,8 +105,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	// UI Components - Import/Export
 	private JButton bSaveBrain, bLoadBrain, bToggleAutoSave;
-	private JSpinner autoSaveThresholdSpinner;
-	private JLabel lAutoSaveThreshold;
+	private JCheckBox cbAutoSaveOnGen, cbAutoSaveOnBLT, cbAutoSaveOnMaxTubePassed;
+	private JSpinner autoSaveGenThresholdSpinner, autoSaveBLThresholdSpinner, autoSaveMaxTubePassedThresholdSpinner;
 	
 	// UI Components - Chronometer
 	private JLabel lTime, lTimeValue;
@@ -266,7 +266,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                 }
                 
                 // Disegnare overlay di pausa se il gioco è in pausa
-                if (gameController != null && !gameController.isGameRunning()) {
+                if (!gameController.isGameRunning()) {
                     drawPauseOverlay(g2d);
                 }
             }
@@ -276,7 +276,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Click sinistro per pausa/riprendi
-                if (e.getButton() == MouseEvent.BUTTON1 && gameController != null) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
                     gameController.togglePause();
                 }
             }
@@ -393,31 +393,78 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		importExportPanel.add(Box.createVerticalStrut(20));
 		
-		// Sezione Auto-Save Threshold
-		JPanel thresholdPanel = new JPanel();
-		thresholdPanel.setLayout(new BoxLayout(thresholdPanel, BoxLayout.Y_AXIS));
-		thresholdPanel.setBackground(Color.LIGHT_GRAY);
-		thresholdPanel.setMaximumSize(new Dimension(componentsWidth, 80));
+		// Pannello Auto-Save Threshold
+		JPanel autoSaveThresholdPanel = new JPanel();
+		autoSaveThresholdPanel.setLayout(new BoxLayout(autoSaveThresholdPanel, BoxLayout.Y_AXIS));
+		autoSaveThresholdPanel.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
+		autoSaveThresholdPanel.setMaximumSize(new Dimension(componentsWidth, 80));
+		autoSaveThresholdPanel.setBorder(BorderFactory.createTitledBorder(
+		        BorderFactory.createLineBorder(Color.DARK_GRAY, 1),
+		        "Auto-Save Settings",
+		        TitledBorder.CENTER,
+		        TitledBorder.TOP,
+		        new Font("Arial", Font.BOLD, 12)
+		));
 		
-		lAutoSaveThreshold = new JLabel("Auto-Save Threshold (Generations):");
-		lAutoSaveThreshold.setAlignmentX(Component.CENTER_ALIGNMENT);
-		lAutoSaveThreshold.setFont(new Font("Arial", Font.PLAIN, 11));
-		thresholdPanel.add(lAutoSaveThreshold);
+		autoSaveThresholdPanel.add(Box.createVerticalStrut(5));
 		
-		thresholdPanel.add(Box.createVerticalStrut(5));
+		// Auto-Save on Generation
+		cbAutoSaveOnGen = createAutoSaveCheckBox("On Generation", componentsWidth);
+	    cbAutoSaveOnGen.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED);
+	    cbAutoSaveOnGen.addActionListener(_ -> {
+            gameController.setAutoSaveOnGenEnabled(cbAutoSaveOnGen.isSelected());
+            autoSaveGenThresholdSpinner.setEnabled(cbAutoSaveOnGen.isSelected());
+	    });
+	    autoSaveThresholdPanel.add(cbAutoSaveOnGen);
 		
-		autoSaveThresholdSpinner = new ValidatedIntegerSpinner(1, 1000, GameStats.DEFAULT_AUTOSAVE_THRESHOLD).withMaximumSize(100, 25);
-
+		autoSaveGenThresholdSpinner = new ValidatedIntegerSpinner(GameStats.MIN_AUTOSAVE_GEN_THRESHOLD, GameStats.MAX_AUTOSAVE_GEN_THRESHOLD, GameStats.DEFAULT_AUTOSAVE_GEN_THRESHOLD).withMaximumSize(100, 25);
+		autoSaveGenThresholdSpinner.setEnabled(cbAutoSaveOnGen.isSelected());
 		// Impostare il callback per i cambiamenti di valore validi
-		((ValidatedIntegerSpinner) autoSaveThresholdSpinner).setOnValidValueChange(value -> {	
-		    gameController.setAutoSaveThreshold(value);
+		((ValidatedIntegerSpinner) autoSaveGenThresholdSpinner).setOnValidValueChange(value -> {	
+		    gameController.setAutoSaveGenThreshold(value);
 		    // Rimettere il focus alla finestra principale
 		 	requestFocusInWindow();
 		});
 	    
-		thresholdPanel.add(autoSaveThresholdSpinner);
+		autoSaveThresholdPanel.add(autoSaveGenThresholdSpinner);
 		
-		importExportPanel.add(thresholdPanel);
+		// Auto-Save on Best Life Time
+		cbAutoSaveOnBLT = createAutoSaveCheckBox("On Best Life Time (s)", componentsWidth);
+	    cbAutoSaveOnBLT.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED);
+	    cbAutoSaveOnBLT.addActionListener(_ -> {
+			gameController.setAutoSaveOnBLTEnabled(cbAutoSaveOnBLT.isSelected());
+			autoSaveBLThresholdSpinner.setEnabled(cbAutoSaveOnBLT.isSelected());
+	    });
+	    autoSaveThresholdPanel.add(cbAutoSaveOnBLT);
+	    
+	    autoSaveBLThresholdSpinner = new ValidatedIntegerSpinner(GameStats.MIN_AUTOSAVE_BLT_THRESHOLD, GameStats.MAX_AUTOSAVE_BLT_THRESHOLD, GameStats.DEFAULT_AUTOSAVE_BLT_THRESHOLD).withMaximumSize(100, 25);
+	    autoSaveBLThresholdSpinner.setEnabled(cbAutoSaveOnBLT.isSelected());
+	    ((ValidatedIntegerSpinner) autoSaveBLThresholdSpinner).setOnValidValueChange(value -> {
+	    	gameController.setAutoSaveBLTThreshold(value);
+	    	requestFocusInWindow();
+	    });
+	    
+	    autoSaveThresholdPanel.add(autoSaveBLThresholdSpinner);
+	    
+	    // Auto-Save on Max Tubes Passed
+	    cbAutoSaveOnMaxTubePassed = createAutoSaveCheckBox("On Max Tubes Passed", componentsWidth);
+	    cbAutoSaveOnMaxTubePassed.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED);
+	    cbAutoSaveOnMaxTubePassed.addActionListener(_ -> {
+			gameController.setAutoSaveOnMaxTubePassedEnabled(cbAutoSaveOnMaxTubePassed.isSelected());
+			autoSaveMaxTubePassedThresholdSpinner.setEnabled(cbAutoSaveOnMaxTubePassed.isSelected());
+	    });
+	    autoSaveThresholdPanel.add(cbAutoSaveOnMaxTubePassed);
+	    
+	    autoSaveMaxTubePassedThresholdSpinner = new ValidatedIntegerSpinner(GameStats.MIN_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD, GameStats.MAX_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD, GameStats.DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD).withMaximumSize(100, 25);
+	    autoSaveMaxTubePassedThresholdSpinner.setEnabled(cbAutoSaveOnMaxTubePassed.isSelected());
+	    ((ValidatedIntegerSpinner) autoSaveMaxTubePassedThresholdSpinner).setOnValidValueChange(value -> {
+	    	gameController.setAutoSaveMaxTubePassedThreshold(value);
+	    	requestFocusInWindow();
+	    });
+	    
+	    autoSaveThresholdPanel.add(autoSaveMaxTubePassedThresholdSpinner);
+		
+		importExportPanel.add(autoSaveThresholdPanel);
 		
 		importExportPanel.add(Box.createVerticalStrut(15));
 		
@@ -447,6 +494,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         button.setFocusPainted(false);
         return button;
     }
+	
+	private JCheckBox createAutoSaveCheckBox(String text, int width) {
+	    JCheckBox checkBox = new JCheckBox(text);
+	    checkBox.setAlignmentX(Component.CENTER_ALIGNMENT);
+	    checkBox.setMaximumSize(new Dimension(width, 25));
+	    checkBox.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
+	    checkBox.setFont(new Font("Arial", Font.BOLD, 11));
+	    checkBox.setFocusPainted(false);
+	    return checkBox;
+	}
 	
 	private void initChronometerUI() {
 		// Spacing
@@ -564,20 +621,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	void handleVelocitySliderChange() {
-		if (gameController != null) {
-			gameController.setDtMultiplier(velocitySlider.getValue());
-		}
+		gameController.setDtMultiplier(velocitySlider.getValue());
 	}
 	
 	void updateAutoSaveButton() {
-		if (gameController != null) {
-			if (gameController.isAutoSaveEnabled()) {
-				bToggleAutoSave.setText("Disable Auto-Save");
-				bToggleAutoSave.setBackground(Color.ORANGE);
-			} else {
-				bToggleAutoSave.setText("Enable Auto-Save");
-				bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
-			}
+		if (gameController.isAutoSaveEnabled()) {
+			bToggleAutoSave.setText("Disable Auto-Save");
+			bToggleAutoSave.setBackground(Color.ORANGE);
+		} else {
+			bToggleAutoSave.setText("Enable Auto-Save");
+			bToggleAutoSave.setBackground(Color.LIGHT_GRAY);
 		}
 	}
 	
@@ -623,10 +676,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         lNTubePassed.setText("Tubes: " + stats.nTubePassed);
         
-        if (stats.nTubePassed > stats.nMaxTubePassed) {
+        if (stats.nTubePassed > stats.maxTubePassed) {
             lMaxTubePassed.setText("Max Tubes: " + stats.nTubePassed);
         } else {
-            lMaxTubePassed.setText("Max Tubes: " + stats.nMaxTubePassed);
+            lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);
         }
         
         if (stats.isAutoSaveEnabled != lastAutoSaveStatus) {
@@ -637,7 +690,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	private void updateChronometerLabel(GameClock clock) {
-		if (gameController != null && gameController.isGameRunning()) {
+		if (gameController.isGameRunning()) {
 			lTimeValue.setText(clock.getFormattedGameTimeElapsed());
 		}
 	}
@@ -652,9 +705,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             }
             
             autoSaveMessageTimer = new Timer(3000, _ -> {
-                if (gameController != null) {
-                    lAutoSave.setText("Auto-Save: " + (gameController.isAutoSaveEnabled() ? "ON" : "OFF"));
-                }
+            	lAutoSave.setText("Auto-Save: " + (gameController.isAutoSaveEnabled() ? "ON" : "OFF"));
             });
             autoSaveMessageTimer.setRepeats(false);
             autoSaveMessageTimer.start();
@@ -692,7 +743,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	@Override
 	public void keyPressed(KeyEvent e) {
-		if (e.getKeyCode() == KeyEvent.VK_SPACE && gameController != null) {
+		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			gameController.togglePause();
 		}
 	}
@@ -901,7 +952,7 @@ class SaveBrainListener implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (parentView.gameController == null || parentView.gameController.getBestBirdBrain() == null) {
+		if (parentView.gameController.getBestBirdBrain() == null) {
 			JOptionPane.showMessageDialog(parentView, "No Brain Available for Saving!", "Error", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
@@ -909,7 +960,7 @@ class SaveBrainListener implements ActionListener {
 		JFileChooser fileChooser = SwingGameView.createJsonFileChooser();
 		
 		// Usare il template del controller per il nome file di default
-        String defaultFileName = parentView.gameController.generateManualSaveFileName();
+        String defaultFileName = parentView.gameController.createManualSaveFileName();
         
         fileChooser.setSelectedFile(new File(defaultFileName));
 		
@@ -942,10 +993,6 @@ class LoadBrainListener implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (parentView.gameController == null) {
-			return;
-		}
-		
 		JFileChooser fileChooser = SwingGameView.createJsonFileChooser();
 		
 		if (fileChooser.showOpenDialog(parentView) == JFileChooser.APPROVE_OPTION) {
@@ -974,9 +1021,7 @@ class ToggleAutoSaveListener implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (parentView.gameController != null) {
-			parentView.gameController.toggleAutoSave();
-			parentView.updateAutoSaveButton();
-		}
+		parentView.gameController.toggleAutoSave();
+		parentView.updateAutoSaveButton();
 	}
 }

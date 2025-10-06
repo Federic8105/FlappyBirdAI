@@ -31,8 +31,8 @@ public final class GameController {
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
-	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_score_%d_time_%s.json";
-	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_score_%d_time_%s.json";
+	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
+	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
 	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
     private final Random rand = new Random();
@@ -145,7 +145,6 @@ public final class GameController {
 			checkNewTube();
 			deleteDeadObjects();
 			
-			//TODO ordine corretto?
 			sleepTime = gameClock.setFrameEndTime();
 			
 			// Aggiornare Statistica FPS
@@ -168,8 +167,8 @@ public final class GameController {
 			}
         }
 
-		if (gameStats.nTubePassed > gameStats.nMaxTubePassed) {
-			gameStats.nMaxTubePassed = gameStats.nTubePassed;
+		if (gameStats.nTubePassed > gameStats.maxTubePassed) {
+			gameStats.maxTubePassed = gameStats.nTubePassed;
 		}
 		
 		try {
@@ -300,28 +299,50 @@ public final class GameController {
     }
 	
 	private void checkAndAutoSave() throws IOException {
-		if (gameStats.isAutoSaveEnabled && bestBirdBrain != null && gameStats.nGen % gameStats.autoSaveThreshold == 0) {
-			
-        	// Creare la DIR Se Non Esiste
-            try {
-                Files.createDirectories(AUTOSAVE_DIR);
-            } catch (IOException e) {
-            	throw new IOException("Error Creating Autosaves Directory: " + e.getMessage(), e);
-            }
-        	
-            String fileName = generateAutoSaveFileName();
-            Path fullPath = AUTOSAVE_DIR.resolve(fileName);
-            
-            try {
-            	saveBestBrain(fullPath);
-                gameView.showAutoSaveMessage("AUTO-SAVED!");
-            } catch (IOException | NullPointerException e) {
-                gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
-                System.err.println("Error in Automatic Brain Save: " + e.getMessage());
-            }
+		if (!gameStats.isAutoSaveEnabled || bestBirdBrain == null) {
+    		return;
+    	}
+		
+		// Controllo autosave per generazione
+    	if (gameStats.isAutoSaveOnGenEnabled && gameStats.nGen % gameStats.getAutoSaveGenThreshold() == 0) {
+    		createAutoSaveFile();
+    		// Solo un autosave per ciclo di gioco (frame)
+    		return;
+    	}
+    	
+    	// Controllo autosave per Best Life Time
+    	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
+    		createAutoSaveFile();
+    		return;
+    	}
+    	
+    	// Controllo autosave per Max Tube Passed
+    	if (gameStats.isAutoSaveOnMaxTubePassedEnabled && gameStats.maxTubePassed > 0 && gameStats.maxTubePassed % gameStats.getAutoSaveMaxTubePassedThreshold() == 0) {
+    		createAutoSaveFile();
+    		return;
+    	}
+	}
+	
+	private void createAutoSaveFile() throws IOException {
+		// Creare la DIR Se Non Esiste
+        try {
+            Files.createDirectories(AUTOSAVE_DIR);
+        } catch (IOException e) {
+        	throw new IOException("Error Creating Autosaves Directory: " + e.getMessage(), e);
+        }
+    	
+        String fileName = createAutoSaveFileName();
+        Path fullPath = AUTOSAVE_DIR.resolve(fileName);
+        
+        try {
+        	saveBestBrain(fullPath);
+            gameView.showAutoSaveMessage("AUTO-SAVED!");
+        } catch (IOException | NullPointerException e) {
+            gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
+            System.err.println("Error in Automatic Brain Save: " + e.getMessage());
         }
 	}
-
+	
 	private void resetForNewGen() {
 		++gameStats.nGen;
 		gameStats.nBirds = 0;
@@ -343,14 +364,14 @@ public final class GameController {
 	
 	// Import/Export Methods
 	
-	private String generateAutoSaveFileName() {
+	private String createAutoSaveFileName() {
 	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.nMaxTubePassed, timestamp);
+	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.maxTubePassed, gameStats.bestLifeTime, timestamp);
 	}
 	
-	public String generateManualSaveFileName() {
+	public String createManualSaveFileName() {
 	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.nMaxTubePassed, timestamp);
+	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.maxTubePassed, gameStats.bestLifeTime, timestamp);
 	}
 	
 	public void saveBestBrain(Path file) throws NullPointerException, IOException {
@@ -401,15 +422,29 @@ public final class GameController {
     	gameStats.isAutoSaveEnabled = !gameStats.isAutoSaveEnabled;
     }
     
-    public int getAutoSaveThreshold() {
-        return gameStats.autoSaveThreshold;
+    public void setAutoSaveOnGenEnabled(boolean enabled) {
+		gameStats.isAutoSaveOnGenEnabled = enabled;
+	}
+    
+    public void setAutoSaveGenThreshold(int threshold) {
+        gameStats.setAutoSaveGenThreshold(threshold);
     }
     
-    public void setAutoSaveThreshold(int threshold) {
-        if (threshold > 0) {
-        	gameStats.autoSaveThreshold = threshold;
-        }
+    public void setAutoSaveOnBLTEnabled(boolean enabled) {
+    	gameStats.isAutoSaveOnBLTEnabled = enabled;
     }
+    
+    public void setAutoSaveBLTThreshold(int threshold) {
+		gameStats.setAutoSaveBLTThreshold(threshold);
+	}
+    
+    public void setAutoSaveOnMaxTubePassedEnabled(boolean enabled) {
+		gameStats.isAutoSaveOnMaxTubePassedEnabled = enabled;
+	}
+    
+    public void setAutoSaveMaxTubePassedThreshold(int threshold) {
+		gameStats.setAutoSaveMaxTubePassedThreshold(threshold);
+	}
     
     public boolean isFirstGen() {
 		return gameStats.isFirstGen();
