@@ -107,7 +107,7 @@ public final class GameController {
 		            	// Thread si Sospende Qui Fino a Notifica o Timeout (dopo sleep di PAUSE_SLEEP_MS)
 		            	pauseLock.wait(GameClock.PAUSE_SLEEP_MS);
 		            } catch (InterruptedException e) {
-		                throw new RuntimeException(e);
+		                throw new RuntimeException("Game Thread Interrupted During Pause: " + e.getMessage(), e);
 		            }
 				}
 	            
@@ -263,7 +263,7 @@ public final class GameController {
 		Tube firstTopTube = null;
 		for (GameObject motObj : vGameObj) {
 			if (motObj instanceof Tube currTube) {
-				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x )) {
+				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x)) {
 					firstTopTube = currTube;
 				}
 			}

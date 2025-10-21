@@ -169,11 +169,12 @@ public class BirdBrain implements Serializable {
 
     private void setRandomWeights() {
         Random rand = new Random();
-
+        int nRows, nCols;
+        
         // Creazione Lista di Matrici dei Pesi
         for (int i = 0; i < NUM_LAYERS; ++i) {
-            int nRows = V_NEURONS.get(i);
-            int nCols = i > 0 ? V_NEURONS.get(i - 1) : NUM_INPUT;
+            nRows = V_NEURONS.get(i);
+            nCols = i > 0 ? V_NEURONS.get(i - 1) : NUM_INPUT;
             vmWeights.add(new Matrix(nRows, nCols));
             for (int j = 0; j < vmWeights.get(i).getNRows(); ++j) {
                 for (int k = 0; k < vmWeights.get(i).getNCols(); ++k) {
