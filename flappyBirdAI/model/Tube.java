@@ -8,9 +8,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
-
 import javax.imageio.ImageIO;
-
 import java.util.List;
 import java.util.ArrayList;
 

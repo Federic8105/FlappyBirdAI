@@ -8,7 +8,6 @@ import flappyBirdAI.ai.BirdBrain;
 import java.awt.*;
 import java.io.IOException;
 import java.util.Objects;
-
 import javax.imageio.ImageIO;
 
 public class FlappyBird extends AbstractGameObject {

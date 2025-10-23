@@ -38,7 +38,7 @@ public final class GameController {
     private final Random rand = new Random();
     
     private final GameView gameView;
-    private final List<AbstractGameObject> vGameObj = new ArrayList<>();
+    private final List<AbstractGameObject> vGameObj;
     private final Map<String, Double> brainInputMap = new HashMap<>();
     
     // Game Engine Variables
@@ -56,8 +56,13 @@ public final class GameController {
     private int lastGameHeight;
     private BirdBrain bestBirdBrain;
 
-	public GameController(GameView gameView) throws NullPointerException {
+	public GameController(GameView gameView, int nBirdsXGen) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
+		if (nBirdsXGen <= 0) {
+			throw new IllegalArgumentException("Number of Birds per Generation Must Be Greater than 0");
+		}
+		
+		this.vGameObj = new ArrayList<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
 		gameView.setController(this);
 		gameClock.start();
 		newTubePair();
@@ -72,15 +77,13 @@ public final class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startGame() throws NullPointerException, RuntimeException {
-		FlappyBird randBird = Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird");
-		
+	public void startGame() throws NullPointerException, RuntimeException {		
 		int gameHeight;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
 		List<Rectangle> vTubeHitBox;
-		Tube previousFirstTopTube = getFirstTopTube(randBird);
+		Tube previousFirstTopTube = getFirstTopTube(Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird"));
 		
 		lastGameHeight = getGameHeight();
 		
@@ -132,7 +135,7 @@ public final class GameController {
 			previousFirstTopTube = firstTopTube;
 
 			// Creazione vettore HitBox di Tube
-			vTubeHitBox = new ArrayList<>();
+			vTubeHitBox = new ArrayList<>(50);
 			for (GameObject tempObj : vGameObj) {
 				if (tempObj instanceof Tube currTube) {
 					vTubeHitBox.add(currTube.getHitBox());
@@ -179,7 +182,7 @@ public final class GameController {
 	}
 	
 	private void recreateTubes() {
-		List<Tube> newTubes = new ArrayList<>();
+		List<Tube> newTubes = new ArrayList<>(50);
 		
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {

@@ -8,12 +8,13 @@ import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
 import flappyBirdAI.model.Tube;
+import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
 import java.util.List;
 import java.util.ArrayList;
 
-//TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
+//TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, inserti capacità iniziale di Collection, uso collection più performanti
 
 public class FlappyBirdAI {
 
@@ -35,17 +36,16 @@ public class FlappyBirdAI {
     	Tube.loadImages();
     	FlappyBird.loadImages();
     	
-		gameController = new GameController(useJavaFX ? new SwingGameView(w, h) : new SwingGameView(w, h));
+		gameController = new GameController(useJavaFX ? new JavaFXGameView(w, h) : new SwingGameView(w, h), nBirdsXGen);
 
 		startGame();
 	}
 
 	private List<AbstractGameObject> createRandomBirds(int nBirds) {
-		List<AbstractGameObject> vBirds = new ArrayList<>();
-		int startY;
+		List<AbstractGameObject> vBirds = new ArrayList<>(nBirds);
+		int startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 			vBirds.add(new FlappyBird(20, startY, new BirdBrain()));
 		}
 		
@@ -53,11 +53,10 @@ public class FlappyBirdAI {
 	}
 
 	private List<AbstractGameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
-		List<AbstractGameObject> vBirds = new ArrayList<>();
-		int startY;
+		List<AbstractGameObject> vBirds = new ArrayList<>(nBirds);
+		int startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 			vBirds.add(new FlappyBird(20, startY, bestBirdBrain));
 			((FlappyBird) vBirds.get(i)).getBrain().updateWeights();
 		}

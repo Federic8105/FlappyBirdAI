@@ -36,7 +36,7 @@ public class BirdBrain implements Serializable {
 	public static final List<String> V_INPUT_KEYS = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int NUM_INPUT = V_INPUT_KEYS.size();
 
-    private static final List<Integer> V_NEURONS = new ArrayList<>(List.of(4, 4, 1));
+    private static final List<Integer> V_NEURONS = List.of(4, 4, 1);
     private static final int NUM_LAYERS = V_NEURONS.size();
 
     private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
