@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, inserti capacità iniziale di Collection, uso collection più performanti
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, uso collection più performanti, fa salvataggio a fine gen e non appena deve
 
 public class FlappyBirdAI {
 

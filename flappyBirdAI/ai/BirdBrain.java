@@ -101,7 +101,7 @@ public class BirdBrain implements Serializable {
 	    }
 	}
 
-    private final List<Matrix> vmWeights = new ArrayList<>();
+    private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
     private Matrix mInputs;
 
     public BirdBrain() {
@@ -124,7 +124,7 @@ public class BirdBrain implements Serializable {
 
     // Normalizzazione dei Valori di Input Tra -1 e +1
     private Map<String, Double> normalize(Map<String, Double> list) {
-        Map<String, Double>  normalizedList = new HashMap<>();
+        Map<String, Double>  normalizedList = new HashMap<>(list.size());
 
         // Ottenere Valore Massimo e Minimo da Lista di Input
         double max = Collections.max(list.values());

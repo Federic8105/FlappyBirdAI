@@ -39,7 +39,7 @@ public final class GameController {
     
     private final GameView gameView;
     private final List<AbstractGameObject> vGameObj;
-    private final Map<String, Double> brainInputMap = new HashMap<>();
+    private final Map<String, Double> brainInputMap = new HashMap<>(BirdBrain.NUM_INPUT);
     
     // Game Engine Variables
     
@@ -82,7 +82,6 @@ public final class GameController {
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
-		List<Rectangle> vTubeHitBox;
 		Tube previousFirstTopTube = getFirstTopTube(Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird"));
 		
 		lastGameHeight = getGameHeight();
@@ -133,17 +132,9 @@ public final class GameController {
 				++gameStats.nTubePassed;
 			}
 			previousFirstTopTube = firstTopTube;
-
-			// Creazione vettore HitBox di Tube
-			vTubeHitBox = new ArrayList<>(50);
-			for (GameObject tempObj : vGameObj) {
-				if (tempObj instanceof Tube currTube) {
-					vTubeHitBox.add(currTube.getHitBox());
-				}
-			}
 			
 			// Aggiornare Oggetti di Gioco
-            updateGameObjects(dt, vTubeHitBox, firstTopTube);
+            updateGameObjects(dt, getTubeHitBoxes(), firstTopTube);
 
 			checkNewTube();
 			deleteDeadObjects();
@@ -179,6 +170,19 @@ public final class GameController {
 		} catch (IOException e) {
 			System.err.println("Error Starting Next Generation: " + e.getMessage());
 		}
+	}
+	
+	// Creazione vettore HitBox di Tube
+	private List<Rectangle> getTubeHitBoxes() {
+		List<Rectangle> vTubeHitBox = new ArrayList<>(50);
+		
+		for (GameObject obj : vGameObj) {
+			if (obj instanceof Tube currTube && currTube.isAlive) {
+				vTubeHitBox.add(currTube.getHitBox());
+			}
+		}
+		
+		return vTubeHitBox;
 	}
 	
 	private void recreateTubes() {
