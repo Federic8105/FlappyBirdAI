@@ -129,6 +129,10 @@ public final class GameController {
 			Tube firstTopTube = getFirstTopTube(getRandomBird());
 			if (firstTopTube != null && !firstTopTube.equals(previousFirstTopTube)) {
 				++gameStats.nTubePassed;
+				
+				if (gameStats.nTubePassed > gameStats.maxTubePassed) {
+					gameStats.maxTubePassed = gameStats.nTubePassed;
+				}
 			}
 			previousFirstTopTube = firstTopTube;
 			
@@ -147,6 +151,12 @@ public final class GameController {
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
             
+            try {
+				checkAndAutoSaveInGen();
+			} catch (IOException e) {
+				System.err.println("Error in Automatic Brain Save: " + e.getMessage());
+			}
+            
             // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
             	long sleepTimeMs = sleepTime / 1_000_000L;
@@ -159,10 +169,6 @@ public final class GameController {
 				}
 			}
         }
-
-		if (gameStats.nTubePassed > gameStats.maxTubePassed) {
-			gameStats.maxTubePassed = gameStats.nTubePassed;
-		}
 		
 		try {
 			prepareNextGen();
@@ -300,11 +306,12 @@ public final class GameController {
 	}
 	
 	private void prepareNextGen() throws IOException {
-		checkAndAutoSave();
+		checkAndAutoSaveOnEndGen();
         resetForNewGen();
     }
 	
-	private void checkAndAutoSave() throws IOException {
+	// Controllo autosave a fine generazione (On Gen)
+	private void checkAndAutoSaveOnEndGen() throws IOException {
 		if (bestBirdBrain == null) {
     		return;
     	}
@@ -312,13 +319,19 @@ public final class GameController {
 		// Controllo autosave per generazione
     	if (gameStats.isAutoSaveOnGenEnabled && gameStats.nGen % gameStats.getAutoSaveGenThreshold() == 0) {
     		createAutoSaveFile();
-    		// Solo un autosave per ciclo di gioco (frame)
+    	}
+	}
+	
+	// Controllo autosave durante la generazione attuale (On BLE e ON Max Tube Passed)
+	private void checkAndAutoSaveInGen() throws IOException {
+		if (bestBirdBrain == null) {
     		return;
     	}
-    	
-    	// Controllo autosave per Best Life Time
+		
+		// Controllo autosave per Best Life Time
     	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
     		createAutoSaveFile();
+    		// Evitare salvataggi multipli per stesso Frame
     		return;
     	}
     	

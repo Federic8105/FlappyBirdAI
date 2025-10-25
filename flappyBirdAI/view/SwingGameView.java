@@ -81,7 +81,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
  	private final int initialWidth, initialHeight;
     
     // Caching Ultimi Valori di Statistica per Labels
-    private int lastGen = -1;
+    private int lastGen = -1, lastMaxTubePassed = -1;
     private boolean lastAutoSaveStatus = false;
     private double lastBestLifeTime = -1.0;
 	
@@ -658,10 +658,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         lNTubePassed.setText("Tubes: " + stats.nTubePassed);
         
-        if (stats.nTubePassed > stats.maxTubePassed) {
-            lMaxTubePassed.setText("Max Tubes: " + stats.nTubePassed);
-        } else {
-            lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);
+        if (stats.nTubePassed != lastMaxTubePassed) {
+        	lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);
+        	lastMaxTubePassed = stats.maxTubePassed;
         }
         
         if (stats.isAutoSaveEnabled() != lastAutoSaveStatus) {
