@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -58,7 +59,9 @@ public class BirdBrain implements Serializable {
 	    Gson gson = new Gson();
 	    Type typeStringList = new TypeToken<List<String>>() {}.getType();
 	    List<String> jsonInputKeys = gson.fromJson(brainJson.get("inputKeys"), typeStringList);
-	    if (!jsonInputKeys.equals(V_INPUT_KEYS)) {
+	    
+	    // Converte List a Set per il confronto con V_INPUT_KEYS
+	    if (!new HashSet<>(jsonInputKeys).equals(V_INPUT_KEYS)) {
 	        throw new IllegalArgumentException("Incompatible Input Keys");
 	    }
 	    

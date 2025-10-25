@@ -141,7 +141,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// Restituire il focus quando si clicca sulla finestra in un punto qualsiasi non focusable
 		addMouseListener(new MouseAdapter() {
 	        @Override
-	        public void mouseClicked(MouseEvent e) {
+	        public void mousePressed(MouseEvent e) {
 	            requestFocusInWindow();
 	        }
 	    });
@@ -273,7 +273,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         gamePanel.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 // Click sinistro per pausa/riprendi
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     gameController.togglePause();
