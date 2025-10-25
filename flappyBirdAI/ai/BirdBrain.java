@@ -33,6 +33,9 @@ public class BirdBrain implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	
+	// Random condiviso per tutte le operazioni di mutazione
+	private static final Random RANDOM = new Random();
+	
 	public static final List<String> V_INPUT_KEYS = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int NUM_INPUT = V_INPUT_KEYS.size();
 
@@ -168,7 +171,6 @@ public class BirdBrain implements Serializable {
     }
 
     private void setRandomWeights() {
-        Random rand = new Random();
         int nRows, nCols;
         
         // Creazione Lista di Matrici dei Pesi
@@ -178,7 +180,7 @@ public class BirdBrain implements Serializable {
             vmWeights.add(new Matrix(nRows, nCols));
             for (int j = 0; j < vmWeights.get(i).getNRows(); ++j) {
                 for (int k = 0; k < vmWeights.get(i).getNCols(); ++k) {
-                    vmWeights.get(i).set(j, k, WEIGHT_MIN_VALUE + (WEIGHT_MAX_VALUE - WEIGHT_MIN_VALUE) * rand.nextDouble());
+                    vmWeights.get(i).set(j, k, WEIGHT_MIN_VALUE + (WEIGHT_MAX_VALUE - WEIGHT_MIN_VALUE) * RANDOM.nextDouble());
                 }
             }
         }
@@ -186,14 +188,13 @@ public class BirdBrain implements Serializable {
     }
 
     public void updateWeights() {
-        Random rand = new Random();
         double updateWeightValue;
 
         for (Matrix mWeight : vmWeights) {
             for (int j = 0; j < mWeight.getNRows(); ++j) {
                 for (int k = 0; k < mWeight.getNCols(); ++k) {
 
-                    if (rand.nextInt(0, 1 + 1) == 1) {
+                    if (RANDOM.nextInt(0, 1 + 1) == 1) {
                         updateWeightValue = -WEIGHT_UPDATE_STEP;
                     } else {
                         updateWeightValue = WEIGHT_UPDATE_STEP;

@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
 import javax.imageio.ImageIO;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 public class Tube extends AbstractGameObject {
 	
@@ -47,14 +47,14 @@ public class Tube extends AbstractGameObject {
 		}
 	}
     
-    public static List<Tube> createTubePair(int x0, int gameHeight, Random random) {
+    public static Set<Tube> createTubePair(int x0, int gameHeight, Random random) {
         int maxHoleOffset = calcMaxHoleOffset(gameHeight);
         int tubeHoleOffset = random.nextInt(-maxHoleOffset, maxHoleOffset + 1);
         
         int yTubeHoleCenter = (gameHeight / 2) + tubeHoleOffset;
         int upperTubeHeight = yTubeHoleCenter - DIST_Y_BETWEEN_TUBES / 2;
         
-        List<Tube> tubePair = new ArrayList<>(2);
+        Set<Tube> tubePair = new HashSet<>(2);
         
         // Tubo superiore
         tubePair.add(new Tube(x0, 0, upperTubeHeight, true));

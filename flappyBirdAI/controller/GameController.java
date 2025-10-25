@@ -7,7 +7,6 @@ package flappyBirdAI.controller;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
-import flappyBirdAI.model.GameObject;
 import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.GameView;
 import java.time.LocalDateTime;
@@ -17,13 +16,14 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Random;
+import java.util.Set;
 import java.util.Optional;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.awt.Rectangle;
 
 public final class GameController {
@@ -38,7 +38,7 @@ public final class GameController {
     private final Random rand = new Random();
     
     private final GameView gameView;
-    private final List<AbstractGameObject> vGameObj;
+    private final Set<AbstractGameObject> vGameObj;
     private final Map<String, Double> brainInputMap = new HashMap<>(BirdBrain.NUM_INPUT);
     
     // Game Engine Variables
@@ -62,7 +62,7 @@ public final class GameController {
 			throw new IllegalArgumentException("Number of Birds per Generation Must Be Greater than 0");
 		}
 		
-		this.vGameObj = new ArrayList<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
+		this.vGameObj = new HashSet<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
 		gameView.setController(this);
 		gameClock.start();
 		newTubePair();
@@ -70,7 +70,7 @@ public final class GameController {
 	
 	// Game Logic Methods
 	
-	public void addBirds(List<AbstractGameObject> vBirds) throws NullPointerException {
+	public void addBirds(Set<AbstractGameObject> vBirds) throws NullPointerException {
 		Objects.requireNonNull(vBirds, "Birds List Cannot be Null");
 		
 		vGameObj.addAll((Collection<AbstractGameObject>) vBirds);
@@ -101,7 +101,7 @@ public final class GameController {
 				synchronized (pauseLock) {
 				
 					// Aggiornare la vista per mostrare lo stato di pausa e animazioni
-		            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
+		            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 		            try {
@@ -146,7 +146,7 @@ public final class GameController {
 			
 			// Aggiornare la Vista di Gioco
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
-            gameView.updateDisplay(gameClock, gameStats, new ArrayList<>(vGameObj));
+            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
             
             // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
@@ -173,10 +173,10 @@ public final class GameController {
 	}
 	
 	// Creazione vettore HitBox di Tube
-	private List<Rectangle> getTubeHitBoxes() {
-		List<Rectangle> vTubeHitBox = new ArrayList<>(50);
+	private Set<Rectangle> getTubeHitBoxes() {
+		Set<Rectangle> vTubeHitBox = new HashSet<>(50);
 		
-		for (GameObject obj : vGameObj) {
+		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof Tube currTube && currTube.isAlive) {
 				vTubeHitBox.add(currTube.getHitBox());
 			}
@@ -186,7 +186,7 @@ public final class GameController {
 	}
 	
 	private void recreateTubes() {
-		List<Tube> newTubes = new ArrayList<>(50);
+		Set<Tube> newTubes = new HashSet<>(50);
 		
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
@@ -199,9 +199,9 @@ public final class GameController {
 		vGameObj.addAll(newTubes);
 	}
 	
-	private void updateGameObjects(double dt, List<Rectangle> tubeHitBoxes, Tube firstTopTube) {
+	private void updateGameObjects(double dt, Set<Rectangle> tubeHitBoxes, Tube firstTopTube) {
 		
-        for (GameObject obj : new ArrayList<>(vGameObj)) {
+        for (AbstractGameObject obj : new ArrayList<>(vGameObj)) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
             	
@@ -254,7 +254,7 @@ public final class GameController {
 	}
 	
 	private FlappyBird getRandomBird() {
-        for (GameObject obj : vGameObj) {
+        for (AbstractGameObject obj : vGameObj) {
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
                 return currBird;
             }
@@ -268,7 +268,7 @@ public final class GameController {
 		}
 
 		Tube firstTopTube = null;
-		for (GameObject motObj : vGameObj) {
+		for (AbstractGameObject motObj : vGameObj) {
 			if (motObj instanceof Tube currTube) {
 				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x)) {
 					firstTopTube = currTube;
@@ -296,7 +296,7 @@ public final class GameController {
 	}
 	
 	private void newTubePair() {
-		List<Tube> newTubePair = Tube.createTubePair(getGameWidth(), getGameHeight(), rand);
+		Set<Tube> newTubePair = Tube.createTubePair(getGameWidth(), getGameHeight(), rand);
 	    vGameObj.addAll(newTubePair);
 	}
 	

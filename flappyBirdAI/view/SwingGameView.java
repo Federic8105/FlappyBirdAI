@@ -8,12 +8,11 @@ import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
-import flappyBirdAI.model.GameObject;
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Set;
 import java.util.Objects;
 import java.util.function.Consumer;
 import javax.swing.*;
@@ -91,7 +90,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	GameController gameController;
 	
 	// Game Objects for Rendering
-    private List<AbstractGameObject> currentVGameObj;
+    private Set<AbstractGameObject> currentVGameObj;
     
     // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
@@ -258,7 +257,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                 
                 // Disegnare tutti gli oggetti di gioco
                 if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
-                    for (GameObject obj : currentVGameObj) {
+                    for (AbstractGameObject obj : currentVGameObj) {
                         if (obj != null) {
                             obj.draw(g2d);
                         }
@@ -625,7 +624,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 	
 	@Override
-    public void updateDisplay(GameClock clock, GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
+    public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(clock, "Game Clock Cannot be Null");
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");

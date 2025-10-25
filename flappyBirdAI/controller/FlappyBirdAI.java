@@ -10,11 +10,12 @@ import flappyBirdAI.model.FlappyBird;
 import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, uso collection più performanti, fa salvataggio a fine gen e non appena deve
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, fa salvataggio a fine gen e non appena deve
+//TODO click strisciato no pausa
 
 public class FlappyBirdAI {
 
@@ -41,8 +42,8 @@ public class FlappyBirdAI {
 		startGame();
 	}
 
-	private List<AbstractGameObject> createRandomBirds(int nBirds) {
-		List<AbstractGameObject> vBirds = new ArrayList<>(nBirds);
+	private Set<AbstractGameObject> createRandomBirds(int nBirds) {
+		Set<AbstractGameObject> vBirds = new HashSet<>(nBirds);
 		int startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 		
 		for (int i = 0; i < nBirds; ++i) {
@@ -52,13 +53,15 @@ public class FlappyBirdAI {
 		return vBirds;
 	}
 
-	private List<AbstractGameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
-		List<AbstractGameObject> vBirds = new ArrayList<>(nBirds);
+	private Set<AbstractGameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
+		Set<AbstractGameObject> vBirds = new HashSet<>(nBirds);
 		int startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
+		FlappyBird bird;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			vBirds.add(new FlappyBird(20, startY, bestBirdBrain));
-			((FlappyBird) vBirds.get(i)).getBrain().updateWeights();
+			bird = new FlappyBird(20, startY, bestBirdBrain);
+			bird.getBrain().updateWeights();
+			vBirds.add(bird);
 		}
 		
 		return vBirds;

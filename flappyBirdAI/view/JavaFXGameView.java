@@ -8,7 +8,6 @@ import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
-import flappyBirdAI.model.GameObject;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -33,7 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -84,7 +83,7 @@ public class JavaFXGameView implements GameView {
     private GameController gameController;
     
     // Game Objects for Rendering
-    private List<AbstractGameObject> currentVGameObj;
+    private Set<AbstractGameObject> currentVGameObj;
     
     // JavaFX Components
     private Stage primaryStage;
@@ -491,7 +490,7 @@ public class JavaFXGameView implements GameView {
             );
             Graphics2D g2d = tempImage.createGraphics();
             
-            for (GameObject obj : currentVGameObj) {
+            for (AbstractGameObject obj : currentVGameObj) {
                 if (obj != null) {
                     obj.draw(g2d);
                 }
@@ -658,7 +657,7 @@ public class JavaFXGameView implements GameView {
     }
     
     @Override
-    public void updateDisplay(GameClock clock, GameStats stats, List<AbstractGameObject> vGameObj) throws NullPointerException {
+    public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
         Objects.requireNonNull(clock, "Game Clock Cannot be Null");
         Objects.requireNonNull(stats, "Game Stats Cannot be Null");
         Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
