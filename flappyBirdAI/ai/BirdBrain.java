@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ public class BirdBrain implements Serializable {
 	// Random condiviso per tutte le operazioni di mutazione
 	private static final Random RANDOM = new Random();
 	
-	public static final List<String> V_INPUT_KEYS = List.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
+	public static final Set<String> V_INPUT_KEYS = Set.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int NUM_INPUT = V_INPUT_KEYS.size();
 
     private static final List<Integer> V_NEURONS = List.of(4, 4, 1);

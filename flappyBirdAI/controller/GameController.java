@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.Optional;
 import java.util.Map;
 import java.util.Objects;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -173,7 +172,7 @@ public final class GameController {
 	}
 	
 	// Creazione vettore HitBox di Tube
-	private Set<Rectangle> getTubeHitBoxes() {
+	private Rectangle[] getTubeHitBoxes() {
 		Set<Rectangle> vTubeHitBox = new HashSet<>(50);
 		
 		for (AbstractGameObject obj : vGameObj) {
@@ -182,7 +181,7 @@ public final class GameController {
 			}
 		}
 		
-		return vTubeHitBox;
+		return vTubeHitBox.toArray(new Rectangle[0]);
 	}
 	
 	private void recreateTubes() {
@@ -199,9 +198,9 @@ public final class GameController {
 		vGameObj.addAll(newTubes);
 	}
 	
-	private void updateGameObjects(double dt, Set<Rectangle> tubeHitBoxes, Tube firstTopTube) {
+	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Tube firstTopTube) {
 		
-        for (AbstractGameObject obj : new ArrayList<>(vGameObj)) {
+        for (AbstractGameObject obj : vGameObj) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
             	
@@ -216,7 +215,7 @@ public final class GameController {
                 }
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
-                if (currBird.checkCollision(tubeHitBoxes.toArray(new Rectangle[0])) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
+                if (currBird.checkCollision(tubeHitBoxes) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
                     
                     currBird.isAlive = false;
                     --gameStats.nBirds;
