@@ -127,29 +127,14 @@ public class FlappyBird extends AbstractGameObject {
 	
 	@Override
 	public int hashCode() {
-		//return Objects.hash(x, y, vy, lifeTime, isAlive, brain);
+		// Utilizza l'hashcode di sistema per garantire l'unicità, uguale per istanza, uguale a hashCode di default
 		return System.identityHashCode(this);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		
-		FlappyBird other = (FlappyBird) obj;
-		return Objects.equals(brain, other.brain)
-				&& x == other.x
-				&& y == other.y
-				&& isAlive == other.isAlive
-				&& Double.compare(vy, other.vy) == 0
-				&& Double.compare(lifeTime, other.lifeTime) == 0;
+		// Due istanze sono uguali se sono la stessa istanza, uguale a equals di default
+		return this == obj;
 	}
 
 	@Override

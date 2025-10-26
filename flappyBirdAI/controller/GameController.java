@@ -137,7 +137,7 @@ public final class GameController {
 			
 			// Aggiornare Oggetti di Gioco
             updateGameObjects(dt, getTubeHitBoxes(firstTopTubeOpt), firstTopTubeOpt);
-            deleteDeadObjects();
+            deleteDeadGameObjects();
 			checkNewTube();
 			
 			sleepTime = gameClock.setFrameEndTime();
@@ -246,8 +246,10 @@ public final class GameController {
                 currBird.updateXY(dt);
                 
             } else if (obj instanceof Tube currTube && currTube.isAlive) {
+            	// Rimuovere i Tube che sono usciti dallo schermo
                 if (currTube.x + currTube.w < 0) {
                     currTube.isAlive = false;
+                // Aggiornare la Posizione del Tube
                 } else {
                     currTube.updateXY(dt);
                 }
@@ -255,7 +257,7 @@ public final class GameController {
         }
     }
 	
-	private void deleteDeadObjects() {
+	private void deleteDeadGameObjects() {
 		vGameObj.removeIf(obj -> !obj.isAlive);
 	}
 	
@@ -400,11 +402,6 @@ public final class GameController {
 		} catch (IOException e) {
 			throw e;
 		}
-	}
-	
-	public Optional<String> exportBestBrainAsJson() {
-		// Controllare se il cervello migliore è disponibile (!= null) e convertirlo in JSON
-		return Optional.ofNullable(bestBirdBrain).map(BirdBrain::toJson);
 	}
 	
 	// Getters and Setters - API Methods
