@@ -14,6 +14,8 @@ import java.util.HashSet;
 
 public class Tube extends AbstractGameObject {
 	
+	private static final Random RANDOM = new Random();
+	
 	private static final int NUM_IMAGES = 2;
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/TUBE";
@@ -47,9 +49,9 @@ public class Tube extends AbstractGameObject {
 		}
 	}
     
-    public static Set<Tube> createTubePair(int x0, int gameHeight, Random random) {
+    public static Set<Tube> newTubePair(int x0, int gameHeight) {
         int maxHoleOffset = calcMaxHoleOffset(gameHeight);
-        int tubeHoleOffset = random.nextInt(-maxHoleOffset, maxHoleOffset + 1);
+        int tubeHoleOffset = RANDOM.nextInt(-maxHoleOffset, maxHoleOffset + 1);
         
         int yTubeHoleCenter = (gameHeight / 2) + tubeHoleOffset;
         int upperTubeHeight = yTubeHoleCenter - DIST_Y_BETWEEN_TUBES / 2;
@@ -117,7 +119,7 @@ public class Tube extends AbstractGameObject {
         }
     }
     
-    public boolean isItsOppositeTube(Tube otherTube) throws NullPointerException {
+    public boolean isTheOppositeOf(Tube otherTube) throws NullPointerException {
     	Objects.requireNonNull(otherTube, "otherTube Cannot be Null");
     	
 		// Due tubi sono opposti se hanno la stessa x ma uno è superiore e l'altro inferiore e sono vivi

@@ -15,12 +15,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.Random;
 import java.util.Set;
 import java.util.Optional;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.awt.Rectangle;
@@ -33,8 +31,6 @@ public final class GameController {
 	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
 	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
 	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-
-    private final Random rand = new Random();
     
     private final GameView gameView;
     private final Set<AbstractGameObject> vGameObj;
@@ -72,7 +68,7 @@ public final class GameController {
 	public void addBirds(Set<AbstractGameObject> vBirds) throws NullPointerException {
 		Objects.requireNonNull(vBirds, "Birds List Cannot be Null");
 		
-		vGameObj.addAll((Collection<AbstractGameObject>) vBirds);
+		vGameObj.addAll(vBirds);
 		gameStats.nBirds += vBirds.size();
 	}
 	
@@ -81,7 +77,8 @@ public final class GameController {
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
-		Tube previousFirstTopTube = getFirstTopTube(Objects.requireNonNull(getRandomBird(), "No Alive Birds to Start the Game, There Must Be at Least One Alive Bird"));
+		Optional<Tube> firstTopTubeOpt;
+		Tube previousFirstTopTube = null;
 		
 		lastGameHeight = getGameHeight();
 		
@@ -126,21 +123,22 @@ public final class GameController {
 			}
 			
 			// Ottenere Primo Tube Superiore a Destra
-			Tube firstTopTube = getFirstTopTube(getRandomBird());
-			if (firstTopTube != null && !firstTopTube.equals(previousFirstTopTube)) {
+			firstTopTubeOpt = getFirstTopTube(getRandomBird());
+			if (firstTopTubeOpt.isPresent() && !firstTopTubeOpt.get().equals(previousFirstTopTube)) {
 				++gameStats.nTubePassed;
 				
+				// Nuovo Record di Tube Passati
 				if (gameStats.nTubePassed > gameStats.maxTubePassed) {
 					gameStats.maxTubePassed = gameStats.nTubePassed;
 				}
+				
+				previousFirstTopTube = firstTopTubeOpt.get();
 			}
-			previousFirstTopTube = firstTopTube;
 			
 			// Aggiornare Oggetti di Gioco
-            updateGameObjects(dt, getTubeHitBoxes(), firstTopTube);
-
+            updateGameObjects(dt, getTubeHitBoxes(firstTopTubeOpt), firstTopTubeOpt);
+            deleteDeadObjects();
 			checkNewTube();
-			deleteDeadObjects();
 			
 			sleepTime = gameClock.setFrameEndTime();
 			
@@ -151,11 +149,7 @@ public final class GameController {
 			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
             gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
             
-            try {
-				checkAndAutoSaveInGen();
-			} catch (IOException e) {
-				System.err.println("Error in Automatic Brain Save: " + e.getMessage());
-			}
+			checkAndAutoSaveInGen();
             
             // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
@@ -170,24 +164,30 @@ public final class GameController {
 			}
         }
 		
-		try {
-			prepareNextGen();
-		} catch (IOException e) {
-			System.err.println("Error Starting Next Generation: " + e.getMessage());
-		}
+		checkAndAutoSaveOnEndGen();
+		
+		resetForNewGen();
 	}
 	
-	// Creazione vettore HitBox di Tube
-	private Rectangle[] getTubeHitBoxes() {
-		Set<Rectangle> vTubeHitBox = new HashSet<>(50);
+	// Creazione vettore HitBox di Tube più vicini
+	private Rectangle[] getTubeHitBoxes(Optional<Tube> firstTopTubeOpt) {
+		if (firstTopTubeOpt.isEmpty()) {
+			return new Rectangle[0];
+		}
+		
+		Tube firstTopTube = firstTopTubeOpt.get();
+		Rectangle[] vTubeHitBox = new Rectangle[2];
+		vTubeHitBox[0] = firstTopTube.getHitBox();
 		
 		for (AbstractGameObject obj : vGameObj) {
-			if (obj instanceof Tube currTube && currTube.isAlive) {
-				vTubeHitBox.add(currTube.getHitBox());
+			// Controllo currTube.isAlive() non necessario perchè fatto in .isTheOppositeOf()
+			if (obj instanceof Tube currTube && currTube.isTheOppositeOf(firstTopTube)) {
+				vTubeHitBox[1] = currTube.getHitBox();
+				break;
 			}
 		}
 		
-		return vTubeHitBox.toArray(new Rectangle[0]);
+		return vTubeHitBox;
 	}
 	
 	private void recreateTubes() {
@@ -195,7 +195,7 @@ public final class GameController {
 		
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
-				newTubes.addAll(Tube.createTubePair(currTube.x, getGameHeight(), rand));
+				newTubes.addAll(Tube.newTubePair(currTube.x, getGameHeight()));
 			}
 		}
 		
@@ -203,13 +203,14 @@ public final class GameController {
 		vGameObj.removeIf(obj -> obj instanceof Tube);
 		vGameObj.addAll(newTubes);
 	}
-	
-	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Tube firstTopTube) {
+
+	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Optional<Tube> firstTopTubeOpt) {
 		
         for (AbstractGameObject obj : vGameObj) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
             	
+            	//TODO da fare 1 volta a frame e non per ogni uccello
             	if (currBird.lifeTime > gameStats.currLifeTime) {
                 	gameStats.currLifeTime = currBird.lifeTime;
                 	
@@ -222,13 +223,13 @@ public final class GameController {
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
-                    
                     currBird.isAlive = false;
-                    --gameStats.nBirds;
+        			--gameStats.nBirds;
                     continue;
                     
                 // AI Decision
-                } else if (firstTopTube != null) {
+                } else if (firstTopTubeOpt.isPresent()) {
+                	Tube firstTopTube = firstTopTubeOpt.get();
                 	
                 	brainInputMap.put("yBird", (double) currBird.y);
                 	brainInputMap.put("vyBird", currBird.vy);
@@ -255,7 +256,7 @@ public final class GameController {
     }
 	
 	private void deleteDeadObjects() {
-        vGameObj.removeIf(obj -> !obj.isAlive);
+		vGameObj.removeIf(obj -> !obj.isAlive);
 	}
 	
 	private FlappyBird getRandomBird() {
@@ -267,21 +268,21 @@ public final class GameController {
         return null;
     }
 	
-	private Tube getFirstTopTube(FlappyBird currBird) {
+	private Optional<Tube> getFirstTopTube(FlappyBird currBird) {
 		if (currBird == null) {
-			return null;
+			return Optional.empty();
 		}
 
 		Tube firstTopTube = null;
-		for (AbstractGameObject motObj : vGameObj) {
-			if (motObj instanceof Tube currTube) {
-				if (firstTopTube == null || ( currTube.isAlive && currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x)) {
+		for (AbstractGameObject obj : vGameObj) {
+			if (obj instanceof Tube currTube && currTube.isAlive) {
+				if (firstTopTube == null || (currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x)) {
 					firstTopTube = currTube;
 				}
 			}
 		}
 		
-		return firstTopTube;
+		return Optional.ofNullable(firstTopTube);
 	}
 
 	private void checkNewTube() {
@@ -301,53 +302,44 @@ public final class GameController {
 	}
 	
 	private void newTubePair() {
-		Set<Tube> newTubePair = Tube.createTubePair(getGameWidth(), getGameHeight(), rand);
+		Set<Tube> newTubePair = Tube.newTubePair(getGameWidth(), getGameHeight());
 	    vGameObj.addAll(newTubePair);
 	}
 	
-	private void prepareNextGen() throws IOException {
-		checkAndAutoSaveOnEndGen();
-        resetForNewGen();
-    }
-	
 	// Controllo autosave a fine generazione (On Gen)
-	private void checkAndAutoSaveOnEndGen() throws IOException {
-		if (bestBirdBrain == null) {
-    		return;
-    	}
-		
+	private void checkAndAutoSaveOnEndGen() {
 		// Controllo autosave per generazione
     	if (gameStats.isAutoSaveOnGenEnabled && gameStats.nGen % gameStats.getAutoSaveGenThreshold() == 0) {
-    		createAutoSaveFile();
+			createAutoSaveFile();
     	}
 	}
 	
 	// Controllo autosave durante la generazione attuale (On BLE e ON Max Tube Passed)
-	private void checkAndAutoSaveInGen() throws IOException {
+	private void checkAndAutoSaveInGen() {
 		if (bestBirdBrain == null) {
     		return;
     	}
 		
 		// Controllo autosave per Best Life Time
     	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
-    		createAutoSaveFile();
+			createAutoSaveFile();
     		// Evitare salvataggi multipli per stesso Frame
     		return;
     	}
     	
     	// Controllo autosave per Max Tube Passed
     	if (gameStats.isAutoSaveOnMaxTubePassedEnabled && gameStats.maxTubePassed > 0 && gameStats.maxTubePassed % gameStats.getAutoSaveMaxTubePassedThreshold() == 0) {
-    		createAutoSaveFile();
-    		return;
+			createAutoSaveFile();
     	}
 	}
 	
-	private void createAutoSaveFile() throws IOException {
+	private void createAutoSaveFile() {
 		// Creare la DIR Se Non Esiste
         try {
             Files.createDirectories(AUTOSAVE_DIR);
         } catch (IOException e) {
-        	throw new IOException("Error Creating Autosaves Directory: " + e.getMessage(), e);
+        	System.err.println("Error Creating Autosaves Directory: " + e.getMessage());
+        	return;
         }
     	
         String fileName = createAutoSaveFileName();

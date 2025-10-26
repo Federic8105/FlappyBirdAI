@@ -81,7 +81,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
  	private final int initialWidth, initialHeight;
     
     // Caching Ultimi Valori di Statistica per Labels
-    private int lastGen = -1, lastMaxTubePassed = -1;
+    private int lastGen = -1, lastNBirds = -1, lastTubePassed = -1, lastMaxTubePassed = -1;
     private boolean lastAutoSaveStatus = false;
     private double lastBestLifeTime = -1.0;
 	
@@ -380,7 +380,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	private void initImportExportUI(int importExportPanelWidth) {
-	    int componentsWidth = importExportPanelWidth - 20; // Lascia un margine di 10px per lato
+		// Lasciare un margine di 10px per lato
+	    int componentsWidth = importExportPanelWidth - 20;
 	    
 		// Spacing
 		importExportPanel.add(Box.createVerticalStrut(20));
@@ -408,7 +409,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		autoSaveThresholdPanel.add(Box.createVerticalStrut(5));
 		
 		// Auto-Save on Generation
-		cbAutoSaveOnGen = createAutoSaveCheckBox("On Generation", componentsWidth);
+		cbAutoSaveOnGen = createAutoSaveCheckBox("On Generation [" + GameStats.MIN_AUTOSAVE_GEN_THRESHOLD + "-" + GameStats.MAX_AUTOSAVE_GEN_THRESHOLD + "]", componentsWidth);
 	    cbAutoSaveOnGen.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED);
 	    cbAutoSaveOnGen.addActionListener(_ -> {
             gameController.setAutoSaveOnGenEnabled(cbAutoSaveOnGen.isSelected());
@@ -428,7 +429,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		autoSaveThresholdPanel.add(autoSaveGenThresholdSpinner);
 		
 		// Auto-Save on Best Life Time
-		cbAutoSaveOnBLT = createAutoSaveCheckBox("On Best Life Time (s)", componentsWidth);
+		cbAutoSaveOnBLT = createAutoSaveCheckBox("On Best Life Time (s) [" + GameStats.MIN_AUTOSAVE_BLT_THRESHOLD + "-" + GameStats.MAX_AUTOSAVE_BLT_THRESHOLD + "]", componentsWidth);
 	    cbAutoSaveOnBLT.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED);
 	    cbAutoSaveOnBLT.addActionListener(_ -> {
 			gameController.setAutoSaveOnBLTEnabled(cbAutoSaveOnBLT.isSelected());
@@ -446,7 +447,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    autoSaveThresholdPanel.add(autoSaveBLThresholdSpinner);
 	    
 	    // Auto-Save on Max Tubes Passed
-	    cbAutoSaveOnMaxTubePassed = createAutoSaveCheckBox("On Max Tubes Passed", componentsWidth);
+	    cbAutoSaveOnMaxTubePassed = createAutoSaveCheckBox("On Max Tubes Passed [" + GameStats.MIN_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD + "-" + GameStats.MAX_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD + "]", componentsWidth);
 	    cbAutoSaveOnMaxTubePassed.setSelected(GameStats.DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED);
 	    cbAutoSaveOnMaxTubePassed.addActionListener(_ -> {
 			gameController.setAutoSaveOnMaxTubePassedEnabled(cbAutoSaveOnMaxTubePassed.isSelected());
@@ -654,9 +655,15 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             lastGen = stats.nGen;
         }
         
-        lNBirds.setText("Birds: " + stats.nBirds);
+        if (stats.nBirds != lastNBirds) {
+			lNBirds.setText("Birds: " + stats.nBirds);
+			lastNBirds = stats.nBirds;
+		}
         
-        lNTubePassed.setText("Tubes: " + stats.nTubePassed);
+        if (stats.nTubePassed != lastTubePassed) {
+			lNTubePassed.setText("Tubes: " + stats.nTubePassed);
+			lastTubePassed = stats.nTubePassed;
+		}
         
         if (stats.nTubePassed != lastMaxTubePassed) {
         	lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);

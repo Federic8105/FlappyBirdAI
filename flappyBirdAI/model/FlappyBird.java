@@ -51,8 +51,14 @@ public class FlappyBird extends AbstractGameObject {
     private final int tDelayAnimation = 150;
     private final double gravity = 700, jumpForce = 300;
 	private final BirdBrain brain;
+	
+	//TODO unico modo?
+	private static int LASTID = 0;
+	private final int id;
 
 	public FlappyBird(int x0, int y0, BirdBrain brain) throws NullPointerException {
+		LASTID++;
+		id = LASTID;
 		this.brain = Objects.requireNonNull(brain, "Bird Brain Cannot be Null");
         x = x0;
 		y = y0;
@@ -127,7 +133,8 @@ public class FlappyBird extends AbstractGameObject {
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(x, y, vy, lifeTime, isAlive, brain);
+		//return Objects.hash(x, y, vy, lifeTime, isAlive, brain);
+		return id;
 	}
 
 	@Override
