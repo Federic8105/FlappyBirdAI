@@ -7,6 +7,7 @@ package flappyBirdAI.model;
 import flappyBirdAI.ai.BirdBrain;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 
@@ -30,9 +31,12 @@ public class FlappyBird extends AbstractGameObject {
 			try {
 				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + i + IMG_EXT));
 				
+				// ImageIO.read può restituire null oltre a lanciare eccezioni
 				if (V_IMAGES[i] != null) {
 					// Ridimensiona l'immagine caricata
 					V_IMAGES[i] = V_IMAGES[i].getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH);
+				} else {
+					System.err.println("Image Not Found: " + IMG_NAME + i + IMG_EXT);
 				}
 
 			} catch(IOException e) {
@@ -40,7 +44,7 @@ public class FlappyBird extends AbstractGameObject {
 			}
 		}
 		
-		ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+		ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES && Arrays.stream(V_IMAGES).allMatch(img -> img != null));
 		if (ARE_IMAGES_FOUND) {
 			ARE_IMAGES_LOADED = true;
 		}

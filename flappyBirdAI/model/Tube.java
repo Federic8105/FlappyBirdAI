@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Random;
 import javax.imageio.ImageIO;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.HashSet;
 
 public class Tube extends AbstractGameObject {
@@ -37,13 +38,17 @@ public class Tube extends AbstractGameObject {
     	for (int i = 0; i < V_IMAGES.length; ++i) {
     		try {
     			V_IMAGES[i] = ImageIO.read(Tube.class.getResource(IMG_NAME + i + IMG_EXT));
-
+    			
+    			// ImageIO.read può restituire null oltre a lanciare eccezioni
+    			if (V_IMAGES[i] == null) {
+					System.err.println("Image Not Found: " + IMG_NAME + i + IMG_EXT);
+				}
     		} catch(IOException e) {
             	System.err.println("Image Not Found: " + e.getMessage());
     		}
     	}
     	
-    	ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES);
+    	ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES && Arrays.stream(V_IMAGES).allMatch(img -> img != null));
     	if (ARE_IMAGES_FOUND) {
 			ARE_IMAGES_LOADED = true;
 		}

@@ -12,6 +12,7 @@ import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Optional;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
 //TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
@@ -52,7 +53,12 @@ public class FlappyBirdAI {
 		return vBirds;
 	}
 
-	private Set<AbstractGameObject> createBirds(int nBirds, BirdBrain bestBirdBrain) {
+	private Set<AbstractGameObject> createBirds(int nBirds, Optional<BirdBrain> bestBirdBrainOpt) {
+		if (bestBirdBrainOpt.isEmpty()) {
+			return createRandomBirds(nBirds);
+		}
+		
+		BirdBrain bestBirdBrain = bestBirdBrainOpt.get();
 		Set<AbstractGameObject> vBirds = new HashSet<>(nBirds);
 		int startY = gameController.getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
 		FlappyBird bird;

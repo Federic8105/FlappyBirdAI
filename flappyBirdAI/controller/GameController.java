@@ -49,7 +49,7 @@ public final class GameController {
     private final GameClock gameClock = new GameClock();
     
     private int lastGameHeight;
-    private BirdBrain bestBirdBrain;
+    private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
 
 	public GameController(GameView gameView, int nBirdsXGen) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
@@ -79,6 +79,8 @@ public final class GameController {
 		long sleepTime;
 		Optional<Tube> firstTopTubeOpt;
 		Tube previousFirstTopTube = null;
+		Optional<FlappyBird> randBirdOpt;
+		FlappyBird randBird;
 		
 		lastGameHeight = getGameHeight();
 		
@@ -122,8 +124,21 @@ public final class GameController {
 				lastGameHeight = gameHeight;
 			}
 			
+			randBirdOpt = getRandomBird();
+			
+			// Aggiornare Statistica Tempo di Vita Attuale, Migliore e Cervello del Miglior Uccello
+        	if (randBirdOpt.isPresent() && (randBird = randBirdOpt.get()).lifeTime > gameStats.currLifeTime) {
+        		gameStats.currLifeTime = randBird.lifeTime;
+            	
+            	// Nuovo Record di Vita
+            	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
+					gameStats.bestLifeTime = randBird.lifeTime;
+					bestBirdBrainOpt = Optional.of(randBird.getBrain());
+				}
+            }
+			
 			// Ottenere Primo Tube Superiore a Destra
-			firstTopTubeOpt = getFirstTopTube(getRandomBird());
+			firstTopTubeOpt = getFirstTopTube(randBirdOpt);
 			if (firstTopTubeOpt.isPresent() && !firstTopTubeOpt.get().equals(previousFirstTopTube)) {
 				++gameStats.nTubePassed;
 				
@@ -209,17 +224,6 @@ public final class GameController {
         for (AbstractGameObject obj : vGameObj) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
-            	
-            	//TODO da fare 1 volta a frame e non per ogni uccello
-            	if (currBird.lifeTime > gameStats.currLifeTime) {
-                	gameStats.currLifeTime = currBird.lifeTime;
-                	
-                	// Nuovo Record di Vita
-                	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
-						gameStats.bestLifeTime = currBird.lifeTime;
-						bestBirdBrain = currBird.getBrain();
-					}
-                }
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
@@ -261,24 +265,25 @@ public final class GameController {
 		vGameObj.removeIf(obj -> !obj.isAlive);
 	}
 	
-	private FlappyBird getRandomBird() {
+	private Optional<FlappyBird> getRandomBird() {
         for (AbstractGameObject obj : vGameObj) {
             if (obj instanceof FlappyBird currBird && currBird.isAlive) {
-                return currBird;
+                return Optional.of(currBird);
             }
         }
-        return null;
+        return Optional.empty();
     }
 	
-	private Optional<Tube> getFirstTopTube(FlappyBird currBird) {
-		if (currBird == null) {
+	private Optional<Tube> getFirstTopTube(Optional<FlappyBird> birdOpt) {
+		if (birdOpt.isEmpty()) {
 			return Optional.empty();
 		}
-
+		
+		FlappyBird bird = birdOpt.get();
 		Tube firstTopTube = null;
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof Tube currTube && currTube.isAlive) {
-				if (firstTopTube == null || (currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= currBird.x)) {
+				if (firstTopTube == null || (currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= bird.x)) {
 					firstTopTube = currTube;
 				}
 			}
@@ -318,9 +323,9 @@ public final class GameController {
 	
 	// Controllo autosave durante la generazione attuale (On BLE e ON Max Tube Passed)
 	private void checkAndAutoSaveInGen() {
-		if (bestBirdBrain == null) {
-    		return;
-    	}
+		if (bestBirdBrainOpt.isEmpty()) {
+			return;
+		}
 		
 		// Controllo autosave per Best Life Time
     	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
@@ -370,7 +375,7 @@ public final class GameController {
 		gameClock.reset();
 		
 		vGameObj.clear();
-		bestBirdBrain = null;
+		bestBirdBrainOpt = Optional.empty();
 		
 		newTubePair();
 	}
@@ -388,16 +393,18 @@ public final class GameController {
 	}
 	
 	public void saveBestBrain(Path file) throws NullPointerException, IOException {
-		Objects.requireNonNull(bestBirdBrain, "No Best Bird Brain Available for Saving");
+		if (bestBirdBrainOpt.isEmpty()) {
+			throw new NullPointerException("No Best Bird Brain to Save");
+		}
 		
-		bestBirdBrain.saveToFile(file);
+		bestBirdBrainOpt.get().saveToFile(file);
 	}
 	
 	public void loadBrain(String filePath) throws NullPointerException, IOException, IllegalArgumentException, InvalidPathException {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
 		
 		try {
-			bestBirdBrain = BirdBrain.loadFromFile(Path.of(filePath));
+			bestBirdBrainOpt = Optional.of(BirdBrain.loadFromFile(Path.of(filePath)));
 			resetToFirstGen();
 		} catch (IOException e) {
 			throw e;
@@ -414,12 +421,12 @@ public final class GameController {
 		return gameView.getGameWidth();
 	}
     
-    public BirdBrain getBestBirdBrain() {
-        return bestBirdBrain;
+    public Optional<BirdBrain> getBestBirdBrain() {
+        return bestBirdBrainOpt;
     }
     
     public void setBestBirdBrain(BirdBrain brain) {
-        bestBirdBrain = brain;
+        bestBirdBrainOpt = Optional.of(brain);
     }
     
     public boolean isAutoSaveEnabled() {

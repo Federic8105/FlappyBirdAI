@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.StringJoiner;
 
@@ -109,7 +110,7 @@ public class BirdBrain implements Serializable {
 	}
 
     private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
-    private Matrix mInputs;
+    private Optional<Matrix> mInputsOpt = Optional.empty();
 
     public BirdBrain() {
         setRandomWeights();
@@ -166,10 +167,10 @@ public class BirdBrain implements Serializable {
         Map<String, Double> vInputsNormalized = normalize(vInputs);
 
         // Creazione Matrice degli Input
-        mInputs = new Matrix(vInputs.size(), 1);
+        mInputsOpt = Optional.of(new Matrix(vInputs.size(), 1));
         int i = 0;
         for (Map.Entry<String, Double> entry : vInputsNormalized.entrySet()) {
-            mInputs.set(i, 0, entry.getValue());
+            mInputsOpt.get().set(i, 0, entry.getValue());
             ++i;
         }
     }
@@ -215,8 +216,12 @@ public class BirdBrain implements Serializable {
     }
 
     public boolean think() throws NullPointerException, IllegalArgumentException {
-    	Objects.requireNonNull(mInputs, "Inputs Not Initialized");
-        if (vmWeights.isEmpty()) {
+    	if (mInputsOpt.isEmpty()) {
+			throw new NullPointerException("Inputs Not Initialized");
+		}
+		Matrix mInputs = mInputsOpt.get();
+    	
+    	if (vmWeights.isEmpty()) {
             throw new IllegalArgumentException("Weights Not Initialized");
         }
 
@@ -274,7 +279,7 @@ public class BirdBrain implements Serializable {
     
     @Override
 	public int hashCode() {
-		return Objects.hash(mInputs, vmWeights);
+		return Objects.hash(mInputsOpt.get(), vmWeights);
 	}
 
 	@Override
@@ -290,7 +295,7 @@ public class BirdBrain implements Serializable {
 		}
 		
 		BirdBrain other = (BirdBrain) obj;
-		return Objects.equals(mInputs, other.mInputs) && Objects.equals(vmWeights, other.vmWeights);
+		return Objects.equals(mInputsOpt.get(), other.mInputsOpt.get()) && Objects.equals(vmWeights, other.vmWeights);
 	}
 
 	@Override
