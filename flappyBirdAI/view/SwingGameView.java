@@ -41,6 +41,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private static final String WINDOW_TITLE = "Flappy Bird AI";
     private static final String ICON_PATH = "/res/FB_ICON.png";
     private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
+    private static final int TIMER_DELAY_MS = 2000;
     
     // Panel Minimum Dimensions Constants
     private static final int MIN_STATS_PANEL_WIDTH = 1000;
@@ -692,7 +693,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                 autoSaveMessageTimer.stop();
             }
             
-            autoSaveMessageTimer = new Timer(3000, _ -> {
+            autoSaveMessageTimer = new Timer(TIMER_DELAY_MS, _ -> {
             	lAutoSave.setText("Auto-Save: " + (gameController.isAutoSaveEnabled() ? "ON" : "OFF"));
             });
             autoSaveMessageTimer.setRepeats(false);
