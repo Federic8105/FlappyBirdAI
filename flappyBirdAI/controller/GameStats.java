@@ -30,6 +30,9 @@ public final class GameStats {
     private int autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
     private int autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
     
+    private int lastSavedBLT = 0;
+    private int lastSavedMaxTubePassed = 0;
+    
     // Stati di autosave
     public boolean isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
     public boolean isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
@@ -76,6 +79,22 @@ public final class GameStats {
 		autoSaveMaxTubePassedThreshold = threshold;
 	}
     
+    public int getLastSavedBLT() {
+    	return lastSavedBLT;
+    }
+    
+    public void setLastSavedBLT(int blt) {
+		lastSavedBLT = blt;
+	}
+    
+    public int getLastSavedMaxTubePassed() {
+		return lastSavedMaxTubePassed;
+	}
+    
+    public void setLastSavedMaxTubePassed(int maxTubePassed) {
+    	lastSavedMaxTubePassed = maxTubePassed;
+    }
+    
     public void resetToFirstGen() {
 		nGen = 1;
 		nBirds = 0;
@@ -83,6 +102,8 @@ public final class GameStats {
 		maxTubePassed = 0;
 		currLifeTime = 0;
 		bestLifeTime = 0;
+		lastSavedBLT = 0;
+		lastSavedMaxTubePassed = 0;
 	}
     
     public void resetToDefaults() {

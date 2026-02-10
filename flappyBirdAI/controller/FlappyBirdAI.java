@@ -15,7 +15,7 @@ import java.util.HashSet;
 import java.util.Optional;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, autosave solo 1 volta per ogni cambiamento di var o tempo
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, tubi passati inizia da 1
 
 public class FlappyBirdAI {
 

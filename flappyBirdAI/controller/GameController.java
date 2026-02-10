@@ -321,22 +321,24 @@ public final class GameController {
     	}
 	}
 	
-	// Controllo autosave durante la generazione attuale (On BLE e ON Max Tube Passed)
+	// Controllo autosave durante la generazione attuale (On BLT e On Max Tube Passed)
 	private void checkAndAutoSaveInGen() {
 		if (bestBirdBrainOpt.isEmpty()) {
 			return;
 		}
 		
 		// Controllo autosave per Best Life Time
-    	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
-			createAutoSaveFile();
+    	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) != gameStats.getLastSavedBLT() && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
+    		gameStats.setLastSavedBLT((int) Math.floor(gameStats.bestLifeTime));
+    		createAutoSaveFile();
     		// Evitare salvataggi multipli per stesso Frame
     		return;
     	}
     	
     	// Controllo autosave per Max Tube Passed
-    	if (gameStats.isAutoSaveOnMaxTubePassedEnabled && gameStats.maxTubePassed > 0 && gameStats.maxTubePassed % gameStats.getAutoSaveMaxTubePassedThreshold() == 0) {
-			createAutoSaveFile();
+    	if (gameStats.isAutoSaveOnMaxTubePassedEnabled && gameStats.maxTubePassed > 0 && gameStats.maxTubePassed != gameStats.getLastSavedMaxTubePassed() && gameStats.maxTubePassed % gameStats.getAutoSaveMaxTubePassedThreshold() == 0) {
+			gameStats.setLastSavedMaxTubePassed(gameStats.maxTubePassed);
+    		createAutoSaveFile();
     	}
 	}
 	
