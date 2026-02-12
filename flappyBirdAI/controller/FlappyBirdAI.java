@@ -15,7 +15,7 @@ import java.util.HashSet;
 import java.util.Optional;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, tubi passati inizia da 1
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
 public class FlappyBirdAI {
 
@@ -83,7 +83,7 @@ public class FlappyBirdAI {
 		gameController.addBirds(createRandomBirds(nBirdsXGen));
 		
 		while (true) {
-			gameController.startGame();
+			gameController.startOneGen();
 			addNewGenBirds();
 		}
 	}

@@ -72,13 +72,13 @@ public final class GameController {
 		gameStats.nBirds += vBirds.size();
 	}
 	
-	public void startGame() throws NullPointerException, RuntimeException {		
+	public void startOneGen() throws NullPointerException, RuntimeException {		
 		int gameHeight;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
 		Optional<Tube> firstTopTubeOpt;
-		Tube previousFirstTopTube = null;
+		Tube previousFirstTopTube = null, currTargetTube;
 		Optional<FlappyBird> randBirdOpt;
 		FlappyBird randBird;
 		
@@ -139,15 +139,25 @@ public final class GameController {
 			
 			// Ottenere Primo Tube Superiore a Destra
 			firstTopTubeOpt = getFirstTopTube(randBirdOpt);
-			if (firstTopTubeOpt.isPresent() && !firstTopTubeOpt.get().equals(previousFirstTopTube)) {
-				++gameStats.nTubePassed;
+			if (firstTopTubeOpt.isPresent()) {
+				currTargetTube = firstTopTubeOpt.get();
 				
-				// Nuovo Record di Tube Passati
-				if (gameStats.nTubePassed > gameStats.maxTubePassed) {
-					gameStats.maxTubePassed = gameStats.nTubePassed;
+				// All'inizio della generazione, previousFirstTopTube è null, quindi assegnarlo al primo Tube trovato senza incrementare nTubePassed
+				if (previousFirstTopTube == null) {
+					previousFirstTopTube = currTargetTube;
+				
+				// Se il primo Tube è cambiato (il Bird ha passato il Tube precedente), incrementare nTubePassed e aggiornare previousFirstTopTube
+				} else if (!currTargetTube.equals(previousFirstTopTube)) {
+					++gameStats.nTubePassed;
+					
+					// Nuovo Record di Tube Passati
+					if (gameStats.nTubePassed > gameStats.maxTubePassed) {
+			            gameStats.maxTubePassed = gameStats.nTubePassed;
+			        }
+					
+			        previousFirstTopTube = currTargetTube;
 				}
 				
-				previousFirstTopTube = firstTopTubeOpt.get();
 			}
 			
 			// Aggiornare Oggetti di Gioco
@@ -281,9 +291,10 @@ public final class GameController {
 		
 		FlappyBird bird = birdOpt.get();
 		Tube firstTopTube = null;
+		
 		for (AbstractGameObject obj : vGameObj) {
-			if (obj instanceof Tube currTube && currTube.isAlive) {
-				if (firstTopTube == null || (currTube.isSuperior() && currTube.x < firstTopTube.x && currTube.x >= bird.x)) {
+			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
+				if (firstTopTube == null || (currTube.x < firstTopTube.x && (currTube.x + currTube.w) >= bird.x)) {
 					firstTopTube = currTube;
 				}
 			}
