@@ -48,29 +48,25 @@ public final class GameController {
     // Game Clock
     private final GameClock gameClock = new GameClock();
     
+    private final int nBirdsXGen, nBirdsRegen;
     private int lastGameHeight;
     private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
 
-	public GameController(GameView gameView, int nBirdsXGen) throws NullPointerException, IllegalArgumentException {
+	public GameController(GameView gameView, int nBirdsXGen, int nBirdsRegen) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
 		if (nBirdsXGen <= 0) {
 			throw new IllegalArgumentException("Number of Birds per Generation Must Be Greater than 0");
 		}
+		this.nBirdsXGen = nBirdsXGen;
+		this.nBirdsRegen = nBirdsRegen;
 		
-		this.vGameObj = new HashSet<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
+		vGameObj = new HashSet<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
 		gameView.setController(this);
 		gameClock.start();
 		newTubePair();
 	}
 	
 	// Game Logic Methods
-	
-	public void addBirds(Set<AbstractGameObject> vBirds) throws NullPointerException {
-		Objects.requireNonNull(vBirds, "Birds List Cannot be Null");
-		
-		vGameObj.addAll(vBirds);
-		gameStats.nBirds += vBirds.size();
-	}
 	
 	public void startOneGen() throws NullPointerException, RuntimeException {		
 		int gameHeight;
@@ -87,6 +83,8 @@ public final class GameController {
 		// Avviare una nuova sessione a inizio gioco (prima generazione)
 		if (isFirstGen()) {
 			gameClock.startSession();
+			// Aggiungere Uccelli alla Prima Generazione
+			addFirstGenBirds();
 		}
 		
 		gameClock.setLastUpdateTimeNow();
@@ -319,6 +317,52 @@ public final class GameController {
 		}
 	}
 	
+	private void addBirds(Set<AbstractGameObject> vBirds) {
+		vGameObj.addAll(vBirds);
+		gameStats.nBirds += vBirds.size();
+	}
+	
+	private Set<AbstractGameObject> createRandomBirds(int nBirds) {
+		Set<AbstractGameObject> vBirds = new HashSet<>(nBirds);
+		int startY = getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
+		
+		for (int i = 0; i < nBirds; ++i) {
+			vBirds.add(new FlappyBird(20, startY, new BirdBrain()));
+		}
+		
+		return vBirds;
+	}
+
+	private Set<AbstractGameObject> createBrainedBirds(int nBirds, Optional<BirdBrain> bestBirdBrainOpt) {
+		if (bestBirdBrainOpt.isEmpty()) {
+			return createRandomBirds(nBirds);
+		}
+		
+		BirdBrain bestBirdBrain = bestBirdBrainOpt.get();
+		Set<AbstractGameObject> vBirds = new HashSet<>(nBirds);
+		int startY = getGameHeight() / 2 - FlappyBird.HEIGHT / 2;
+		FlappyBird bird;
+		
+		for (int i = 0; i < nBirds; ++i) {
+			bird = new FlappyBird(20, startY, bestBirdBrain);
+			bird.getBrain().updateWeights();
+			vBirds.add(bird);
+		}
+		
+		return vBirds;
+	}
+	
+	// Creazione Uccelli per la Prima Generazione (tutti casuali)
+	private void addFirstGenBirds() {
+		addBirds(createRandomBirds(nBirdsXGen));
+	}
+	
+	// Creazione Nuovi Uccelli per la Nuova Generazione Dopo la Prima (una parte con bestBirdBrain e una parte casuali)
+	private void addNewGenBirds() {
+		addBirds(createBrainedBirds(nBirdsRegen, getBestBirdBrain()));
+		addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
+	}
+	
 	private void newTubePair() {
 		Set<Tube> newTubePair = Tube.newTubePair(getGameWidth(), getGameHeight());
 	    vGameObj.addAll(newTubePair);
@@ -380,7 +424,7 @@ public final class GameController {
 		gameStats.nTubePassed = 0;
 		gameStats.currLifeTime = 0;
 		vGameObj.clear();
-		newTubePair();
+		addNewGenBirds();
 	}
 	
 	private void resetToFirstGen() {

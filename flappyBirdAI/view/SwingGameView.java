@@ -35,26 +35,6 @@ import java.awt.geom.RoundRectangle2D;
 public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	private static final long serialVersionUID = 1L;
-	
-	// Window and UI Constants
-	
-	private static final String WINDOW_TITLE = "Flappy Bird AI";
-    private static final String ICON_PATH = "/res/FB_ICON.png";
-    private static final String GAME_BACKGROUND_IMAGE_PATH = "/res/BACKGROUND.png";
-    private static final int TIMER_DELAY_MS = 2000;
-    
-    // Panel Minimum Dimensions Constants
-    private static final int MIN_STATS_PANEL_WIDTH = 1000;
-    private static final int MIN_STATS_PANEL_HEIGHT = 40;
-    private static final int MIN_CONTROLS_PANEL_HEIGHT = 150;
-    private static final int MIN_IMPORT_EXPORT_PANEL_WIDTH = 250;
-    private static final int MIN_CHRONOMETER_PANEL_WIDTH = MIN_IMPORT_EXPORT_PANEL_WIDTH;
-    private static final int MIN_CHRONOMETER_PANEL_HEIGHT = MIN_CONTROLS_PANEL_HEIGHT;
-    private static final int MIN_GAME_PANEL_WIDTH = MIN_STATS_PANEL_WIDTH;
-    private static final int MIN_GAME_PANEL_HEIGHT = 500;
-    private static final int MIN_IMPORT_EXPORT_PANEL_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT;
-    private static final int MIN_WINDOW_WIDTH = MIN_STATS_PANEL_WIDTH + MIN_IMPORT_EXPORT_PANEL_WIDTH;
-    private static final int MIN_WINDOW_HEIGHT = MIN_GAME_PANEL_HEIGHT + MIN_STATS_PANEL_HEIGHT + MIN_CONTROLS_PANEL_HEIGHT;
     
     // Colors
     private static final Color GAME_BACKGROUND_COLOR = Color.CYAN;
@@ -64,11 +44,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final Color CHRONOMETER_BACKGROUND_COLOR = Color.decode("#F0E68C");
     private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 150);
     private static final Color PAUSE_SYMBOL_COLOR = new Color(150, 150, 150);
-    
-    // Pause Symbol Ratios compared to symbol size
-    private static final double BAR_WIDTH_RATIO = 1.0 / 4.5;
-    private static final double BAR_HEIGHT_RATIO = 0.8;
-    private static final double BAR_GAP_RATIO = 1.0 / 3.0;
     
     // Utility Functions
     
