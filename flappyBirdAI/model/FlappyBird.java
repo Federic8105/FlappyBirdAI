@@ -84,7 +84,7 @@ public class FlappyBird extends AbstractGameObject {
 
     private void startAnimation() throws RuntimeException {
 		Thread animationThread = new Thread(() -> {
-			while (isAlive) {
+			while (isAlive()) {
 				try {
 					Thread.sleep(tDelayAnimation);
 					updateImageIndex();
@@ -125,7 +125,7 @@ public class FlappyBird extends AbstractGameObject {
             g2d.drawImage(V_IMAGES[imageIndex], x, y, null);
         } else {
         	g2d.setColor(Color.red);
-            g2d.draw(hitBox); 
+            g2d.draw(hitBox[0]); 
         }
 	}
 	
@@ -143,7 +143,7 @@ public class FlappyBird extends AbstractGameObject {
 
 	@Override
 	public String toString() {
-		if (!isAlive) {
+		if (!isAlive()) {
 	        return "FlappyBird Not Alive";
 	    }
 	    

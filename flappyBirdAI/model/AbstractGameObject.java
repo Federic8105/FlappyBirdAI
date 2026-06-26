@@ -14,19 +14,34 @@ public class AbstractGameObject implements GameObject {
 	
 	// Pubblici per Performance in Game Loop
 	public int x, y, w, h;
-	public boolean isAlive = true;
+	
+	private boolean isAlive = true;
 	
 	protected int imageIndex = 0;
 	protected boolean showImage = true;
-	protected Rectangle hitBox;
-
+	protected Rectangle[] hitBox;
+	
 	@Override
-	public void updateHitBox() {
-		hitBox = new Rectangle(x, y, w, h);
+	public boolean isAlive() {
+		return isAlive;
 	}
 	
 	@Override
-	public Rectangle getHitBox() {
+	public void setAlive(boolean alive) {
+		this.isAlive = alive;
+	}
+
+	@Override
+	public void updateHitBox() {
+		if (hitBox == null) {
+			hitBox = new Rectangle[] { new Rectangle(x, y, w, h) };
+		} else {
+			hitBox[0].setBounds(x, y, w, h);
+		}
+	}
+	
+	@Override
+	public Rectangle[] getHitBox() {
 		return hitBox;
 	}
 	
@@ -37,16 +52,17 @@ public class AbstractGameObject implements GameObject {
 	public boolean checkCollision(Rectangle[] vHitBox) throws NullPointerException {
 		Objects.requireNonNull(vHitBox, "HitBox Array Cannot be Null");
 		
-		boolean collision = false;
-        for (Rectangle box : vHitBox) {
-        	Objects.requireNonNull(box, "Individual HitBox Cannot be Null");
-            if (hitBox.intersects(box)) {
-                collision = true;
-                break;
-            }
-        }
-
-		return collision;
+		for (Rectangle ownBox : hitBox) {
+			for (Rectangle otherBox : vHitBox) {
+				Objects.requireNonNull(otherBox, "Individual HitBox Cannot be Null");
+				
+				if (ownBox.intersects(otherBox)) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	@Override

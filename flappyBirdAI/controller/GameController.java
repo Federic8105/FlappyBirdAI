@@ -7,7 +7,7 @@ package flappyBirdAI.controller;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.FlappyBird;
-import flappyBirdAI.model.Tube;
+import flappyBirdAI.model.TubePair;
 import flappyBirdAI.view.GameView;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,18 +63,17 @@ public final class GameController {
 		vGameObj = new HashSet<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
 		gameView.setController(this);
 		gameClock.start();
-		newTubePair();
 	}
 	
 	// Game Logic Methods
 	
-	public void startOneGen() throws NullPointerException, RuntimeException {		
+	public void playOneGen() throws NullPointerException, RuntimeException {		
 		int gameHeight;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
-		Optional<Tube> firstTopTubeOpt;
-		Tube previousFirstTopTube = null, currTargetTube;
+		Optional<TubePair> firstTubePairOpt;
+		TubePair previousFirstTubePair = null, currTargetTubePair;
 		Optional<FlappyBird> randBirdOpt;
 		FlappyBird randBird;
 		
@@ -86,6 +85,8 @@ public final class GameController {
 			// Aggiungere Uccelli alla Prima Generazione
 			addFirstGenBirds();
 		}
+		
+		addNewTubePair();
 		
 		gameClock.setLastUpdateTimeNow();
 
@@ -134,32 +135,26 @@ public final class GameController {
 					bestBirdBrainOpt = Optional.of(randBird.getBrain());
 				}
             }
-			
-			// Ottenere Primo Tube Superiore a Destra
-			firstTopTubeOpt = getFirstTopTube(randBirdOpt);
-			if (firstTopTubeOpt.isPresent()) {
-				currTargetTube = firstTopTubeOpt.get();
+        	
+        	firstTubePairOpt = getFirstTubePair(randBirdOpt);
+			if (firstTubePairOpt.isPresent()) {
+				currTargetTubePair = firstTubePairOpt.get();
 				
-				// All'inizio della generazione, previousFirstTopTube è null, quindi assegnarlo al primo Tube trovato senza incrementare nTubePassed
-				if (previousFirstTopTube == null) {
-					previousFirstTopTube = currTargetTube;
-				
-				// Se il primo Tube è cambiato (il Bird ha passato il Tube precedente), incrementare nTubePassed e aggiornare previousFirstTopTube
-				} else if (!currTargetTube.equals(previousFirstTopTube)) {
+				if (previousFirstTubePair == null) {
+					previousFirstTubePair = currTargetTubePair;
+				} else if (!currTargetTubePair.equals(previousFirstTubePair)) {
 					++gameStats.nTubePassed;
 					
-					// Nuovo Record di Tube Passati
 					if (gameStats.nTubePassed > gameStats.maxTubePassed) {
 			            gameStats.maxTubePassed = gameStats.nTubePassed;
 			        }
 					
-			        previousFirstTopTube = currTargetTube;
+			        previousFirstTubePair = currTargetTubePair;
 				}
-				
 			}
 			
 			// Aggiornare Oggetti di Gioco
-            updateGameObjects(dt, getTubeHitBoxes(firstTopTubeOpt), firstTopTubeOpt);
+            updateGameObjects(dt, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
             deleteDeadGameObjects();
 			checkNewTube();
 			
@@ -192,61 +187,50 @@ public final class GameController {
 		resetForNewGen();
 	}
 	
-	// Creazione vettore HitBox di Tube più vicini
-	private Rectangle[] getTubeHitBoxes(Optional<Tube> firstTopTubeOpt) {
-		if (firstTopTubeOpt.isEmpty()) {
-			return new Rectangle[0];
-		}
-		
-		Tube firstTopTube = firstTopTubeOpt.get();
-		Rectangle[] vTubeHitBox = new Rectangle[2];
-		vTubeHitBox[0] = firstTopTube.getHitBox();
-		
-		for (AbstractGameObject obj : vGameObj) {
-			// Controllo currTube.isAlive() non necessario perchè fatto in .isTheOppositeOf()
-			if (obj instanceof Tube currTube && currTube.isTheOppositeOf(firstTopTube)) {
-				vTubeHitBox[1] = currTube.getHitBox();
-				break;
-			}
-		}
-		
-		return vTubeHitBox;
+	private Rectangle[] getTubeHitBoxes(Optional<TubePair> firstTubePairOpt) {
+		return firstTubePairOpt.isPresent() ? firstTubePairOpt.get().getHitBox() : new Rectangle[0];
 	}
 	
 	private void recreateTubes() {
-		Set<Tube> newTubes = new HashSet<>(50);
+		Set<TubePair> newTubePairs = new HashSet<>(25);
 		
 		for (AbstractGameObject obj : vGameObj) {
-			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
-				newTubes.addAll(Tube.newTubePair(currTube.x, getGameHeight()));
+			if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
+				// Mantenere la posizione relativa del buco rispetto alla vecchia altezza
+				double holeRatio = (double) currTubePair.getYTubeHoleCenter() / lastGameHeight;
+				int newYCenterHole = (int) Math.round(holeRatio * getGameHeight());
+				
+				newTubePairs.add(new TubePair(currTubePair.x, getGameHeight(), newYCenterHole));
 			}
 		}
 		
-		// Rimuovere tutti i Tube esistenti e aggiungere i nuovi Tube
-		vGameObj.removeIf(obj -> obj instanceof Tube);
-		vGameObj.addAll(newTubes);
+		// Rimuovere tutti i TubePair esistenti e aggiungere i nuovi
+		vGameObj.removeIf(obj -> obj instanceof TubePair);
+		vGameObj.addAll(newTubePairs);
 	}
 
-	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Optional<Tube> firstTopTubeOpt) {
+	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Optional<TubePair> firstTubePairOpt) {
 		
         for (AbstractGameObject obj : vGameObj) {
         	
-            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
-                    currBird.isAlive = false;
+                    currBird.setAlive(false);
         			--gameStats.nBirds;
                     continue;
                     
                 // AI Decision
-                } else if (firstTopTubeOpt.isPresent()) {
-                	Tube firstTopTube = firstTopTubeOpt.get();
+                } else if (firstTubePairOpt.isPresent()) {
+                	//Tube firstTopTube = firstTopTubeOpt.get();
+                	
+                	TubePair firstTubePair = firstTubePairOpt.get();
                 	
                 	brainInputMap.put("yBird", (double) currBird.y);
                 	brainInputMap.put("vyBird", currBird.vy);
-                	brainInputMap.put("yCenterTubeHole", (double) (firstTopTube.h + Tube.DIST_Y_BETWEEN_TUBES / 2));
-                	brainInputMap.put("xDistBirdTube", (double) firstTopTube.x - currBird.x);
+                	brainInputMap.put("yCenterTubeHole", (double) firstTubePair.getYTubeHoleCenter());
+                	brainInputMap.put("xDistBirdTube", (double) firstTubePair.x - currBird.x);
 
                 	currBird.getBrain().setInputs(brainInputMap);
                     
@@ -257,63 +241,65 @@ public final class GameController {
                 
                 currBird.updateXY(dt);
                 
-            } else if (obj instanceof Tube currTube && currTube.isAlive) {
-            	// Rimuovere i Tube che sono usciti dallo schermo
-                if (currTube.x + currTube.w < 0) {
-                    currTube.isAlive = false;
-                // Aggiornare la Posizione del Tube
+            } else if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
+            	// Rimuovere i Tube che sono usciti dallo schermo           
+                if (currTubePair.x + TubePair.WIDTH < 0) {
+                    currTubePair.setAlive(false);
                 } else {
-                    currTube.updateXY(dt);
+                    currTubePair.updateXY(dt);
                 }
             }
         }
     }
 	
 	private void deleteDeadGameObjects() {
-		vGameObj.removeIf(obj -> !obj.isAlive);
+		vGameObj.removeIf(obj -> !obj.isAlive());
 	}
 	
 	private Optional<FlappyBird> getRandomBird() {
         for (AbstractGameObject obj : vGameObj) {
-            if (obj instanceof FlappyBird currBird && currBird.isAlive) {
+            if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
                 return Optional.of(currBird);
             }
         }
         return Optional.empty();
     }
 	
-	private Optional<Tube> getFirstTopTube(Optional<FlappyBird> birdOpt) {
+	private Optional<TubePair> getFirstTubePair(Optional<FlappyBird> birdOpt) {
 		if (birdOpt.isEmpty()) {
 			return Optional.empty();
 		}
 		
 		FlappyBird bird = birdOpt.get();
-		Tube firstTopTube = null;
+		TubePair firstTubePair = null;
 		
 		for (AbstractGameObject obj : vGameObj) {
-			if (obj instanceof Tube currTube && currTube.isAlive && currTube.isSuperior()) {
-				if (firstTopTube == null || (currTube.x < firstTopTube.x && (currTube.x + currTube.w) >= bird.x)) {
-					firstTopTube = currTube;
+			if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
+				if (firstTubePair == null || (currTubePair.x < firstTubePair.x && (currTubePair.x + TubePair.WIDTH) >= bird.x)) {
+					firstTubePair = currTubePair;
 				}
 			}
 		}
 		
-		return Optional.ofNullable(firstTopTube);
+		return Optional.ofNullable(firstTubePair);
 	}
 
 	private void checkNewTube() {
-		Tube lastTube = null;
+		TubePair lastTubePair = null;
+		
         for (AbstractGameObject obj : vGameObj) {
-        	// Controllo anche se il tubo è il superiore per non pendere stessa coppia 2 volte perchè hanno stessa x
-            if (obj instanceof Tube && obj.isAlive && ((Tube) obj).isSuperior()) {
-                lastTube = (Tube) obj;
+            if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
+            	// Tenere il TubePair con la x più grande (il più a destra)
+            	if (lastTubePair == null || currTubePair.x > lastTubePair.x) {
+            		lastTubePair = currTubePair;
+            	}
             }
         }
 
-		if (lastTube != null && lastTube.x + Tube.WIDTH <= getGameWidth() - Tube.DIST_X_BETWEEN_TUBES) {
-			newTubePair();
-		} else if (lastTube == null) {
-			newTubePair();
+		if (lastTubePair != null && lastTubePair.x + TubePair.WIDTH <= getGameWidth() - TubePair.DIST_X_BETWEEN_TUBES) {
+			addNewTubePair();
+		} else if (lastTubePair == null) {
+			addNewTubePair();
 		}
 	}
 	
@@ -363,9 +349,10 @@ public final class GameController {
 		addBirds(createRandomBirds(nBirdsXGen - nBirdsRegen));
 	}
 	
-	private void newTubePair() {
-		Set<Tube> newTubePair = Tube.newTubePair(getGameWidth(), getGameHeight());
-	    vGameObj.addAll(newTubePair);
+	private void addNewTubePair() {
+		//Set<Tube> newTubePair = Tube.newTubePair(getGameWidth(), getGameHeight());
+	    //vGameObj.addAll(newTubePair);
+		vGameObj.add(new TubePair(getGameWidth(), getGameHeight()));
 	}
 	
 	// Controllo autosave a fine generazione (On Gen)
@@ -434,7 +421,7 @@ public final class GameController {
 		vGameObj.clear();
 		bestBirdBrainOpt = Optional.empty();
 		
-		newTubePair();
+		addNewTubePair();
 	}
 	
 	// Import/Export Methods

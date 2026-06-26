@@ -10,7 +10,7 @@ import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
 
 //TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, nuovo parametro di birdbrain è larghezza buco, isOutOfScreen()
 
 public class FlappyBirdAI {
 
@@ -37,7 +37,7 @@ public class FlappyBirdAI {
 
 	private void startGame() {
 		while (true) {
-			gameController.startOneGen();
+			gameController.playOneGen();
 		}
 	}
 

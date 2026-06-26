@@ -54,7 +54,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
     
     // Initial Window Dimensions
- 	private final int initialWidth, initialHeight;
+ 	private final int initWidth, initHeight;
     
     // Caching Ultimi Valori di Statistica per Labels
     private int lastGen = -1, lastNBirds = -1, lastTubePassed = -1, lastMaxTubePassed = -1;
@@ -87,8 +87,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private JLabel lTime, lTimeValue;
 
 	public SwingGameView(int width, int height) {
-		this.initialWidth = Math.max(width, MIN_WINDOW_WIDTH);
-		this.initialHeight = Math.max(height, MIN_WINDOW_HEIGHT);
+		this.initWidth = Math.max(width, MIN_WINDOW_WIDTH);
+		this.initHeight = Math.max(height, MIN_WINDOW_HEIGHT);
 		
 		initWindow();
 		initPanels();
@@ -124,7 +124,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	private void initWindow() {
-		setSize(initialWidth, initialHeight);
+		setSize(initWidth, initHeight);
 		setMinimumSize(new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
         setTitle(WINDOW_TITLE);
         setIconImage(new ImageIcon(getClass().getResource(ICON_PATH)).getImage());
@@ -139,7 +139,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		initLeftPanels();
 		
 		JPanel centralPanel = new JPanel(new BorderLayout());
-		centralPanel.setPreferredSize(new Dimension(initialWidth, initialHeight));
+		centralPanel.setPreferredSize(new Dimension(initWidth, initHeight));
 		
 		initGamePanel();
 		initStatsPanel();
@@ -160,7 +160,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		// Calcolare la larghezza come percentuale della larghezza totale
 	    int panelWidth = calcImportExportPanelWidth(0.2f);
-	    leftPanel.setPreferredSize(new Dimension(panelWidth, initialHeight));
+	    leftPanel.setPreferredSize(new Dimension(panelWidth, initHeight));
 	    leftPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_IMPORT_EXPORT_PANEL_HEIGHT + MIN_CHRONOMETER_PANEL_HEIGHT));
 	    
 	    initImportExportPanel(panelWidth);
@@ -176,7 +176,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private int calcImportExportPanelWidth(float percOfTotWidth) {
 	    // Calcolare la larghezza come percentuale della larghezza totale
 	    // Controllo Width Min
-        return Math.max((int) (initialWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
+        return Math.max((int) (initWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
     }
 	
 	private void initImportExportPanel(int panelWidth) {
@@ -336,7 +336,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		statsPanel = new JPanel();
 		statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
 		statsPanel.setBackground(STATS_BACKGROUND_COLOR);
-		statsPanel.setPreferredSize(new Dimension(initialWidth, MIN_STATS_PANEL_HEIGHT));
+		statsPanel.setPreferredSize(new Dimension(initWidth, MIN_STATS_PANEL_HEIGHT));
 		statsPanel.setMinimumSize(new Dimension(MIN_STATS_PANEL_WIDTH, MIN_STATS_PANEL_HEIGHT));
 		
 		initStatsUI();
@@ -347,7 +347,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private void initControlsPanel() {
 		controlsPanel = new JPanel(new BorderLayout());
 		controlsPanel.setBackground(CONTROLS_BACKGROUND_COLOR);
-		controlsPanel.setPreferredSize(new Dimension(initialWidth, MIN_CONTROLS_PANEL_HEIGHT));
+		controlsPanel.setPreferredSize(new Dimension(initWidth, MIN_CONTROLS_PANEL_HEIGHT));
 		controlsPanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_CONTROLS_PANEL_HEIGHT));
 		
 		initControlsUI();
@@ -683,7 +683,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	        return gamePanel.getWidth();
 	    }
 	    
-	    return Math.max(initialWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
+	    return Math.max(initWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
     }
     
     @Override
@@ -695,7 +695,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
         // altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (SLIDER_HEIGHT)
-        return Math.max(initialHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
+        return Math.max(initHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
     }
     
     @Override

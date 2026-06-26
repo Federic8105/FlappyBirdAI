@@ -8,8 +8,10 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 
 public interface GameObject {
+	boolean isAlive();
+	void setAlive(boolean alive);
 	void updateHitBox();
-	Rectangle getHitBox();
+	Rectangle[] getHitBox();
 	void updateXY(double dt_s);
 	boolean checkCollision(Rectangle[] vHitBox);
 	void updateImageIndex();
