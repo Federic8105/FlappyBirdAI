@@ -5,12 +5,42 @@
 package flappyBirdAI.model;
 
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
+import javax.imageio.ImageIO;
 
 public class AbstractGameObject implements GameObject {
 	
+	// Proprietà statiche da definire in sottoclassi concrete:
+	/*
+		private static final int NUM_IMAGES;
+		private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
+		private static final String IMG_NAME = "/res/";
+		protected static boolean ARE_IMAGES_FOUND = false;
+	*/
 	protected static final String IMG_EXT= ".png";
+	
+	protected record ImageLoadResult(Image[] images, boolean allFound) {}
+	
+	protected static ImageLoadResult loadImageSet(Class<? extends AbstractGameObject> owner, String imgName, int numImages) {
+	    Image[] images = new Image[numImages];
+	    for (int i = 0; i < numImages; ++i) {
+	        try {
+	            images[i] = ImageIO.read(owner.getResource(imgName + i + IMG_EXT));
+	            // ImageIO.read può restituire null oltre a lanciare eccezioni
+	            if (images[i] == null) {
+	                System.err.println("Image Not Found: " + imgName + i + IMG_EXT);
+	            }
+	        } catch (IOException e) {
+	            System.err.println("Image Not Found: " + e.getMessage());
+	        }
+	    }
+	    boolean allFound = Arrays.stream(images).allMatch(Objects::nonNull);
+	    return new ImageLoadResult(images, allFound);
+	}
 	
 	// Pubblici per Performance in Game Loop
 	public int x, y, w, h;
@@ -63,6 +93,11 @@ public class AbstractGameObject implements GameObject {
 		}
 		
 		return false;
+	}
+	
+	@Override
+	public boolean isOutOfScreen(int screenWidth, int screenHeight) {
+		return x + w < 0 || x > screenWidth || y + h < 0 || y > screenHeight;
 	}
 	
 	@Override

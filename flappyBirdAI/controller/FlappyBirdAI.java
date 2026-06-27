@@ -9,8 +9,8 @@ import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
 
-//TODO: javaFX, javadocs e organizzazione metodi, migliori interfacce con più metodi, uso tube solo a coppie
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, nuovo parametro di birdbrain è larghezza buco, isOutOfScreen()
+//TODO: javaFX, javadocs e organizzazione metodi, disaccoppia uso di swing ora in models con draw e image
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, menù iniziale con scelta grafica e se carica già cervello
 
 public class FlappyBirdAI {
 

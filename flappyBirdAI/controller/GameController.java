@@ -193,14 +193,12 @@ public final class GameController {
 	
 	private void recreateTubes() {
 		Set<TubePair> newTubePairs = new HashSet<>(25);
-		
+		double holeRatio;
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
 				// Mantenere la posizione relativa del buco rispetto alla vecchia altezza
-				double holeRatio = (double) currTubePair.getYTubeHoleCenter() / lastGameHeight;
-				int newYCenterHole = (int) Math.round(holeRatio * getGameHeight());
-				
-				newTubePairs.add(new TubePair(currTubePair.x, getGameHeight(), newYCenterHole));
+				holeRatio = (double) currTubePair.getYTubeHoleCenter() / lastGameHeight;
+				newTubePairs.add(new TubePair(currTubePair.x, getGameHeight(), holeRatio));
 			}
 		}
 		
@@ -216,7 +214,7 @@ public final class GameController {
             if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
-                if (currBird.checkCollision(tubeHitBoxes) || currBird.y + currBird.h < 0 || currBird.y > getGameHeight()) {
+                if (currBird.checkCollision(tubeHitBoxes) || currBird.isOutOfScreen(getGameWidth(), getGameHeight())) {
                     currBird.setAlive(false);
         			--gameStats.nBirds;
                     continue;
@@ -243,7 +241,7 @@ public final class GameController {
                 
             } else if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
             	// Rimuovere i Tube che sono usciti dallo schermo           
-                if (currTubePair.x + TubePair.WIDTH < 0) {
+                if (currTubePair.isOutOfScreen(getGameWidth(), getGameHeight())) {
                     currTubePair.setAlive(false);
                 } else {
                     currTubePair.updateXY(dt);

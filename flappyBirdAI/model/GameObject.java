@@ -14,6 +14,7 @@ public interface GameObject {
 	Rectangle[] getHitBox();
 	void updateXY(double dt_s);
 	boolean checkCollision(Rectangle[] vHitBox);
+	boolean isOutOfScreen(int screenWidth, int screenHeight);
 	void updateImageIndex();
 	void draw(Graphics2D g2d);
 }

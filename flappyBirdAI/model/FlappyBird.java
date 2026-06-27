@@ -5,11 +5,11 @@
 package flappyBirdAI.model;
 
 import flappyBirdAI.ai.BirdBrain;
-import java.awt.*;
-import java.io.IOException;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.util.Arrays;
 import java.util.Objects;
-import javax.imageio.ImageIO;
 
 public class FlappyBird extends AbstractGameObject {
 	
@@ -17,37 +17,20 @@ public class FlappyBird extends AbstractGameObject {
 	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
 	private static final String IMG_NAME = "/res/FB";
 	protected static boolean ARE_IMAGES_FOUND = false;
-	protected static boolean ARE_IMAGES_LOADED = false;
 	
 	public static final int WIDTH = 60;
 	public static final int HEIGHT = 45;
 	
 	public static void loadImages() {
-		if (ARE_IMAGES_LOADED) {
+		if (ARE_IMAGES_FOUND) {
 			return;
 		}
 		
-		for (int i = 0; i < V_IMAGES.length; ++i) {
-			try {
-				V_IMAGES[i] = ImageIO.read(FlappyBird.class.getResource(IMG_NAME + i + IMG_EXT));
-				
-				// ImageIO.read può restituire null oltre a lanciare eccezioni
-				if (V_IMAGES[i] != null) {
-					// Ridimensiona l'immagine caricata
-					V_IMAGES[i] = V_IMAGES[i].getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH);
-				} else {
-					System.err.println("Image Not Found: " + IMG_NAME + i + IMG_EXT);
-				}
-
-			} catch(IOException e) {
-            	System.err.println("Image Not Found: " + e.getMessage());
-			}
-		}
-		
-		ARE_IMAGES_FOUND = (V_IMAGES.length == NUM_IMAGES && Arrays.stream(V_IMAGES).allMatch(img -> img != null));
-		if (ARE_IMAGES_FOUND) {
-			ARE_IMAGES_LOADED = true;
-		}
+		ImageLoadResult imgLoadRes = loadImageSet(FlappyBird.class, IMG_NAME, NUM_IMAGES);
+		// Ridimensiona tutte le immagini caricate (!= null) in base a WIDTH e HEIGHT e raccoglie i risultati in un nuovo array di tipo Image[]
+		Image[] scaledImages = Arrays.stream(imgLoadRes.images()).map(img -> img != null ? img.getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH) : null).toArray(Image[]::new);
+	    System.arraycopy(scaledImages, 0, V_IMAGES, 0, NUM_IMAGES);
+	    ARE_IMAGES_FOUND = imgLoadRes.allFound();
 	}
 
 	public double lifeTime = 0, vy = 0;
