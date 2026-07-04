@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import javax.imageio.ImageIO;
 
 public class SwingGameRenderer implements GameRenderer<Graphics2D> {
@@ -23,26 +22,12 @@ public class SwingGameRenderer implements GameRenderer<Graphics2D> {
 	private final Map<String, Image[]> spriteCache = new HashMap<>();
 	
 	@Override
-    public void preloadSprites(Set<AbstractGameObject> vGameObj) {
-        vGameObj.stream()
-                .flatMap(obj -> obj.getRenderableComponents().stream())
-                .map(GameObject::getSpriteDescriptor)
-                .distinct()
-                .forEach(this::ensureLoaded);
-    }
-	
-	@Override
-    public void render(Graphics2D g2d, AbstractGameObject obj) {
-        for (GameObject part : obj.getRenderableComponents()) {
-            renderSingle(g2d, part);
-        }
-    }
-	
-	private Image[] ensureLoaded(SpriteDescriptor desc) {
+	public Image[] ensureLoaded(SpriteDescriptor desc) {
         return spriteCache.computeIfAbsent(desc.resourceKey(), _ -> loadFrames(desc));
     }
 	
-	private void renderSingle(Graphics2D g2d, GameObject obj) {
+	@Override
+	public void renderSingle(Graphics2D g2d, GameObject obj) {
         SpriteDescriptor desc = obj.getSpriteDescriptor();
         Image[] frames = ensureLoaded(desc);
         Image frame = frames.length > 0 ? frames[obj.getFrameIndex() % frames.length] : null;

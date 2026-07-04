@@ -5,7 +5,6 @@
 package flappyBirdAI.model;
 
 import java.awt.Rectangle;
-import java.util.Objects;
 
 public abstract class AbstractGameObject implements GameObject {
 	
@@ -63,34 +62,6 @@ public abstract class AbstractGameObject implements GameObject {
 	}
 	
 	@Override
-	public void updateXY(double dt_ms) {}
-	
-	@Override
-	public boolean checkCollision(Rectangle[] vHitBox) throws NullPointerException {
-		Objects.requireNonNull(vHitBox, "HitBox Array Cannot be Null");
-		
-		for (Rectangle ownBox : hitBox) {
-			for (Rectangle otherBox : vHitBox) {
-				Objects.requireNonNull(otherBox, "Individual HitBox Cannot be Null");
-				
-				if (ownBox.intersects(otherBox)) {
-					return true;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
-	@Override
-	public boolean isOutOfScreen(int screenWidth, int screenHeight) {
-		return x + w < 0 || x > screenWidth || y + h < 0 || y > screenHeight;
-	}
-	
-	@Override
-	public void updateFrameIndex() {}
-	
-	@Override
 	public int getFrameIndex() {
 		return frameIndex;
 	}
@@ -98,11 +69,6 @@ public abstract class AbstractGameObject implements GameObject {
 	@Override
 	public boolean isShowSprite() {
 		return showSprite;
-	}
-	
-	@Override
-	public SpriteDescriptor getSpriteDescriptor() {
-		return null;
 	}
 	
 	@Override

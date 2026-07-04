@@ -46,4 +46,5 @@ public interface GameView {
     int getGameHeight();
     void repaintGame();
     void preloadSprites(Set<AbstractGameObject> vGameObjects);
+    
 }

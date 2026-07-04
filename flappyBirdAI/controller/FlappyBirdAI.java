@@ -24,9 +24,7 @@ public class FlappyBirdAI {
 
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	int nBirdsRegen = (int) (nBirdsXGen * BIRDS_REGEN_PERC);
-    	
 		gameController = new GameController(useJavaFX ? new JavaFXGameView(w, h) : new SwingGameView(w, h), nBirdsXGen, nBirdsRegen);
-
 		startGame();
 	}
 
