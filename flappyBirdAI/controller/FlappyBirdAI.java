@@ -4,13 +4,11 @@
 
 package flappyBirdAI.controller;
 
-import flappyBirdAI.model.FlappyBird;
-import flappyBirdAI.model.Tube;
 import flappyBirdAI.view.JavaFXGameView;
 import flappyBirdAI.view.SwingGameView;
 
-//TODO: javaFX, javadocs e organizzazione metodi, disaccoppia uso di swing ora in models con draw e image
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer, menù iniziale con scelta grafica e se carica già cervello
+//TODO: javaFX, javadocs e organizzazione metodi, menù iniziale con scelta grafica e se carica già cervello
+//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
 public class FlappyBirdAI {
 
@@ -26,9 +24,6 @@ public class FlappyBirdAI {
 
     public FlappyBirdAI(int w, int h, int nBirdsXGen, boolean useJavaFX) {
     	int nBirdsRegen = (int) (nBirdsXGen * BIRDS_REGEN_PERC);
-    	
-    	Tube.loadImages();
-    	FlappyBird.loadImages();
     	
 		gameController = new GameController(useJavaFX ? new JavaFXGameView(w, h) : new SwingGameView(w, h), nBirdsXGen, nBirdsRegen);
 

@@ -4,8 +4,9 @@
 
 package flappyBirdAI.model;
 
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -149,9 +150,11 @@ public class TubePair extends AbstractGameObject {
 	}
 	
 	@Override
-	public void draw(Graphics2D g2d) {
-		tubeUpOpt.ifPresent(t -> t.draw(g2d));
-		tubeDownOpt.ifPresent(t -> t.draw(g2d));
+	public List<? extends GameObject> getRenderableComponents() {
+		List<AbstractGameObject> components = new ArrayList<>(2);
+		tubeUpOpt.ifPresent(components::add);
+		tubeDownOpt.ifPresent(components::add);
+		return components;
 	}
 	
 	@Override

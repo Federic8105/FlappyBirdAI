@@ -40,9 +40,10 @@ public interface GameView {
     // Abstract Methods
     
 	void setController(GameController controller);
-    void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> gameObjects);
+    void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);
     void showAutoSaveMessage(String message);
     int getGameWidth();
     int getGameHeight();
     void repaintGame();
+    void preloadSprites(Set<AbstractGameObject> vGameObjects);
 }

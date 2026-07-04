@@ -65,6 +65,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     // Visibilità package-private per permettere l'accessso solo alle classi dello stesso package (Classi Listeners)
 	GameController gameController;
 	
+	// Renderer for drawing game objects
+	private final GameRenderer<Graphics2D> spriteRenderer = new SwingGameRenderer();
+	
 	// Game Objects for Rendering
     private Set<AbstractGameObject> currentVGameObj;
     
@@ -235,7 +238,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                 if (currentVGameObj != null && !currentVGameObj.isEmpty()) {
                     for (AbstractGameObject obj : currentVGameObj) {
                         if (obj != null) {
-                            obj.draw(g2d);
+                        	spriteRenderer.render(g2d, obj);
                         }
                     }
                 }
@@ -704,6 +707,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             gamePanel.repaint();
         }
     }
+    
+    @Override
+    public void preloadSprites(Set<AbstractGameObject> vGameObj) {
+		spriteRenderer.preloadSprites(vGameObj);
+	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {

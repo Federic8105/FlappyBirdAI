@@ -88,6 +88,9 @@ public final class GameController {
 		
 		addNewTubePair();
 		
+		// Precaricare le Sprite per Migliorare le Prestazioni di Rendering, passando una Copia della Lista per Thread-Safety
+		gameView.preloadSprites(new HashSet<>(vGameObj));
+		
 		gameClock.setLastUpdateTimeNow();
 
 		while (gameStats.nBirds > 0) {

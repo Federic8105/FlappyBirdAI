@@ -4,33 +4,17 @@
 
 package flappyBirdAI.model;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Image;
 import java.util.Objects;
 
 public class Tube extends AbstractGameObject {
 	
-	private static final int NUM_IMAGES = 2;
-	private static final Image[] V_IMAGES = new Image[NUM_IMAGES];
-	private static final String IMG_NAME = "/res/TUBE";
-	protected static boolean ARE_IMAGES_FOUND = false;
+	public static final int NUM_IMAGES = 2;
+	public static final String IMG_NAME = "TUBE";
 
     static final int WIDTH = 50;
-    
-    public static void loadImages() {
-    	if (ARE_IMAGES_FOUND) {
-    		return;
-    	}
-    	
-    	ImageLoadResult imgLoadRes = loadImageSet(Tube.class, IMG_NAME, NUM_IMAGES);
-        System.arraycopy(imgLoadRes.images(), 0, V_IMAGES, 0, NUM_IMAGES);
-        ARE_IMAGES_FOUND = imgLoadRes.allFound();
-	}
 
     private final double vx = 250;
     private final boolean isSuperior;
-    private final Image img;
 
     // Visibilità package-private per Accesso Solo da Stesso Package (TubePair)
     Tube(int x0, int y0, int height, boolean isSuperior) {
@@ -41,24 +25,6 @@ public class Tube extends AbstractGameObject {
 		h = height;
 
         updateHitBox();
-        
-        if (showImage && !ARE_IMAGES_FOUND) {
-			showImage = false;
-		}
-
-        if (showImage) {
-        	updateImageIndex();
-        	
-        	// Ridimensiona solo immagine caricata usata dal Tube in base a w e h
-        	img = V_IMAGES[imageIndex].getScaledInstance(w, h, Image.SCALE_SMOOTH);
-        } else {
-			img = null;
-        }
-    }
-
-    @Override
-    public void updateImageIndex() {
-        imageIndex = isSuperior ? 0 : 1;
     }
     
     @Override
@@ -67,16 +33,11 @@ public class Tube extends AbstractGameObject {
 
         updateHitBox();
     }
-
+	
 	@Override
-    public void draw(Graphics2D g2d) {
-        if (showImage) {
-        	g2d.drawImage(img, x, y, null);
-        } else {
-            g2d.setColor(Color.red);
-            g2d.draw(hitBox[0]);
-        }
-    }
+	public SpriteDescriptor getSpriteDescriptor() {
+	    return isSuperior ? SpriteDescriptor.TUBE_UP : SpriteDescriptor.TUBE_DOWN;
+	}
 	
 	@Override
 	public int hashCode() {
