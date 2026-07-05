@@ -600,6 +600,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	@Override
 	public void close() {
+		// Chiudere la finestra in modo thread-safe
 		SwingUtilities.invokeLater(() -> {
 			dispose();
 		});

@@ -21,11 +21,10 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
-//TODO: javaFX, javadocs e organizzazione metodi e + classi, nome brain caricato, eliminare doppio th?
+//TODO: javaFX, javadocs e organizzazione metodi e + classi e + sotto package, nome brain caricato in pannello e dialog
 //TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
 public class GameMenu extends Application {
@@ -145,54 +144,43 @@ public class GameMenu extends Application {
         }
 	}
     
-	// Alert con errore e possibilità di riavviare il gioco o uscire.
-	// Ritorna true se l'utente sceglie di riavviare, false se sceglie di uscire.
-	// Nota: viene invocato dal game-thread, quindi l'alert deve essere mostrato sul thread JavaFX
-	// (Platform.runLater) e il game-thread deve attendere la risposta dell'utente (CountDownLatch)
-	// prima di proseguire, altrimenti si avrebbe un IllegalStateException e/o una race condition.
-	private boolean alertError(String message) {
-		 ButtonType restartButtonType = new ButtonType("Riavvia");
-		 ButtonType exitButtonType = new ButtonType("Esci");
-		
-		 AtomicBoolean restart = new AtomicBoolean(false);
-		 CountDownLatch latch = new CountDownLatch(1);
-		
-		 Platform.runLater(() -> {
-		     Alert alert = new Alert(AlertType.ERROR);
-		     alert.setTitle("Errore");
-		 alert.setHeaderText(null);
-		 alert.setContentText(message);
-		 alert.getButtonTypes().setAll(restartButtonType, exitButtonType);
-		
-		 Optional<ButtonType> result = alert.showAndWait();
-		
-		 if (result.isPresent() && result.get() == restartButtonType) {
-		     restart.set(true);
-		     gameController.resetGame();
-		     latch.countDown();
-		 } else {
-			    // Chiudere la finestra di gioco
-			    gameController.closeGameView();
+    private boolean alertError(String message) {
+        ButtonType restartButtonType = new ButtonType("Riavvia");
+        ButtonType exitButtonType = new ButtonType("Esci");
 
-			    // Sbloccare il game-thread e fargli terminare il while loop naturalmente
-			    restart.set(false);
-			    latch.countDown();
+        FutureTask<Boolean> task = new FutureTask<>(() -> {
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Errore");
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.getButtonTypes().setAll(restartButtonType, exitButtonType);
 
-			    // Fermare il toolkit JavaFX (necessario per via di setImplicitExit(false))
-			    Platform.exit();
-		}
-		 });
-		
-		 try {
-		     // Il game-thread attende qui finché l'utente non risponde all'alert
-		     latch.await();
-		 } catch (InterruptedException e) {
-		     Thread.currentThread().interrupt();
-		     return false;
-		 }
-		
-		 return restart.get();
-	}
+            boolean restart = alert.showAndWait()
+                    .map(bt -> bt == restartButtonType)
+                    .orElse(false);
+
+            if (restart) {
+                gameController.resetGame();
+            } else {
+                gameController.closeGameView();
+                Platform.exit();
+            }
+            return restart;
+        });
+
+        Platform.runLater(task);
+
+        try {
+            return task.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (ExecutionException e) {
+            // se il codice dentro Platform.runLater lancia un'eccezione, la ricevi qui
+            // invece che perderla silenziosamente
+            throw new RuntimeException("Errore nella gestione dell'Alert", e.getCause());
+        }
+    }
 
     // etichetta con spinner e label
     private VBox labeledField(String labelText, Spinner<Integer> spinner, int minValue) {
