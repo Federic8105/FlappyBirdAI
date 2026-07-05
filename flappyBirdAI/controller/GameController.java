@@ -25,12 +25,16 @@ import java.awt.Rectangle;
 
 public final class GameController {
 	
+	public static final int MIN_N_BIRDS_X_GEN = 1;
+	
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
 	// Template per i nomi dei file da salvare
 	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
 	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
 	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+	
+	private static final double BIRDS_REGEN_PERC = 0.8;
     
     private final GameView gameView;
     private final Set<AbstractGameObject> vGameObj;
@@ -52,15 +56,16 @@ public final class GameController {
     private int lastGameHeight;
     private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
 
-	public GameController(GameView gameView, int nBirdsXGen, int nBirdsRegen) throws NullPointerException, IllegalArgumentException {
+	public GameController(GameView gameView, int nBirdsXGen) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
-		if (nBirdsXGen <= 0) {
+		if (nBirdsXGen < MIN_N_BIRDS_X_GEN) {
 			throw new IllegalArgumentException("Number of Birds per Generation Must Be Greater than 0");
 		}
-		this.nBirdsXGen = nBirdsXGen;
-		this.nBirdsRegen = nBirdsRegen;
 		
-		vGameObj = new HashSet<>(nBirdsXGen + 50); // Capacità Iniziale Stimata (nBirds + Tubes)
+		this.nBirdsXGen = nBirdsXGen;
+		this.nBirdsRegen = (int) (nBirdsXGen * BIRDS_REGEN_PERC);
+		
+		vGameObj = new HashSet<>(nBirdsXGen + 15); // Capacità Iniziale Stimata (nBirds + TubePairs)
 		gameView.setController(this);
 		gameClock.start();
 	}
@@ -188,6 +193,19 @@ public final class GameController {
 		checkAndAutoSaveOnEndGen();
 		
 		resetForNewGen();
+		
+		//TODO
+		throw new NullPointerException("test");
+	}
+	
+	public void resetGame() {
+		gameStats.resetToFirstGen();
+		gameClock.reset();
+		
+		vGameObj.clear();
+		bestBirdBrainOpt = Optional.empty();
+		
+		addNewTubePair();
 	}
 	
 	private Rectangle[] getTubeHitBoxes(Optional<TubePair> firstTubePairOpt) {
@@ -211,7 +229,6 @@ public final class GameController {
 	}
 
 	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Optional<TubePair> firstTubePairOpt) {
-		
         for (AbstractGameObject obj : vGameObj) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
@@ -415,16 +432,6 @@ public final class GameController {
 		addNewGenBirds();
 	}
 	
-	private void resetToFirstGen() {
-		gameStats.resetToFirstGen();
-		gameClock.reset();
-		
-		vGameObj.clear();
-		bestBirdBrainOpt = Optional.empty();
-		
-		addNewTubePair();
-	}
-	
 	// Import/Export Methods
 	
 	private String createAutoSaveFileName() {
@@ -450,13 +457,17 @@ public final class GameController {
 		
 		try {
 			bestBirdBrainOpt = Optional.of(BirdBrain.loadFromFile(Path.of(filePath)));
-			resetToFirstGen();
+			resetGame();
 		} catch (IOException e) {
 			throw e;
 		}
 	}
 	
 	// Getters and Setters - API Methods
+	
+	public void closeGameView() {
+		gameView.close();
+	}
 	
 	public int getGameHeight() {
 		return gameView.getGameHeight();

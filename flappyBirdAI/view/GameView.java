@@ -39,6 +39,7 @@ public interface GameView {
 	
     // Abstract Methods
     
+    void close();
 	void setController(GameController controller);
     void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);
     void showAutoSaveMessage(String message);

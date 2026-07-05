@@ -90,8 +90,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	private JLabel lTime, lTimeValue;
 
 	public SwingGameView(int width, int height) {
-		this.initWidth = Math.max(width, MIN_WINDOW_WIDTH);
-		this.initHeight = Math.max(height, MIN_WINDOW_HEIGHT);
+		initWidth = Math.max(width, MIN_WINDOW_WIDTH);
+		initHeight = Math.max(height, MIN_WINDOW_HEIGHT);
 		
 		initWindow();
 		initPanels();
@@ -597,6 +597,13 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	// GameView Interface Methods
+	
+	@Override
+	public void close() {
+		SwingUtilities.invokeLater(() -> {
+			dispose();
+		});
+	}
 	
 	@Override
     public void setController(GameController gameController) {
