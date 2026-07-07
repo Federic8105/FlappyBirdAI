@@ -26,6 +26,7 @@ import java.awt.Rectangle;
 public final class GameController {
 	
 	public static final int MIN_N_BIRDS_X_GEN = 1;
+	public static final int MAX_N_BIRDS_X_GEN = 100000;
 	
 	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
 	
@@ -72,7 +73,7 @@ public final class GameController {
 	
 	// Game Logic Methods
 	
-	public void playOneGen() throws NullPointerException, RuntimeException {		
+	public void playOneGen() throws RuntimeException {		
 		int gameHeight;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
@@ -193,9 +194,6 @@ public final class GameController {
 		checkAndAutoSaveOnEndGen();
 		
 		resetForNewGen();
-		
-		//TODO
-		throw new NullPointerException("test");
 	}
 	
 	public void resetGame() {
