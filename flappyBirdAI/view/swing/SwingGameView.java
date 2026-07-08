@@ -985,7 +985,7 @@ class SaveBrainListener implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (parentView.gameController.getBestBirdBrain() == null) {
+		if (parentView.gameController.getBestBirdBrain().isEmpty()) {
 			JOptionPane.showMessageDialog(parentView, "No Brain Available for Saving!", "Error", JOptionPane.WARNING_MESSAGE);
 			return;
 		}

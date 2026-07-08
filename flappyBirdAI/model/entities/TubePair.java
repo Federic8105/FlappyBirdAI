@@ -4,15 +4,13 @@
 
 package flappyBirdAI.model.entities;
 
+import flappyBirdAI.model.AbstractGameObject;
+import flappyBirdAI.model.GameObject;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
-
-import flappyBirdAI.model.AbstractGameObject;
-import flappyBirdAI.model.GameObject;
 
 public class TubePair extends AbstractGameObject {
 	
@@ -114,12 +112,6 @@ public class TubePair extends AbstractGameObject {
 	}
 	
 	@Override
-	//TODO
-	public boolean isAlive() {
-		return tubeUpOpt.map(Tube::isAlive).orElse(true) && tubeDownOpt.map(Tube::isAlive).orElse(true);
-	}
-	
-	@Override
 	public void setAlive(boolean alive) {
 		isAlive = alive;
 		tubeUpOpt.ifPresent(t -> t.setAlive(alive));
@@ -160,27 +152,6 @@ public class TubePair extends AbstractGameObject {
 		tubeUpOpt.ifPresent(components::add);
 		tubeDownOpt.ifPresent(components::add);
 		return components;
-	}
-	
-	@Override
-	public int hashCode() {
-		return Objects.hash(tubeUpOpt, tubeDownOpt);
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		
-		TubePair other = (TubePair) obj;
-		return tubeUpOpt.equals(other.tubeUpOpt) && tubeDownOpt.equals(other.tubeDownOpt);
 	}
 	
 	@Override

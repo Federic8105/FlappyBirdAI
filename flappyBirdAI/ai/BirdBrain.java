@@ -12,14 +12,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
@@ -47,6 +40,18 @@ public class BirdBrain implements Serializable {
 
     private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
     private static final double WEIGHT_UPDATE_STEP = 0.0001;
+    
+    // Converte una stringa JSON in un BirdBrain
+  	public static BirdBrain fromJson(String json) throws NullPointerException, IllegalArgumentException {
+  		Objects.requireNonNull(json, "JSON String Cannot be Null");
+
+  		try {
+  			JsonObject brainJson = new Gson().fromJson(json, JsonObject.class);
+  			return fromJsonObject(brainJson);
+  		} catch (JsonSyntaxException e) {
+  			throw new IllegalArgumentException("Invalid JSON: " + e.getMessage(), e);
+  		}
+  	}
     
     private static BirdBrain fromJsonObject(JsonObject brainJson) throws NullPointerException, IllegalArgumentException {
     	Objects.requireNonNull(brainJson, "JSON Object Cannot be Null");
@@ -83,30 +88,6 @@ public class BirdBrain implements Serializable {
 	    }
 	    
 	    return new BirdBrain(tempBrain);
-	}
-	
-	public static BirdBrain loadFromFile(Path file) throws IOException, IllegalArgumentException {
-		if (!Files.exists(file)) {
-	        throw new IOException("File Not Found: " + file);
-	    }
-	    if (!Files.isReadable(file)) {
-	        throw new IOException("File Not Readable: " + file);
-	    }
-	    if (!Files.isRegularFile(file)) {
-	        throw new IOException("Path is Not a Regular File: " + file);
-	    }
-	    if (Files.isDirectory(file)) {
-	        throw new IOException("Path is a Direcotry, Not a File: " + file);
-	    }
-	    
-	    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-	    	return fromJsonObject(new Gson().fromJson(reader, JsonObject.class));
-	    
-	    } catch (JsonSyntaxException e) {
-	        throw new IllegalArgumentException("Invalid JSON in File: " + e.getMessage(), e);
-	    } catch (IOException e) {
-	        throw new IOException("Error Reading File: " + e.getMessage(), e);
-	    }
 	}
 
     private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
@@ -236,6 +217,12 @@ public class BirdBrain implements Serializable {
         return tempResult.get(0, 0) > 0.5;
     }
     
+    public String toJson() {
+    	// setPrettyPrinting() crea Json con indentazione (altrimenti tutto su una riga)
+    	Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(createJsonObject());
+    }
+    
     private JsonObject createJsonObject() {
         Gson gson = new Gson();
         JsonObject brainJson = new JsonObject();
@@ -255,26 +242,6 @@ public class BirdBrain implements Serializable {
         brainJson.add("weights", weightsArray);
         
         return brainJson;
-    }
-    
-    public String toJson() {
-    	Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(createJsonObject());
-    }
-    
-    public void saveToFile(Path file) throws IOException {
-    	try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            JsonObject brainJson = createJsonObject();
-            
-            // Scrivere direttamente dal JsonObject al writer
-            gson.toJson(brainJson, writer);
-            writer.flush();
-
-        } catch (IOException e) {
-            throw e;
-        }
     }
     
     @Override

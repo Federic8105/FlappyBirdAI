@@ -4,8 +4,6 @@
 
 package flappyBirdAI.model.entities;
 
-import java.util.Objects;
-
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.SpriteDescriptor;
 
@@ -40,29 +38,6 @@ public class Tube extends AbstractGameObject {
 	@Override
 	public SpriteDescriptor getSpriteDescriptor() {
 	    return isSuperior ? SpriteDescriptor.TUBE_UP : SpriteDescriptor.TUBE_DOWN;
-	}
-	
-	@Override
-	public int hashCode() {
-		return Objects.hash(x, isSuperior, isAlive());
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		
-		Tube other = (Tube) obj;
-		return x == other.x
-				&& isSuperior == other.isSuperior
-				&& isAlive() == other.isAlive();
 	}
 	
 	@Override

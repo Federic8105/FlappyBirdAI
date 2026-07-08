@@ -9,11 +9,9 @@ import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.entities.FlappyBird;
 import flappyBirdAI.model.entities.TubePair;
 import flappyBirdAI.view.GameView;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import flappyBirdAI.persistence.BirdBrainFileStorage;
+import flappyBirdAI.persistence.SaveFileNaming;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.Optional;
@@ -28,13 +26,7 @@ public final class GameController {
 	public static final int MIN_N_BIRDS_X_GEN = 1;
 	public static final int MAX_N_BIRDS_X_GEN = 100000;
 	
-	private static final Path AUTOSAVE_DIR = Path.of("autosaves");
-	
-	// Template per i nomi dei file da salvare
-	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
-	private static final String MANUAL_SAVE_FILENAME_TEMPLATE = "brain_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
-	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-	
+	// TODO aggiunta a menu
 	private static final double BIRDS_REGEN_PERC = 0.8;
     
     private final GameView gameView;
@@ -401,24 +393,15 @@ public final class GameController {
 	}
 	
 	private void createAutoSaveFile() {
-		// Creare la DIR Se Non Esiste
-        try {
-            Files.createDirectories(AUTOSAVE_DIR);
-        } catch (IOException e) {
-        	System.err.println("Error Creating Autosaves Directory: " + e.getMessage());
-        	return;
-        }
-    	
-        String fileName = createAutoSaveFileName();
-        Path fullPath = AUTOSAVE_DIR.resolve(fileName);
-        
-        try {
-        	saveBestBrain(fullPath);
-            gameView.showAutoSaveMessage("AUTO-SAVED!");
-        } catch (IOException | NullPointerException e) {
-            gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
-            System.err.println("Error in Automatic Brain Save: " + e.getMessage());
-        }
+		Path file = SaveFileNaming.createAutoSavePath(gameStats);
+	    
+	    try {
+	    	BirdBrainFileStorage.save(bestBirdBrainOpt.get(), file);
+	        gameView.showAutoSaveMessage("AUTO-SAVED!");
+	    } catch (IOException | NullPointerException e) {
+	        gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
+	        System.err.println("Error in Automatic Brain Save: " + e.getMessage());
+	    }
 	}
 	
 	private void resetForNewGen() {
@@ -432,33 +415,23 @@ public final class GameController {
 	
 	// Import/Export Methods
 	
-	private String createAutoSaveFileName() {
-	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(AUTO_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.maxTubePassed, gameStats.bestLifeTime, timestamp);
-	}
-	
 	public String createManualSaveFileName() {
-	    String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-	    return String.format(MANUAL_SAVE_FILENAME_TEMPLATE, gameStats.nGen, gameStats.maxTubePassed, gameStats.bestLifeTime, timestamp);
-	}
+	    return SaveFileNaming.createManualSaveFileName(gameStats);
+	} 
 	
 	public void saveBestBrain(Path file) throws NullPointerException, IOException {
 		if (bestBirdBrainOpt.isEmpty()) {
 			throw new NullPointerException("No Best Bird Brain to Save");
 		}
 		
-		bestBirdBrainOpt.get().saveToFile(file);
+		BirdBrainFileStorage.save(bestBirdBrainOpt.get(), file);
 	}
 	
-	public void loadBrain(String filePath) throws NullPointerException, IOException, IllegalArgumentException, InvalidPathException {
+	public void loadBrain(String filePath) throws NullPointerException, IOException {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
-		
-		try {
-			bestBirdBrainOpt = Optional.of(BirdBrain.loadFromFile(Path.of(filePath)));
-			resetGame();
-		} catch (IOException e) {
-			throw e;
-		}
+
+		bestBirdBrainOpt = Optional.of(BirdBrainFileStorage.load(Path.of(filePath)));
+		resetGame();
 	}
 	
 	// Getters and Setters - API Methods

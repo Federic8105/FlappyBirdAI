@@ -37,10 +37,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 //TODO: javaFX, javadocs e organizzazione metodi, reset chiamato per loadBird modifica nBirds e playOneGen vede generazione finita e fa ++
-//TODO: persistenza
+//TODO: quando carico file, timer esplode
+//TODO: scrittura atomica, chisuura gioco attende fine scrittura su file
+//TODO: eccezzione badFileformat
 //TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
-public class GameMenu extends Application {
+public final class GameMenu extends Application {
 
 	public static void main(String[] args) {
 		// Avviare l'applicazione JavaFX

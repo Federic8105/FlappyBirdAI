@@ -87,18 +87,6 @@ public class FlappyBird extends AbstractGameObject {
 	public SpriteDescriptor getSpriteDescriptor() {
 		return SpriteDescriptor.BIRD;
 	}
-	
-	@Override
-	public int hashCode() {
-		// Utilizza l'hashcode di sistema per garantire l'unicità, uguale per istanza, uguale a hashCode di default
-		return System.identityHashCode(this);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		// Due istanze sono uguali se sono la stessa istanza, uguale a equals di default
-		return this == obj;
-	}
 
 	@Override
 	public String toString() {

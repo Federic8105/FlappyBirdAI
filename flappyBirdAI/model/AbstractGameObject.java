@@ -73,7 +73,7 @@ public abstract class AbstractGameObject implements GameObject {
 	
 	@Override
 	public String toString() {
-		if (!isAlive) {
+		if (!isAlive()) {
 	        return "GameObject Not Alive";
 	    }
 	    
