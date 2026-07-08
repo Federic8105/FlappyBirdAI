@@ -36,7 +36,7 @@ public final class GameClock {
 
     // --- Delta Time ---
     
-    // Ultimo timestamp usato per dt
+    // Ultimo timestamp usato per dt (ns)
     private long lastUpdateTime;
     // Permette slow-motion o fast-forward
     private double dtMultiplier = 1.0; 
@@ -45,7 +45,8 @@ public final class GameClock {
     
     // Tempo accumulato (ms)
     private long totElapsedGameTime = 0; 
-    private long sessionStartTime = 0;
+    // Timestamp di inizio sessione (ms)
+    private long sessionStartTime;
     private boolean isGameRunning = false;
 
     private final StringBuilder chronoBuilder = new StringBuilder(11);
@@ -226,11 +227,11 @@ public final class GameClock {
         return chronoBuilder.toString();
     }
 
-    // Reset Totale Clock
+    // Reset Totale Clock e riavvio della sessione
     public void reset() {
     	totElapsedGameTime = 0;
-        sessionStartTime = 0;
-        lastUpdateTime = 0;
+    	startSession();
+    	setLastUpdateTimeNow();
     }
 
     // --- Getter/Setter ---
