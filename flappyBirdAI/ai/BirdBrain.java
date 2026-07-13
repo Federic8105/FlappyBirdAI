@@ -4,6 +4,7 @@
 
 package flappyBirdAI.ai;
 
+import flappyBirdAI.persistence.BadFileFormatException;
 import flappyBirdAI.utils.Matrix;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -42,24 +43,24 @@ public class BirdBrain implements Serializable {
     private static final double WEIGHT_UPDATE_STEP = 0.0001;
     
     // Converte una stringa JSON in un BirdBrain
-  	public static BirdBrain fromJson(String json) throws NullPointerException, IllegalArgumentException {
+  	public static BirdBrain fromJson(String json) throws NullPointerException, BadFileFormatException {
   		Objects.requireNonNull(json, "JSON String Cannot be Null");
 
   		try {
   			JsonObject brainJson = new Gson().fromJson(json, JsonObject.class);
   			return fromJsonObject(brainJson);
   		} catch (JsonSyntaxException e) {
-  			throw new IllegalArgumentException("Invalid JSON: " + e.getMessage(), e);
+  			throw new BadFileFormatException("Invalid JSON: " + e.getMessage(), e);
   		}
   	}
     
-    private static BirdBrain fromJsonObject(JsonObject brainJson) throws NullPointerException, IllegalArgumentException {
+    private static BirdBrain fromJsonObject(JsonObject brainJson) throws NullPointerException, BadFileFormatException {
     	Objects.requireNonNull(brainJson, "JSON Object Cannot be Null");
     	
 	    // Validazione parametri del cervello
 	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
 	    if (jsonNInputs != NUM_INPUT) {
-	        throw new IllegalArgumentException("Incompatible Input Size: Expected " + NUM_INPUT + ", Found " + jsonNInputs);
+	        throw new BadFileFormatException("Incompatible Input Size: Expected " + NUM_INPUT + ", Found " + jsonNInputs);
 	    }
 	    
 	    Gson gson = new Gson();
@@ -68,13 +69,13 @@ public class BirdBrain implements Serializable {
 	    
 	    // Converte List a Set per il confronto con V_INPUT_KEYS
 	    if (!new HashSet<>(jsonInputKeys).equals(V_INPUT_KEYS)) {
-	        throw new IllegalArgumentException("Incompatible Input Keys");
+	        throw new BadFileFormatException("Incompatible Input Keys");
 	    }
 	    
 	    Type typeIntegerList = new TypeToken<List<Integer>>() {}.getType();
 	    List<Integer> jsonNNeurons = gson.fromJson(brainJson.get("nNeurons"), typeIntegerList);
 	    if (!jsonNNeurons.equals(V_NEURONS)) {
-	        throw new IllegalArgumentException("Incompatible Neural Network Structure");
+	        throw new BadFileFormatException("Incompatible Neural Network Structure");
 	    }
 	    
 	    // Creare nuovo cervello per template

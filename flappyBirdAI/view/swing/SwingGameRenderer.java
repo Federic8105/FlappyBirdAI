@@ -8,7 +8,6 @@ import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.GameObject;
 import flappyBirdAI.model.SpriteDescriptor;
 import flappyBirdAI.view.GameRenderer;
-
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;

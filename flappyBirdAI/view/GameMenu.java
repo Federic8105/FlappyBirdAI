@@ -5,6 +5,7 @@
 package flappyBirdAI.view;
 
 import flappyBirdAI.controller.GameController;
+import flappyBirdAI.persistence.BirdBrainFileStorage;
 import flappyBirdAI.utils.CssUtils;
 import flappyBirdAI.view.fx.FxGameView;
 import flappyBirdAI.view.swing.SwingGameView;
@@ -37,9 +38,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 //TODO: javaFX, javadocs e organizzazione metodi, reset chiamato per loadBird modifica nBirds e playOneGen vede generazione finita e fa ++
-//TODO: scrittura atomica, chisuura gioco attende fine scrittura su file
-//TODO: eccezzione badFileformat
 //TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
+//TODO: grafica menu e gioco adattiva a schermo, misure no assolute
 
 public final class GameMenu extends Application {
 
@@ -64,6 +64,7 @@ public final class GameMenu extends Application {
     private static final int DEFAULT_WIDTH = Math.max(1250, MIN_WIDTH);
     private static final int DEFAULT_HEIGHT = Math.max(750, MIN_HEIGHT);
     private static final int DEFAULT_N_BIRDS = 1000;
+    private static final int DEFAULT_BIRDS_REGEN_PERC = 80;
     private static final boolean DEFAULT_JAVAFX_CHOICE = false;
     private static final boolean DEFAULT_FULLSCREEN_CHOICE = false;
     
@@ -90,19 +91,36 @@ public final class GameMenu extends Application {
             + "-fx-faint-focus-color: transparent;"
             + "}"
     );
+    private static final String THICK_SEPARATOR_STYLE = CssUtils.toDataUri(
+    		".thick-separator .line {"
+	        + "-fx-background-color: white;"
+	        + "-fx-background-radius: 8px;"
+	        + "-fx-background-insets: 0;"
+	        + "-fx-border-color:  #555555;"
+	        + "-fx-border-width: 1px;"
+	        + "-fx-border-radius: 8px;"
+	        + "-fx-border-insets: 0;"
+	        + "-fx-min-height: 6.5px;"
+	        + "-fx-pref-height: 6.5px;"
+	        + "-fx-max-height: 6.5px;"
+	        + "}"
+    );
     
     private GameController gameController;
 
     @Override
     public void start(Stage stage) {
+    	// Pulizia dei file temporanei orfani rimasti da precedenti esecuzioni del gioco se esiste la directory di autosalvataggio
+    	BirdBrainFileStorage.cleanupOrphanedTempFiles();
+    	
     	configureStage(stage);
         
         // Spinner per larghezza e altezza finestra
     	Spinner<Integer> widthSpinner = createWidthSpinner();
         Spinner<Integer> heightSpinner = createHeightSpinner();
         // Contenitori verticali per larghezza e altezza finestra con label e range
-        VBox widthField = rangedSpinnerField("Window Width:", widthSpinner, SECONDARY_LABEL_TEXT_STYLE);
-        VBox heightField = rangedSpinnerField("Window Height:", heightSpinner, SECONDARY_LABEL_TEXT_STYLE);
+        VBox widthField = rangedSpinnerField("Window Width: [px]", widthSpinner, SECONDARY_LABEL_TEXT_STYLE);
+        VBox heightField = rangedSpinnerField("Window Height: [px]", heightSpinner, SECONDARY_LABEL_TEXT_STYLE);
         
         // Contenitore verticale per i titoli del menù
         VBox titleBox = buildTitleBox();
@@ -118,6 +136,10 @@ public final class GameMenu extends Application {
         // Spinner per numero di uccelli per generazione
         Spinner<Integer> nBirdsSpinner = createNBirdsSpinner();
         VBox nBirdsField = rangedSpinnerField("Birds per Generation:", nBirdsSpinner, MAIN_LABEL_TEXT_STYLE);
+        
+        // Spinner per percentuale di uccelli rigenerati dal miglior cervello
+        Spinner<Integer> birdsRegenPercSpinner = createBirdsRegenPercSpinner();
+        VBox birdsRegenPercField = rangedSpinnerField("% of Regenerated Birds with Best Brain: [%]", birdsRegenPercSpinner, MAIN_LABEL_TEXT_STYLE);
 
         // ToggleGroup per la scelta del motore grafico (Swing / JavaFX) con due ToggleButton, già mutualmente esclusivi
         ToggleButton swingButton = new ToggleButton("Swing");
@@ -130,16 +152,16 @@ public final class GameMenu extends Application {
         VBox graphicsSection = labeledSection("Graphics Engine:", graphicsChoiceBox);
 
         // Bottone Start Game con testo e stile
-        Button startButton = buildStartButton(stage, widthSpinner, heightSpinner, nBirdsSpinner, cbFullScreen, graphicsGroup);
+        Button startButton = buildStartButton(stage, widthSpinner, heightSpinner, nBirdsSpinner, birdsRegenPercSpinner, cbFullScreen, graphicsGroup);
 
         // Contenitore verticale principale per tutti gli elementi del menù
-        VBox root = assembleRoot(titleBox, windowModeSection, widthField, heightField, nBirdsField, graphicsSection, startButton);
+        VBox root = assembleRoot(titleBox, windowModeSection, widthField, heightField, nBirdsField, birdsRegenPercField, graphicsSection, startButton);
         
         // Contenitore a livelli per l'immagine di sfondo e il contenuto del menù sopra di essa
         StackPane container = buildContainer(root);
        
         // Creare la scena e impostarla sullo stage da mostrare
-        Scene scene = new Scene(container, 400, 500);
+        Scene scene = new Scene(container, 400, 570);
         stage.setScene(scene);
         stage.show();
         
@@ -188,6 +210,13 @@ public final class GameMenu extends Application {
         Spinner<Integer> spinner = new Spinner<>(MIN_N_BIRDS, MAX_N_BIRDS, DEFAULT_N_BIRDS, 1);
         spinner.setEditable(true);
         attachSpinnerClamping(spinner, MIN_N_BIRDS, MAX_N_BIRDS);
+        return spinner;
+    }
+    
+    private Spinner<Integer> createBirdsRegenPercSpinner() {
+        Spinner<Integer> spinner = new Spinner<>(0, 100, DEFAULT_BIRDS_REGEN_PERC, 1);
+        spinner.setEditable(true);
+        attachSpinnerClamping(spinner, 0, 100);
         return spinner;
     }
 
@@ -276,7 +305,7 @@ public final class GameMenu extends Application {
         return graphicsGroup;
     }
 
-    private Button buildStartButton(Stage stage, Spinner<Integer> widthSpinner, Spinner<Integer> heightSpinner, Spinner<Integer> nBirdsSpinner, CheckBox cbFullScreen, ToggleGroup graphicsGroup) {
+    private Button buildStartButton(Stage stage, Spinner<Integer> widthSpinner, Spinner<Integer> heightSpinner, Spinner<Integer> nBirdsSpinner, Spinner<Integer> birdsRegenPercSpinner, CheckBox cbFullScreen, ToggleGroup graphicsGroup) {
     	// Testo "Start Game" per applicare lo stile al testo
     	Text startButtonText = new Text("Start Game");
         startButtonText.setStyle(MAIN_LABEL_TEXT_STYLE);
@@ -299,11 +328,12 @@ public final class GameMenu extends Application {
             int w = isFullScreen ? MAX_WIDTH : widthSpinner.getValue();
             int h = isFullScreen ? MAX_HEIGHT : heightSpinner.getValue();
             int nBirds = nBirdsSpinner.getValue();
+            int birdsRegenPerc = birdsRegenPercSpinner.getValue();
             
             // Chiudere il menù prima di avviare il gioco
             stage.close();
 
-            gameController = new GameController(useFX ? new FxGameView(w, h, isFullScreen) : new SwingGameView(w, h, isFullScreen), nBirds);
+            gameController = new GameController(useFX ? new FxGameView(w, h, isFullScreen) : new SwingGameView(w, h, isFullScreen), nBirds, birdsRegenPerc);
             // Avviare il gioco in un thread separato per evitare di bloccare l'interfaccia utente e permettere la gestione degli errori in modo asincrono
             new Thread(this::startGame, "game-thread").start();
         });
@@ -311,9 +341,11 @@ public final class GameMenu extends Application {
         return startButton;
     }
 
-    private VBox assembleRoot(VBox titleBox, VBox windowModeSection, VBox widthField, VBox heightField, VBox nBirdsField, VBox graphicsSection, Button startButton) {
+    private VBox assembleRoot(VBox titleBox, VBox windowModeSection, VBox widthField, VBox heightField, VBox nBirdsField, VBox birdsRegenPercField, VBox graphicsSection, Button startButton) {
     	// Linea di separazione
     	Separator separator = new Separator();
+    	separator.getStyleClass().add("thick-separator");
+        separator.getStylesheets().add(THICK_SEPARATOR_STYLE);
 
         VBox root = new VBox(14,
                 titleBox,
@@ -322,6 +354,7 @@ public final class GameMenu extends Application {
                 heightField,
                 separator, // separatore tra le opzioni di finestra e il resto
                 nBirdsField,
+                birdsRegenPercField,
                 graphicsSection,
                 startButton
         );
@@ -389,11 +422,7 @@ public final class GameMenu extends Application {
             if (restart) {
                 gameController.resetGame();
             } else {
-                gameController.closeGameView();
-                // Chiusura pulita del thread JavaFX (menu e FxGameView se in uso)
-                Platform.exit();
-                // Chiusura della JVM per terminare altri thread (game-thread e SwingGameView se in uso)
-                System.exit(0);
+            	gameController.exitApplication();
             }
             
             // eseguito solo se restart è true, altrimenti il thread del gioco si chiude
@@ -469,6 +498,7 @@ public final class GameMenu extends Application {
         return box;
     }
 
+    // Metodo per attaccare il clamping dei valori a uno Spinner, limitando i valori inseriti dall'utente tra min e max
     private void attachSpinnerClamping(Spinner<Integer> spinner, int min, int max) {
         // Contenitore per l'Ultimo Valore Valido (inizializzato al valore corrente dello Spinner)
     	// Uso di un array per permettere la modifica del valore all'interno del listener (altrimenti sarebbe final o effectively final)

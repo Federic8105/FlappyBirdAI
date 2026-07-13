@@ -47,6 +47,7 @@ public interface GameView {
 	
     // Abstract Methods
     
+    void exitGame();
     void close();
 	void setController(GameController controller);
     void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);

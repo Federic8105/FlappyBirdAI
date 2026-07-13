@@ -9,8 +9,9 @@ import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.entities.FlappyBird;
 import flappyBirdAI.model.entities.TubePair;
 import flappyBirdAI.view.GameView;
+import javafx.application.Platform;
+import flappyBirdAI.persistence.BadFileFormatException;
 import flappyBirdAI.persistence.BirdBrainFileStorage;
-import flappyBirdAI.persistence.SaveFileNaming;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
@@ -25,9 +26,6 @@ public final class GameController {
 	
 	public static final int MIN_N_BIRDS_X_GEN = 1;
 	public static final int MAX_N_BIRDS_X_GEN = 100000;
-	
-	// TODO aggiunta a menu
-	private static final double BIRDS_REGEN_PERC = 0.8;
     
     private final GameView gameView;
     private final Set<AbstractGameObject> vGameObj;
@@ -49,14 +47,17 @@ public final class GameController {
     private int lastGameHeight;
     private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
 
-	public GameController(GameView gameView, int nBirdsXGen) throws NullPointerException, IllegalArgumentException {
+	public GameController(GameView gameView, int nBirdsXGen, int birdsRegenPerc) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
 		if (nBirdsXGen < MIN_N_BIRDS_X_GEN) {
 			throw new IllegalArgumentException("Number of Birds per Generation Must Be Greater than 0");
 		}
+		if (birdsRegenPerc < 0 || birdsRegenPerc > 100) {
+	        throw new IllegalArgumentException("Birds Regeneration Percentage Must Be Between 0 and 100");
+	    }
 		
 		this.nBirdsXGen = nBirdsXGen;
-		this.nBirdsRegen = (int) (nBirdsXGen * BIRDS_REGEN_PERC);
+		this.nBirdsRegen = (int) (nBirdsXGen * (birdsRegenPerc / 100.0));
 		
 		vGameObj = new HashSet<>(nBirdsXGen + 15); // Capacità Iniziale Stimata (nBirds + TubePairs)
 		gameView.setController(this);
@@ -120,7 +121,7 @@ public final class GameController {
 			// Controllo se l'Altezza della Finestra di Gioco è Cambiata
 			if (lastGameHeight != (gameHeight = getGameHeight())) {
 				// Ricreare tutti i Tube con la Nuova Altezza
-				recreateTubes();
+				recreateTubePairs();
 				lastGameHeight = gameHeight;
 			}
 			
@@ -202,8 +203,8 @@ public final class GameController {
 		return firstTubePairOpt.isPresent() ? firstTubePairOpt.get().getHitBox() : new Rectangle[0];
 	}
 	
-	private void recreateTubes() {
-		Set<TubePair> newTubePairs = new HashSet<>(25);
+	private void recreateTubePairs() {
+		Set<TubePair> newTubePairs = new HashSet<>(15);
 		double holeRatio;
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
@@ -393,10 +394,8 @@ public final class GameController {
 	}
 	
 	private void createAutoSaveFile() {
-		Path file = SaveFileNaming.createAutoSavePath(gameStats);
-	    
 	    try {
-	    	BirdBrainFileStorage.save(bestBirdBrainOpt.get(), file);
+	    	BirdBrainFileStorage.save(bestBirdBrainOpt.get(), gameStats);
 	        gameView.showAutoSaveMessage("AUTO-SAVED!");
 	    } catch (IOException | NullPointerException e) {
 	        gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
@@ -416,7 +415,7 @@ public final class GameController {
 	// Import/Export Methods
 	
 	public String createManualSaveFileName() {
-	    return SaveFileNaming.createManualSaveFileName(gameStats);
+	    return BirdBrainFileStorage.createManualSaveFileName(gameStats);
 	} 
 	
 	public void saveBestBrain(Path file) throws NullPointerException, IOException {
@@ -427,7 +426,7 @@ public final class GameController {
 		BirdBrainFileStorage.save(bestBirdBrainOpt.get(), file);
 	}
 	
-	public void loadBrain(String filePath) throws NullPointerException, IOException {
+	public void loadBrain(String filePath) throws NullPointerException, IOException, BadFileFormatException {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
 
 		bestBirdBrainOpt = Optional.of(BirdBrainFileStorage.load(Path.of(filePath)));
@@ -436,8 +435,13 @@ public final class GameController {
 	
 	// Getters and Setters - API Methods
 	
-	public void closeGameView() {
+	public void exitApplication() {
 		gameView.close();
+		BirdBrainFileStorage.shutdownWrites();
+	    // Chiusura pulita del thread JavaFX (menu e FxGameView se in uso)
+	    Platform.exit();
+	    // Chiusura del processo JVM per terminare altri thread (game-thread e SwingGameView se in uso)
+	    System.exit(0);
 	}
 	
 	public int getGameHeight() {

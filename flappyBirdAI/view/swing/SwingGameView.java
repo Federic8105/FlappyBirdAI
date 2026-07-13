@@ -8,6 +8,7 @@ import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
+import flappyBirdAI.persistence.BadFileFormatException;
 import flappyBirdAI.view.GameRenderer;
 import flappyBirdAI.view.GameView;
 import javax.imageio.ImageIO;
@@ -101,25 +102,30 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		initWindow();
 		initPanels();
 		
-		setupKeyListener();
+		setupListeners();
 		
 		setVisible(true);
 	}
 	
-	private void setupKeyListener() {
+	private void setupListeners() {
 		// Aggiungere il KeyListener alla finestra principale
 		addKeyListener(this);
 		
 		// Assicurarsi che la finestra possa ricevere eventi da tastiera
 		setFocusable(true);
 		
-		// Richiedere il focus per input quando la finestra viene mostrata
+		
 		addWindowListener(new WindowAdapter() {
-			// Chiamato quando la finestra diventa visibile (prima apertura, click, primo piano)
+			// Richiedere il focus per input quando la finestra diventa visibile (prima apertura, click, primo piano)
 			@Override
 			public void windowActivated(WindowEvent e) {
 				requestFocusInWindow();
 			}
+			// Gestire la chiusura della finestra in modo sicuro
+			@Override
+	        public void windowClosing(WindowEvent e) {
+	            exitGame();
+	        }
 		});
 		
 		// Restituire il focus quando si clicca sulla finestra in un punto qualsiasi non focusable
@@ -146,7 +152,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         setTitle(GAME_WINDOW_TITLE);
         setIconImage(new ImageIcon(getClass().getResource(GAME_ICON_PATH)).getImage());
         getContentPane().setBackground(Color.WHITE);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Impedire la chiusura della finestra tramite il pulsante di chiusura standard, gestire la chiusura manualmente
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setFocusable(false);
         setLayout(new BorderLayout());
 	}
@@ -640,9 +647,17 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	// GameView Interface Methods
 	
+	// Eseguito su un thread separato per non bloccare l'EDT durante l'attesa
+	@Override
+	public void exitGame() {	    
+	    new Thread(gameController::exitApplication, "safe-shutdown").start();
+	}
+	
+	// Chiude la finestra in modo thread-safe
 	@Override
 	public void close() {
 		// Chiudere la finestra in modo thread-safe quando viene chiamato da un thread diverso dal thread dell'UI di Swing
+		// Non termina nessun thread, solo la finestra di gioco
 		SwingUtilities.invokeLater(() -> {
 			dispose();
 		});
@@ -777,7 +792,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	    if (choice == JOptionPane.YES_OPTION) {
 	        close();
-	        System.exit(0);
+	        exitGame();
 	    }
 	}
 
@@ -1038,8 +1053,10 @@ class LoadBrainListener implements ActionListener {
                     parentView.gameController.loadBrain(file.getAbsolutePath());
                     parentView.setLoadedBrainLabel(file.getName());
                     JOptionPane.showMessageDialog(parentView, "Brain Loaded Successfully!" + System.lineSeparator() + "Game has been Reset to Generation 1." + System.lineSeparator() + "Uploaded File Name: " + file.getName(), "Success", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(parentView, "Error Loading Brain: " + ex.getMessage() + "\nPlease Verify the File is Valid.", "Error", JOptionPane.ERROR_MESSAGE);
+				}catch (BadFileFormatException ex) {
+    				JOptionPane.showMessageDialog(parentView, "Invalid Brain File: " + ex.getMessage() + System.lineSeparator() + "The Selected File does not Contain a Valid Brain.", "Error", JOptionPane.ERROR_MESSAGE);
+				} catch (IOException ex) {
+                    JOptionPane.showMessageDialog(parentView, "Error Loading Brain: " + ex.getMessage() + System.lineSeparator() + "Please Verify the File Exists and is Accessible.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
 			}
 		}
