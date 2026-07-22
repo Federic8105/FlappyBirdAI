@@ -37,9 +37,8 @@ import javafx.stage.Stage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javaFX, javadocs e organizzazione metodi, reset chiamato per loadBird modifica nBirds e playOneGen vede generazione finita e fa ++
+//TODO: javaFX, javadocs e organizzazione metodi, verifica che modifiche a dati condivisi tra thread sia in mutua esclusione atomica
 //TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
-//TODO: grafica menu e gioco adattiva a schermo, misure no assolute
 
 public final class GameMenu extends Application {
 

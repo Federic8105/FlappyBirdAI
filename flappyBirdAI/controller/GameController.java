@@ -46,6 +46,10 @@ public final class GameController {
     private final int nBirdsXGen, nBirdsRegen;
     private int lastGameHeight;
     private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
+    
+    // Flag per Richiesta di Reset del Gioco per Caricamento Cervello da File
+    // Volatile per Garantire che le Modifiche siano subito Visibili ad Altri Thread (Modificato da Thread Grafico)
+    private volatile boolean brainLoadRequest = false;
 
 	public GameController(GameView gameView, int nBirdsXGen, int birdsRegenPerc) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
@@ -92,7 +96,7 @@ public final class GameController {
 		
 		gameClock.setLastUpdateTimeNow();
 
-		while (gameStats.nBirds > 0) {
+		while (gameStats.nBirds > 0 && !brainLoadRequest) {
 			gameClock.setFrameStartTime();
 			
 			if (!gameClock.isGameRunning()) {
@@ -186,7 +190,12 @@ public final class GameController {
 		
 		checkAndAutoSaveOnEndGen();
 		
-		resetForNewGen();
+		if (brainLoadRequest) {
+			brainLoadRequest = false;
+		    prepareForLoadedBrain();
+		} else {
+			prepareForNewGen();
+		}
 	}
 	
 	public void resetGame() {
@@ -347,9 +356,13 @@ public final class GameController {
 		return vBirds;
 	}
 	
-	// Creazione Uccelli per la Prima Generazione (tutti casuali)
+	// Creazione Uccelli per la Prima Generazione, 2 casi: con bestBirdBrainOpt vuoto o non vuoto (in caso di caricamento cervello da file)
 	private void addFirstGenBirds() {
-		addBirds(createRandomBirds(nBirdsXGen));
+		if (bestBirdBrainOpt.isPresent()) {
+			addBirds(createBrainedBirds(nBirdsXGen, bestBirdBrainOpt));
+		} else {
+			addBirds(createRandomBirds(nBirdsXGen));
+		}
 	}
 	
 	// Creazione Nuovi Uccelli per la Nuova Generazione Dopo la Prima (una parte con bestBirdBrain e una parte casuali)
@@ -403,7 +416,15 @@ public final class GameController {
 	    }
 	}
 	
-	private void resetForNewGen() {
+	// Riavvio da Gen 1 dopo il caricamento di un cervello da file
+	private void prepareForLoadedBrain() {
+	    gameStats.resetToFirstGen();
+	    gameClock.reset();
+	    vGameObj.clear();
+	}
+	
+	// Transizione naturale alla generazione successiva
+	private void prepareForNewGen() {
 		++gameStats.nGen;
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
@@ -413,6 +434,7 @@ public final class GameController {
 	}
 	
 	// Import/Export Methods
+	// Chiamati dal Thread Grafico
 	
 	public String createManualSaveFileName() {
 	    return BirdBrainFileStorage.createManualSaveFileName(gameStats);
@@ -430,7 +452,7 @@ public final class GameController {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
 
 		bestBirdBrainOpt = Optional.of(BirdBrainFileStorage.load(Path.of(filePath)));
-		resetGame();
+		brainLoadRequest = true;
 	}
 	
 	// Getters and Setters - API Methods
