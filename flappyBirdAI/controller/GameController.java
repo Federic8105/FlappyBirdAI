@@ -33,7 +33,10 @@ public final class GameController {
     
     // Game Engine Variables
     
-    // Oggetto di Lock (usato solo per Lock) per Gestire la Pausa in Modo Thread-Safe
+    // Oggetto di Lock per la Sincronizzazione di Accesso a Variabili Condivise tra Thread (Game Thread e GUI Thread)
+    private final Object lock = new Object();
+    
+    // Oggetto di Lock per Gestire la Pausa in Modo Thread-Safe
     // Usato come Monitor per wait() e notify() per la pausa del gioco
     private final Object pauseLock = new Object();
     
@@ -48,8 +51,7 @@ public final class GameController {
     private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
     
     // Flag per Richiesta di Reset del Gioco per Caricamento Cervello da File
-    // Volatile per Garantire che le Modifiche siano subito Visibili ad Altri Thread (Modificato da Thread Grafico)
-    private volatile boolean brainLoadRequest = false;
+    private boolean brainLoadRequest = false;
 
 	public GameController(GameView gameView, int nBirdsXGen, int birdsRegenPerc) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
@@ -75,36 +77,52 @@ public final class GameController {
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
+		boolean isGameRunning;
 		Optional<TubePair> firstTubePairOpt;
 		TubePair previousFirstTubePair = null, currTargetTubePair;
 		Optional<FlappyBird> randBirdOpt;
 		FlappyBird randBird;
+		// Copia Snapshot per Thread-Safety
+		Set<AbstractGameObject> vGameObjSnapshot;
 		
 		lastGameHeight = getGameHeight();
 		
-		// Avviare una nuova sessione a inizio gioco (prima generazione)
-		if (isFirstGen()) {
-			gameClock.startSession();
-			// Aggiungere Uccelli alla Prima Generazione
-			addFirstGenBirds();
+		synchronized (lock) {
+			// Avviare una nuova sessione a inizio gioco (prima generazione)
+			if (isFirstGen()) {
+				gameClock.startSession();
+				// Aggiungere Uccelli alla Prima Generazione
+				addFirstGenBirds();
+			}
+			addNewTubePair();
+			vGameObjSnapshot = new HashSet<>(vGameObj);
+			gameClock.setLastUpdateTimeNow();
 		}
 		
-		addNewTubePair();
-		
-		// Precaricare le Sprite per Migliorare le Prestazioni di Rendering, passando una Copia della Lista per Thread-Safety
-		gameView.preloadSprites(new HashSet<>(vGameObj));
-		
-		gameClock.setLastUpdateTimeNow();
+		// Precaricare le Sprite per Migliorare le Prestazioni di Rendering
+		// Fuori da synchronized per Evitare di Bloccare il Thread di Gioco durante il Preload di Sprite I/O
+		gameView.preloadSprites(vGameObjSnapshot);
 
-		while (gameStats.nBirds > 0 && !brainLoadRequest) {
-			gameClock.setFrameStartTime();
+		while (true) {
+			synchronized (lock) {
+				// Controllo di Uscita dal Ciclo di Gioco
+				if (gameStats.nBirds == 0 || brainLoadRequest) {
+					break;
+				}
+				
+				gameClock.setFrameStartTime();
+				isGameRunning = gameClock.isGameRunning();
+			}
 			
-			if (!gameClock.isGameRunning()) {
+			if (!isGameRunning) {
 				
+				// Acquisizione del Lock per la Pausa
 				synchronized (pauseLock) {
-				
-					// Aggiornare la vista per mostrare lo stato di pausa e animazioni
-		            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
+					
+					synchronized (lock) {
+						// Aggiornare la vista per mostrare lo stato di pausa e animazioni
+			            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
+					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 		            try {
@@ -118,62 +136,65 @@ public final class GameController {
 	            
 	            continue;
 	        }
+			
+			synchronized (lock) {
 
-			// Calcolo del Tempo trascorso in Secondi tra Frames (Delta Time del Gioco - Influenzato dal Dt Multiplier)
-			dt = gameClock.getDeltaTime();
-			
-			// Controllo se l'Altezza della Finestra di Gioco è Cambiata
-			if (lastGameHeight != (gameHeight = getGameHeight())) {
-				// Ricreare tutti i Tube con la Nuova Altezza
-				recreateTubePairs();
-				lastGameHeight = gameHeight;
-			}
-			
-			randBirdOpt = getRandomBird();
-			
-			// Aggiornare Statistica Tempo di Vita Attuale, Migliore e Cervello del Miglior Uccello
-        	if (randBirdOpt.isPresent() && (randBird = randBirdOpt.get()).lifeTime > gameStats.currLifeTime) {
-        		gameStats.currLifeTime = randBird.lifeTime;
-            	
-            	// Nuovo Record di Vita
-            	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
-					gameStats.bestLifeTime = randBird.lifeTime;
-					bestBirdBrainOpt = Optional.of(randBird.getBrain());
-				}
-            }
-        	
-        	firstTubePairOpt = getFirstTubePair(randBirdOpt);
-			if (firstTubePairOpt.isPresent()) {
-				currTargetTubePair = firstTubePairOpt.get();
+				// Calcolo del Tempo trascorso in Secondi tra Frames (Delta Time del Gioco - Influenzato dal Dt Multiplier)
+				dt = gameClock.getDeltaTime();
 				
-				if (previousFirstTubePair == null) {
-					previousFirstTubePair = currTargetTubePair;
-				} else if (!currTargetTubePair.equals(previousFirstTubePair)) {
-					++gameStats.nTubePassed;
-					
-					if (gameStats.nTubePassed > gameStats.maxTubePassed) {
-			            gameStats.maxTubePassed = gameStats.nTubePassed;
-			        }
-					
-			        previousFirstTubePair = currTargetTubePair;
+				// Controllo se l'Altezza della Finestra di Gioco è Cambiata
+				if (lastGameHeight != (gameHeight = getGameHeight())) {
+					// Ricreare tutti i Tube con la Nuova Altezza
+					recreateTubePairs();
+					lastGameHeight = gameHeight;
 				}
+				
+				randBirdOpt = getRandomBird();
+				
+				// Aggiornare Statistica Tempo di Vita Attuale, Migliore e Cervello del Miglior Uccello
+	        	if (randBirdOpt.isPresent() && (randBird = randBirdOpt.get()).lifeTime > gameStats.currLifeTime) {
+	        		gameStats.currLifeTime = randBird.lifeTime;
+	            	
+	            	// Nuovo Record di Vita
+	            	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
+						gameStats.bestLifeTime = randBird.lifeTime;
+						bestBirdBrainOpt = Optional.of(randBird.getBrain());
+					}
+	            }
+	        	
+	        	firstTubePairOpt = getFirstTubePair(randBirdOpt);
+				if (firstTubePairOpt.isPresent()) {
+					currTargetTubePair = firstTubePairOpt.get();
+					
+					if (previousFirstTubePair == null) {
+						previousFirstTubePair = currTargetTubePair;
+					} else if (!currTargetTubePair.equals(previousFirstTubePair)) {
+						++gameStats.nTubePassed;
+						
+						if (gameStats.nTubePassed > gameStats.maxTubePassed) {
+				            gameStats.maxTubePassed = gameStats.nTubePassed;
+				        }
+						
+				        previousFirstTubePair = currTargetTubePair;
+					}
+				}
+				
+				// Aggiornare Oggetti di Gioco
+	            updateGameObjects(dt, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
+	            deleteDeadGameObjects();
+				checkNewTube();
+				
+				sleepTime = gameClock.setFrameEndTime();
+				
+				// Aggiornare Statistica FPS
+				gameStats.fps = gameClock.getEMAFPS();
+				
+				// Aggiornare la Vista di Gioco
+				// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
+	            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
+	            
+				checkAndAutoSaveInGen();
 			}
-			
-			// Aggiornare Oggetti di Gioco
-            updateGameObjects(dt, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
-            deleteDeadGameObjects();
-			checkNewTube();
-			
-			sleepTime = gameClock.setFrameEndTime();
-			
-			// Aggiornare Statistica FPS
-			gameStats.fps = gameClock.getEMAFPS();
-			
-			// Aggiornare la Vista di Gioco
-			// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
-            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
-            
-			checkAndAutoSaveInGen();
             
             // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
@@ -188,24 +209,27 @@ public final class GameController {
 			}
         }
 		
-		checkAndAutoSaveOnEndGen();
-		
-		if (brainLoadRequest) {
-			brainLoadRequest = false;
-		    prepareForLoadedBrain();
-		} else {
-			prepareForNewGen();
+		synchronized (lock) {
+			if (brainLoadRequest) {
+				brainLoadRequest = false;
+			    prepareForLoadedBrain();
+			} else {
+				checkAndAutoSaveOnEndGen();
+				prepareForNewGen();
+			}
 		}
 	}
 	
-	public void resetGame() {
-		gameStats.resetToFirstGen();
-		gameClock.reset();
-		
-		vGameObj.clear();
-		bestBirdBrainOpt = Optional.empty();
-		
-		addNewTubePair();
+	public void resetGame() {	
+		synchronized (lock) {
+	        gameStats.resetToFirstGen();
+	        gameClock.reset();
+	        
+	        vGameObj.clear();
+	        bestBirdBrainOpt = Optional.empty();
+	        
+	        addNewTubePair();
+	    }
 	}
 	
 	private Rectangle[] getTubeHitBoxes(Optional<TubePair> firstTubePairOpt) {
@@ -433,15 +457,26 @@ public final class GameController {
 		addNewGenBirds();
 	}
 	
+	private int getGameHeight() {
+		return gameView.getGameHeight();
+	}
+	
+	private int getGameWidth() {
+		return gameView.getGameWidth();
+	}
+	
 	// Import/Export Methods
 	// Chiamati dal Thread Grafico
 	
 	public String createManualSaveFileName() {
-	    return BirdBrainFileStorage.createManualSaveFileName(gameStats);
+		synchronized (lock) { return BirdBrainFileStorage.createManualSaveFileName(gameStats); }
 	} 
 	
 	public void saveBestBrain(Path file) throws NullPointerException, IOException {
-		if (bestBirdBrainOpt.isEmpty()) {
+		Optional<BirdBrain> brainOpt;
+		synchronized (lock) { brainOpt = bestBirdBrainOpt; }
+		
+		if (brainOpt.isEmpty()) {
 			throw new NullPointerException("No Best Bird Brain to Save");
 		}
 		
@@ -450,12 +485,16 @@ public final class GameController {
 	
 	public void loadBrain(String filePath) throws NullPointerException, IOException, BadFileFormatException {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
-
-		bestBirdBrainOpt = Optional.of(BirdBrainFileStorage.load(Path.of(filePath)));
-		brainLoadRequest = true;
+		// Caricamento I/O del cervello da file può richiedere tempo
+		BirdBrain loadedBrain = BirdBrainFileStorage.load(Path.of(filePath));
+		synchronized (lock) {
+	        bestBirdBrainOpt = Optional.of(loadedBrain);
+	        brainLoadRequest = true;
+	    }
 	}
 	
-	// Getters and Setters - API Methods
+	// API Methods
+	// Chiamati dal Thread Grafico
 	
 	public void exitApplication() {
 		gameView.close();
@@ -466,75 +505,79 @@ public final class GameController {
 	    System.exit(0);
 	}
 	
-	public int getGameHeight() {
-		return gameView.getGameHeight();
-	}
-	
-	public int getGameWidth() {
-		return gameView.getGameWidth();
-	}
+	// Getter and Setter Methods
     
     public Optional<BirdBrain> getBestBirdBrain() {
-        return bestBirdBrainOpt;
+    	synchronized (lock) { return bestBirdBrainOpt; }
     }
     
     public void setBestBirdBrain(BirdBrain brain) {
-        bestBirdBrainOpt = Optional.of(brain);
+    	synchronized (lock) { bestBirdBrainOpt = Optional.of(brain); }
     }
     
     public boolean isAutoSaveEnabled() {
-        return gameStats.isAutoSaveEnabled();
+    	synchronized (lock) { return gameStats.isAutoSaveEnabled(); }
     }
     
     public void setAutoSaveOnGenEnabled(boolean enabled) {
-		gameStats.isAutoSaveOnGenEnabled = enabled;
+		synchronized (lock) { gameStats.isAutoSaveOnGenEnabled = enabled; }
 	}
     
     public void setAutoSaveGenThreshold(int threshold) {
-        gameStats.setAutoSaveGenThreshold(threshold);
+    	synchronized (lock) { gameStats.setAutoSaveGenThreshold(threshold); }
     }
     
     public void setAutoSaveOnBLTEnabled(boolean enabled) {
-    	gameStats.isAutoSaveOnBLTEnabled = enabled;
+    	synchronized (lock) { gameStats.isAutoSaveOnBLTEnabled = enabled; }
     }
     
     public void setAutoSaveBLTThreshold(int threshold) {
-		gameStats.setAutoSaveBLTThreshold(threshold);
+    	synchronized (lock) { gameStats.setAutoSaveBLTThreshold(threshold); }
 	}
     
     public void setAutoSaveOnMaxTubePassedEnabled(boolean enabled) {
-		gameStats.isAutoSaveOnMaxTubePassedEnabled = enabled;
+    	synchronized (lock) { gameStats.isAutoSaveOnMaxTubePassedEnabled = enabled; }
 	}
     
     public void setAutoSaveMaxTubePassedThreshold(int threshold) {
-		gameStats.setAutoSaveMaxTubePassedThreshold(threshold);
+    	synchronized (lock) { gameStats.setAutoSaveMaxTubePassedThreshold(threshold); }
 	}
     
     public boolean isFirstGen() {
-		return gameStats.isFirstGen();
+    	synchronized (lock) { return gameStats.isFirstGen(); }
 	}
     
     public boolean isGameRunning() {
-		return gameClock.isGameRunning();
+    	synchronized (lock) { return gameClock.isGameRunning(); }
     }
     
     public void setDtMultiplier(double multiplier) {
-		gameClock.setDtMultiplier(multiplier);
+    	synchronized (lock) { gameClock.setDtMultiplier(multiplier); }
 	}
     
     public void togglePause() {
-        if (gameClock.isGameRunning()) {
-        	gameClock.pause();
-        } else {
-        	gameClock.resume();
-        	
+    	boolean nowRunning;
+    	
+    	synchronized (lock) {
+    		 if (gameClock.isGameRunning()) {
+    			 gameClock.pause();
+    			 nowRunning = false;
+    		 } else {
+    			 gameClock.resume();
+    			 nowRunning = true;
+    		 }
+    		
+    	}
+    	
+        if (nowRunning) {
         	// Sbloccare subito il thread di gioco se in attesa senza aspettare il prossimo ciclo di sleep
         	synchronized (pauseLock) {
 				pauseLock.notifyAll();
         	}
         }
-        
+      
         // Forzare l'aggiornamento del display per feedback visivo istantaneo
+        // Fuori dal blocco synchronized per evitare di bloccare il thread di gioco durante il repaint sul thread grafico
         gameView.repaintGame();
     }
     
