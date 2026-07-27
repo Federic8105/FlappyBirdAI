@@ -44,12 +44,16 @@ public interface GameView {
     public static final double BAR_WIDTH_RATIO = 1.0 / 4.5;
     public static final double BAR_HEIGHT_RATIO = 0.8;
     public static final double BAR_GAP_RATIO = 1.0 / 3.0;
+    
+    // Chronometer Refresh Rate (ms)
+    public static final int CHRONOMETER_REFRESH_MS = 10;
 	
     // Abstract Methods
     
     void exitGame();
     void close();
 	void setController(GameController controller);
+	void startChronometerTimer();
     void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);
     void showAutoSaveMessage(String message);
     int getGameWidth();

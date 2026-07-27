@@ -93,6 +93,7 @@ public final class GameController {
 				gameClock.startSession();
 				// Aggiungere Uccelli alla Prima Generazione
 				addFirstGenBirds();
+				gameView.startChronometerTimer();
 			}
 			addNewTubePair();
 			vGameObjSnapshot = new HashSet<>(vGameObj);
@@ -548,7 +549,11 @@ public final class GameController {
 	}
     
     public boolean isGameRunning() {
-    	synchronized (lock) { return gameClock.isGameRunning(); }
+    	return gameClock.isGameRunning();
+    }
+    
+    public String getFormattedGameTimeElapsed() {
+        return gameClock.getFormattedGameTimeElapsed();
     }
     
     public void setDtMultiplier(double multiplier) {

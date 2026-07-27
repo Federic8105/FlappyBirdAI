@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 //TODO: javaFX, javadocs e organizzazione metodi
-//TODO: + threads anche per gestire fine pausa senza attesa e times e per timer
 
 public final class GameMenu extends Application {
 

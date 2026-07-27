@@ -35,6 +35,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
 
+//TODO va bene gestione start e stop di chronometer e in GameClock?
+
 public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	private static final long serialVersionUID = 1L;
@@ -75,6 +77,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	// Game Objects for Rendering
     private Set<AbstractGameObject> currentVGameObj;
     
+    // Timer for Chronometer Updates
+    private Timer chronometerTimer;
+    
     // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
     
@@ -104,6 +109,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		setupListeners();
 		
+		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
+		
 		setVisible(true);
 	}
 	
@@ -113,7 +120,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		// Assicurarsi che la finestra possa ricevere eventi da tastiera
 		setFocusable(true);
-		
 		
 		addWindowListener(new WindowAdapter() {
 			// Richiedere il focus per input quando la finestra diventa visibile (prima apertura, click, primo piano)
@@ -282,6 +288,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                 // Click sinistro per pausa/riprendi
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     gameController.togglePause();
+                    
+                    if (gameController.isGameRunning()) {
+						chronometerTimer.start();
+					} else {
+						chronometerTimer.stop();
+					}
                 }
             }
         });
@@ -659,6 +671,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// Chiudere la finestra in modo thread-safe quando viene chiamato da un thread diverso dal thread dell'UI di Swing
 		// Non termina nessun thread, solo la finestra di gioco
 		SwingUtilities.invokeLater(() -> {
+			//TODO meglio stop o wait?
+			chronometerTimer.stop();
 			dispose();
 		});
 	}
@@ -669,6 +683,17 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
 	
 	@Override
+	public void startChronometerTimer() {
+	    chronometerTimer.start();
+	}
+	
+	private void updateChronometerLabel() {
+		if (gameController.isGameRunning()) {
+	        lTimeValue.setText(gameController.getFormattedGameTimeElapsed());
+	    }
+	}
+	
+	@Override
     public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(clock, "Game Clock Cannot be Null");
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
@@ -677,7 +702,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// Aggiornare UI Thread-Safe
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
-        	updateChronometerLabel(clock);
         	
             currentVGameObj = vGameObj;
             gamePanel.repaint();
@@ -721,12 +745,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		}
 	}
 	
-	private void updateChronometerLabel(GameClock clock) {
-		if (gameController.isGameRunning()) {
-			lTimeValue.setText(clock.getFormattedGameTimeElapsed());
-		}
-	}
-	
 	@Override
     public void showAutoSaveMessage(String msg) {
         SwingUtilities.invokeLater(() -> {
@@ -744,7 +762,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         });
     }
     
-    @Override
+	@Override
     public int getGameWidth() {
     	// Ritornare la larghezza effettiva del pannello di gioco se è già inizializzato
 	    if (gamePanel != null) {
@@ -767,6 +785,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
     
     @Override
+    //TODO ha senso il controllo null? se no, rimuovere
     public void repaintGame() {
     	if (gamePanel != null) {
             gamePanel.repaint();
@@ -782,6 +801,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			gameController.togglePause();
+			
+			if (gameController.isGameRunning()) {
+				chronometerTimer.start();
+			} else {
+				chronometerTimer.stop();
+			}
 		} else if (e.getKeyCode() == KeyEvent.VK_ESCAPE && isFullScreen) {
 	        handleExitRequest();
 	    }

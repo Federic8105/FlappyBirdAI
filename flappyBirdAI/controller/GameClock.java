@@ -42,12 +42,14 @@ public final class GameClock {
     private double dtMultiplier = 1.0; 
 
     // --- Cronometro Totale ---
+    // Sessione: Tempo Trascorso dall'inizio della sessione di gioco/ultima ripresa del gioco fino alla pausa o al reset (ms)
+    // Variabile volatile per garantire la visibilità tra thread sempre dei valori aggiornati senza sincronizzazione esplicita
     
-    // Tempo accumulato (ms)
-    private long totElapsedGameTime = 0; 
-    // Timestamp di inizio sessione (ms)
-    private long sessionStartTime;
-    private boolean isGameRunning = false;
+    // Tempo accumulato dalle sessioni precedenti (ms)
+    private volatile long totElapsedPastSessionsTime = 0; 
+    // Timestamp di inizio sessione attuale (ms)
+    private volatile long sessionStartTime;
+    private volatile boolean isGameRunning = false;
 
     private final StringBuilder chronoBuilder = new StringBuilder(11);
     
@@ -136,7 +138,7 @@ public final class GameClock {
 
     // Avvio Clock
     public void start() {
-    	totElapsedGameTime = 0;
+    	totElapsedPastSessionsTime = 0;
         isGameRunning = true;
     }
     
@@ -152,7 +154,7 @@ public final class GameClock {
         }
         
         // Accumulare il tempo della sessione corrente
-        totElapsedGameTime += System.currentTimeMillis() - sessionStartTime;
+        totElapsedPastSessionsTime += System.currentTimeMillis() - sessionStartTime;
         isGameRunning = false;
     }
 
@@ -185,12 +187,7 @@ public final class GameClock {
 
     // Ottenere il tempo totale di gioco in millisecondi
     public long getElapsedMs() {  
-        return totElapsedGameTime + (isGameRunning ? System.currentTimeMillis() - sessionStartTime : 0);
-    }
-
-    // Ottenere il tempo totale di gioco in secondi
-    public double getElapsedSeconds() {
-        return getElapsedMs() / 1000.0;
+        return totElapsedPastSessionsTime + (isGameRunning ? System.currentTimeMillis() - sessionStartTime : 0);
     }
 
     // Ritorna il tempo di gioco totale formattato come "HH:MM:SS.CS"
@@ -229,7 +226,7 @@ public final class GameClock {
 
     // Reset Totale Clock e riavvio della sessione
     public void reset() {
-    	totElapsedGameTime = 0;
+    	totElapsedPastSessionsTime = 0;
     	startSession();
     	setLastUpdateTimeNow();
     }
