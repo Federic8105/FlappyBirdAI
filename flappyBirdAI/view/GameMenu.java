@@ -51,6 +51,8 @@ public final class GameMenu extends Application {
 	private static final String MENU_BACKGROUND_IMAGE_PATH = "/res/MENU_BACKGROUND.png";
 	private static final double MENU_BACKGROUND_OPACITY = 0.6;
 	
+	private static final Image MENU_ICON = new Image(GameMenu.class.getResourceAsStream(MENU_ICON_PATH));
+	
 	private static final int MIN_WIDTH = GameView.MIN_WINDOW_WIDTH;
     private static final int MIN_HEIGHT = GameView.MIN_WINDOW_HEIGHT;
     private static final int MIN_N_BIRDS = GameController.MIN_N_BIRDS_X_GEN;
@@ -176,7 +178,7 @@ public final class GameMenu extends Application {
     
     private void configureStage(Stage stage) {
         stage.setTitle(MENU_WINDOW_TITLE);
-        stage.getIcons().add(new Image(getClass().getResourceAsStream(MENU_ICON_PATH)));
+        stage.getIcons().add(MENU_ICON);
         stage.setResizable(false);
 
         // Impedire che JavaFX si spenga quando questo Stage viene chiuso:
@@ -402,6 +404,7 @@ public final class GameMenu extends Application {
         FutureTask<Boolean> task = new FutureTask<>(() -> {
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Error");
+            ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(MENU_ICON);
             alert.setHeaderText("An error occurred while running the game:");
             // impostare contenuto con TextArea personalizzata
             alert.getDialogPane().setContent(createErrorTextArea(errorMsg));

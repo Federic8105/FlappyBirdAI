@@ -10,11 +10,12 @@ import flappyBirdAI.model.entities.FlappyBird;
 import flappyBirdAI.model.entities.TubePair;
 import flappyBirdAI.view.GameView;
 import javafx.application.Platform;
-import flappyBirdAI.persistence.BadFileFormatException;
 import flappyBirdAI.persistence.BirdBrainFileStorage;
-import java.io.IOException;
+import flappyBirdAI.persistence.BirdBrainFileStorage.ShutdownResult;
+
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.Optional;
 import java.util.Map;
 import java.util.Objects;
@@ -72,6 +73,7 @@ public final class GameController {
 	
 	// Game Logic Methods
 	
+	//TODO va bene uso di synchronized? ci sono operazioni che devono essere messe fuori da synchronized o che si possono spostare per efficienza?
 	public void playOneGen() throws RuntimeException {		
 		int gameHeight;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
@@ -432,13 +434,14 @@ public final class GameController {
 	}
 	
 	private void createAutoSaveFile() {
-	    try {
-	    	BirdBrainFileStorage.save(bestBirdBrainOpt.get(), gameStats);
-	        gameView.showAutoSaveMessage("AUTO-SAVED!");
-	    } catch (IOException | NullPointerException e) {
-	        gameView.showAutoSaveMessage("AUTO-SAVE FAILED!");
-	        System.err.println("Error in Automatic Brain Save: " + e.getMessage());
-	    }
+		// no try-catch attorno a saveAsync perchè ritorna subito un CompletableFuture e non lancia eccezioni, eventuali eccezioni sono catturate e gestite nel whenComplete
+		BirdBrainFileStorage.saveAsync(bestBirdBrainOpt.get(), gameStats)
+		.whenComplete((_, ex) -> { // azione eseguita da thread di saveAsync quando il CompletableFuture non è subito pronto
+            boolean success = (ex == null);
+			String header = (success ? "AUTO-SAVED!" : "AUTO-SAVE FAILED!");
+			String msg = (success ? "" : "Error: " + ex.getCause().getMessage());
+            gameView.showAutoSaveMessage(success, header, msg);
+        });
 	}
 	
 	// Riavvio da Gen 1 dopo il caricamento di un cervello da file
@@ -473,25 +476,27 @@ public final class GameController {
 		synchronized (lock) { return BirdBrainFileStorage.createManualSaveFileName(gameStats); }
 	} 
 	
-	public void saveBestBrain(Path file) throws NullPointerException, IOException {
+	public CompletableFuture<Void> saveBestBrainAsync(Path file) {
 		Optional<BirdBrain> brainOpt;
 		synchronized (lock) { brainOpt = bestBirdBrainOpt; }
 		
 		if (brainOpt.isEmpty()) {
-			throw new NullPointerException("No Best Bird Brain to Save");
+			return CompletableFuture.failedFuture(new NullPointerException("No Best Bird Brain to Save"));
 		}
 		
-		BirdBrainFileStorage.save(bestBirdBrainOpt.get(), file);
+		return BirdBrainFileStorage.saveAsync(brainOpt.get(), file);
 	}
 	
-	public void loadBrain(String filePath) throws NullPointerException, IOException, BadFileFormatException {
+	public CompletableFuture<Void> loadBrainAsync(String filePath) {
 		Objects.requireNonNull(filePath, "File Path Cannot be Null");
-		// Caricamento I/O del cervello da file può richiedere tempo
-		BirdBrain loadedBrain = BirdBrainFileStorage.load(Path.of(filePath));
-		synchronized (lock) {
-	        bestBirdBrainOpt = Optional.of(loadedBrain);
-	        brainLoadRequest = true;
-	    }
+		
+		return BirdBrainFileStorage.loadAsync(Path.of(filePath))
+		        .thenAccept(loadedBrain -> {
+		            synchronized (lock) {
+		                bestBirdBrainOpt = Optional.of(loadedBrain);
+		                brainLoadRequest = true;
+		            }
+		        });
 	}
 	
 	// API Methods
@@ -499,7 +504,18 @@ public final class GameController {
 	
 	public void exitApplication() {
 		gameView.close();
-		BirdBrainFileStorage.shutdownWrites();
+		
+		// Chiusura pulita del thread di persistenza per completare eventuali scritture in corso
+		ShutdownResult result = BirdBrainFileStorage.shutdownAndAwaitCompletion();
+		if (result != ShutdownResult.COMPLETED) {
+	        String headerText = switch (result) {
+	            case TIMED_OUT -> "The save took too long to complete";
+	            case INTERRUPTED -> "Saving was interrupted";
+	            default -> throw new IllegalArgumentException("Unexpected value: " + result);
+	        };
+	        gameView.showBlockingWarning(headerText, "Some progress may not have been saved.");
+	    }
+		
 	    // Chiusura pulita del thread JavaFX (menu e FxGameView se in uso)
 	    Platform.exit();
 	    // Chiusura del processo JVM per terminare altri thread (game-thread e SwingGameView se in uso)
@@ -571,7 +587,6 @@ public final class GameController {
     			 gameClock.resume();
     			 nowRunning = true;
     		 }
-    		
     	}
     	
         if (nowRunning) {

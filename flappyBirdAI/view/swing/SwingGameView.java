@@ -14,6 +14,7 @@ import flappyBirdAI.view.GameView;
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.Objects;
@@ -34,8 +35,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
-
-//TODO va bene gestione start e stop di chronometer e in GameClock?
 
 public class SwingGameView extends JFrame implements GameView, KeyListener {
 
@@ -77,15 +76,17 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	// Game Objects for Rendering
     private Set<AbstractGameObject> currentVGameObj;
     
-    // Timer for Chronometer Updates
-    private Timer chronometerTimer;
+    // Timers
+    private Timer chronometerTimer, autoCloseAutoSaveDialogTimer;
     
     // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
     
-    // UI Components - Statistiche
+    // UI Components - Statistics
 	private JLabel lFPS, lCurrLifeTime, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
-	private Timer autoSaveMessageTimer;
+	
+	// UI Components - Auto-Save
+	private JDialog autoSaveDialog;
 	
 	// UI Components - Controls
 	private JSlider velocitySlider;
@@ -287,13 +288,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             public void mousePressed(MouseEvent e) {
                 // Click sinistro per pausa/riprendi
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    gameController.togglePause();
-                    
-                    if (gameController.isGameRunning()) {
-						chronometerTimer.start();
-					} else {
-						chronometerTimer.stop();
-					}
+                    togglePause();
                 }
             }
         });
@@ -555,8 +550,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		chronometerPanel.add(lTimeValue);
 	}
 
+	@SuppressWarnings("unused")
 	private void initStatsUI() {
-		
 		// Statistiche a DX
 		JPanel rightStatsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 9));
 		rightStatsPanel.setBackground(STATS_BACKGROUND_COLOR);
@@ -587,7 +582,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         lMaxTubePassed = createStatsLabel("Max Tubes: 0");
         
         // Auto Save Label
-        lAutoSave = createStatsLabel("Auto-Save: ON");
+        lAutoSave = createStatsLabel("Auto-Save: " + (GameStats.DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED || GameStats.DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED || GameStats.DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED ? "ON" : "OFF"));
         
         // Aggiunta dei Componenti UI ai Pannelli delle Statistiche DX/SX
         rightStatsPanel.add(lNGen);
@@ -659,7 +654,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	// GameView Interface Methods
 	
-	// Eseguito su un thread separato per non bloccare l'EDT durante l'attesa
+	// Eseguito su un thread separato per non bloccare l'EDT durante l'attesa di terminazione dei thread del gioco (eventuali salvataggi)
 	@Override
 	public void exitGame() {	    
 	    new Thread(gameController::exitApplication, "safe-shutdown").start();
@@ -670,8 +665,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	public void close() {
 		// Chiudere la finestra in modo thread-safe quando viene chiamato da un thread diverso dal thread dell'UI di Swing
 		// Non termina nessun thread, solo la finestra di gioco
+		// invokeLater accoda le operazioni da eseguire sul thread dell'UI di Swing quando la funzione è chiamata da un altro thread, garantendo che l'aggiornamento della GUI avvenga in modo sicuro (EDT è unico thread che può modificare la GUI in Swing)
 		SwingUtilities.invokeLater(() -> {
-			//TODO meglio stop o wait?
 			chronometerTimer.stop();
 			dispose();
 		});
@@ -746,21 +741,92 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	@Override
-    public void showAutoSaveMessage(String msg) {
+	public void showBlockingWarning(String headerText, String detailText) {
+		try {
+			SwingUtilities.invokeAndWait(() -> {        
+	            JDialog dialog = createHeaderDialog(headerText, detailText, JOptionPane.WARNING_MESSAGE, "Warning");
+	            dialog.setVisible(true);
+			});
+		} catch (InterruptedException e) {
+	        Thread.currentThread().interrupt();
+	    } catch (InvocationTargetException e) {
+	        System.err.println("Error showing closing warning: " + e.getCause().getMessage());
+	    }
+	}
+	
+	@Override
+    public void showAutoSaveMessage(boolean success, String headerText, String errorDetail) {
         SwingUtilities.invokeLater(() -> {
-            lAutoSave.setText(msg);
-            
-            if (autoSaveMessageTimer != null) {
-                autoSaveMessageTimer.stop();
-            }
-            
-            autoSaveMessageTimer = new Timer(TIMER_DELAY_MS, _ -> {
-            	lAutoSave.setText("Auto-Save: " + (gameController.isAutoSaveEnabled() ? "ON" : "OFF"));
-            });
-            autoSaveMessageTimer.setRepeats(false);
-            autoSaveMessageTimer.start();
+        	if (success) {
+        		autoSaveDialog = createHeaderDialog(headerText, null, JOptionPane.PLAIN_MESSAGE, "Auto-Save Success");
+        		// Rendere la finestra di dialogo non modale per consentire all'utente di continuare a interagire con la finestra principale
+        		autoSaveDialog.setModalityType(Dialog.ModalityType.MODELESS);
+        		
+        		autoCloseAutoSaveDialogTimer = new Timer(AUTO_SAVE_SUCCESS_DISPLAY_MS, _ -> autoSaveDialog.dispose());
+        		// timer esegue azione solo una volta
+        		autoCloseAutoSaveDialogTimer.setRepeats(false);
+        		autoCloseAutoSaveDialogTimer.start();
+        	} else {
+        		autoSaveDialog = createHeaderDialog(headerText, errorDetail, JOptionPane.ERROR_MESSAGE, "Auto-Save Error");
+        	}
+
+        	autoSaveDialog.setVisible(true);
         });
     }
+	
+	private JDialog createHeaderDialog(String headerText, String detailText, int msgType, String titleSuffix) {
+	    JPanel content = new JPanel();
+	    content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+	    content.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
+
+	    JLabel headerLabel = new JLabel(headerText);
+	    headerLabel.setFont(headerLabel.getFont().deriveFont(Font.BOLD, headerLabel.getFont().getSize2D() + 4f));
+	    headerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+	    content.add(headerLabel);
+
+	    // Corpo del messaggio presente solo se c'è un dettaglio
+	    if (detailText != null && !detailText.isBlank()) {
+	        content.add(Box.createVerticalStrut(10));
+	        
+	        JTextArea detailArea = new JTextArea(detailText);
+	        detailArea.setEditable(false);
+	        detailArea.setOpaque(false);
+	        detailArea.setLineWrap(true);
+	        detailArea.setWrapStyleWord(true);
+	        detailArea.setFont(detailArea.getFont().deriveFont(Font.PLAIN));
+	        detailArea.setBorder(null);
+	        detailArea.setFocusable(false);
+	        detailArea.setColumns(40);
+	        detailArea.setRows(6);
+
+	        JScrollPane scrollPane = new JScrollPane(detailArea);
+	        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+	        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+	        scrollPane.setBorder(null);
+	        scrollPane.setOpaque(false);
+	        scrollPane.getViewport().setOpaque(false);
+	        scrollPane.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+	        content.add(scrollPane);
+	    }
+
+	    JOptionPane optionPane = new JOptionPane(content, msgType);
+	    
+	    JDialog dialog = optionPane.createDialog(GAME_WINDOW_TITLE + " - " + titleSuffix);
+	    dialog.setIconImage(new ImageIcon(getClass().getResource(GAME_ICON_PATH)).getImage());
+	    return dialog;
+	}
+	
+	@Override
+	public void togglePause() {
+		gameController.togglePause();
+        
+        if (gameController.isGameRunning()) {
+			chronometerTimer.start();
+		} else {
+			chronometerTimer.stop();
+		}
+	}
     
 	@Override
     public int getGameWidth() {
@@ -785,28 +851,22 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     }
     
     @Override
-    //TODO ha senso il controllo null? se no, rimuovere
     public void repaintGame() {
-    	if (gamePanel != null) {
-            gamePanel.repaint();
-        }
+    	gamePanel.repaint();
     }
     
     @Override
     public void preloadSprites(Set<AbstractGameObject> vGameObj) {
-		spriteRenderer.preloadSprites(vGameObj);
+    	if (vGameObj != null && !vGameObj.isEmpty()) {
+    		// Precaricare le immagini dei GameObject per evitare ritardi durante il rendering
+    		spriteRenderer.preloadSprites(vGameObj);
+		}
 	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			gameController.togglePause();
-			
-			if (gameController.isGameRunning()) {
-				chronometerTimer.start();
-			} else {
-				chronometerTimer.stop();
-			}
+			togglePause();
 		} else if (e.getKeyCode() == KeyEvent.VK_ESCAPE && isFullScreen) {
 	        handleExitRequest();
 	    }
@@ -1045,14 +1105,14 @@ class SaveBrainListener implements ActionListener {
 				fileName += ".json";
 			}
 			
-			Path filePath = Path.of(fileName);
-			
-			try {
-                parentView.gameController.saveBestBrain(filePath);
-                JOptionPane.showMessageDialog(parentView, "Brain Saved Successfully!" + System.lineSeparator() + "Generated File Name: " + defaultFileName, "Success", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(parentView, "Error Saving Brain: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
+			parentView.gameController.saveBestBrainAsync(Path.of(fileName))
+		    .whenComplete((_, ex) -> SwingUtilities.invokeLater(() -> {
+		        if (ex == null) {
+		            JOptionPane.showMessageDialog(parentView, "Brain Saved Successfully!" + System.lineSeparator() + "Generated File Name: " + defaultFileName, "Success", JOptionPane.INFORMATION_MESSAGE);
+		        } else {
+		            JOptionPane.showMessageDialog(parentView, "Error Saving Brain: " + ex.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		        }
+		    }));
 		}
 	}
 }
@@ -1074,16 +1134,36 @@ class LoadBrainListener implements ActionListener {
 			int choice = JOptionPane.showConfirmDialog(parentView, "Loading the Brain will Reset the Game to Generation 1." + System.lineSeparator() + "Continue?", "Confirm Load", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 			
 			if (choice == JOptionPane.YES_OPTION) {
-				try {
-                    parentView.gameController.loadBrain(file.getAbsolutePath());
-                    parentView.setLoadedBrainLabel(file.getName());
-                    JOptionPane.showMessageDialog(parentView, "Brain Loaded Successfully!" + System.lineSeparator() + "Game has been Reset to Generation 1." + System.lineSeparator() + "Uploaded File Name: " + file.getName(), "Success", JOptionPane.INFORMATION_MESSAGE);
-				}catch (BadFileFormatException ex) {
-    				JOptionPane.showMessageDialog(parentView, "Invalid Brain File: " + ex.getMessage() + System.lineSeparator() + "The Selected File does not Contain a Valid Brain.", "Error", JOptionPane.ERROR_MESSAGE);
-				} catch (IOException ex) {
-                    JOptionPane.showMessageDialog(parentView, "Error Loading Brain: " + ex.getMessage() + System.lineSeparator() + "Please Verify the File Exists and is Accessible.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+				
+				parentView.gameController.loadBrainAsync(file.getAbsolutePath())
+	            .whenComplete((_, ex) -> SwingUtilities.invokeLater(() -> {
+	                if (ex == null) {
+	                    parentView.setLoadedBrainLabel(file.getName());
+	                    JOptionPane.showMessageDialog(parentView,
+	                            "Brain Loaded Successfully!" + System.lineSeparator()
+	                                    + "Game has been Reset to Generation 1." + System.lineSeparator()
+	                                    + "Uploaded File Name: " + file.getName(),
+	                            "Success", JOptionPane.INFORMATION_MESSAGE);
+	                } else {
+	                    handleLoadError(ex);
+	                }
+	            }));
 			}
 		}
 	}
+	
+	private void handleLoadError(Throwable ex) {
+        // ex è una CompletionException: la vera causa è dentro getCause()
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        
+        String msg = switch (cause) {
+	        case BadFileFormatException bffe -> "Invalid Brain File: " + bffe.getMessage()
+	                + System.lineSeparator() + "The Selected File does not Contain a Valid Brain.";
+	        case IOException ioe -> "Error Loading Brain: " + ioe.getMessage()
+	                + System.lineSeparator() + "Please Verify the File Exists and is Accessible.";
+	        default -> "Unexpected Error Loading Brain: " + cause.getMessage();
+        };
+        
+        JOptionPane.showMessageDialog(parentView, msg, "Error", JOptionPane.ERROR_MESSAGE);
+    }
 }

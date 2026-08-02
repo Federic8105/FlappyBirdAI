@@ -35,15 +35,33 @@ public class FxGameView implements GameView {
 		
 		
 	}
+	
+	@Override
+	public void startChronometerTimer() {
+		
+		
+	}
 
 	@Override
 	public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects) {
 		
 		
 	}
+	
+	@Override
+	public void showBlockingWarning(String headerText, String detailText) {
+		
+		
+	}
 
 	@Override
-	public void showAutoSaveMessage(String message) {
+	public void showAutoSaveMessage(boolean success, String headerText, String errorDetail) {
+		
+		
+	}
+	
+	@Override
+	public void togglePause() {
 		
 		
 	}

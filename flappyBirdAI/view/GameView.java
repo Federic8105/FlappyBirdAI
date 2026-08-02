@@ -19,7 +19,7 @@ public interface GameView {
 	public static final String GAME_WINDOW_TITLE = "Flappy Bird AI";
 	public static final String GAME_ICON_PATH = "/res/FB_ICON.png";
 	public static final String GAME_BACKGROUND_IMAGE_PATH = "/res/GAME_BACKGROUND.png";
-	public static final int TIMER_DELAY_MS = 2000;
+	public static final int AUTO_SAVE_SUCCESS_DISPLAY_MS = 1250;
     
     // Panel Minimum Dimensions Constants
 	public static final int MIN_STATS_PANEL_WIDTH = 1000;
@@ -55,7 +55,9 @@ public interface GameView {
 	void setController(GameController controller);
 	void startChronometerTimer();
     void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);
-    void showAutoSaveMessage(String message);
+    void showBlockingWarning(String headerText, String detailText);
+    void showAutoSaveMessage(boolean success, String headerText, String errorDetail);
+    void togglePause();
     int getGameWidth();
     int getGameHeight();
     void repaintGame();
