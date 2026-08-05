@@ -8,6 +8,8 @@ import java.awt.Rectangle;
 
 public abstract class AbstractGameObject implements GameObject {
 	
+	public static final int ANIMATION_REFRESH_MS = 150;
+	
 	// Pubblici per Performance in Game Loop
 	public int x, y, w, h;
 	

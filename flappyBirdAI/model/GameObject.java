@@ -21,6 +21,7 @@ public interface GameObject {
 	int getFrameIndex();
 	boolean isShowSprite();
 	
+	default boolean isAnimated() { return false; }
 	default void updateXY(double dt_s) {}
 	default void updateFrameIndex() {}
 	default SpriteDescriptor getSpriteDescriptor() { return null; }

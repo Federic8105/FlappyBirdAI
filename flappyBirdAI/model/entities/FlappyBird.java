@@ -20,7 +20,6 @@ public class FlappyBird extends AbstractGameObject {
 	
 	public double lifeTime = 0, vy = 0;
 	
-    private final int tDelayAnimation = 150;
     private final double gravity = 700, jumpForce = 300;
 	private final BirdBrain brain;
 
@@ -32,10 +31,6 @@ public class FlappyBird extends AbstractGameObject {
 		h = FlappyBird.HEIGHT;
 
 		updateHitBox();
-		
-		if (showSprite) {
-			startAnimation();
-		}
 	}
 	
 	public BirdBrain getBrain() {
@@ -45,21 +40,6 @@ public class FlappyBird extends AbstractGameObject {
 	public boolean think() {
 		return brain.think();
 	}
-
-    private void startAnimation() throws RuntimeException {
-		Thread animationThread = new Thread(() -> {
-			while (isAlive()) {
-				try {
-					Thread.sleep(tDelayAnimation);
-					updateFrameIndex();
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		});
-		
-		animationThread.start();
-    }
 
     @Override
 	public void updateFrameIndex() {
@@ -86,6 +66,11 @@ public class FlappyBird extends AbstractGameObject {
 	@Override
 	public SpriteDescriptor getSpriteDescriptor() {
 		return SpriteDescriptor.BIRD;
+	}
+	
+	@Override
+	public boolean isAnimated() {
+		return true;
 	}
 
 	@Override

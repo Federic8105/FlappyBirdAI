@@ -73,9 +73,9 @@ public final class GameController {
 	
 	// Game Logic Methods
 	
-	//TODO va bene uso di synchronized? ci sono operazioni che devono essere messe fuori da synchronized o che si possono spostare per efficienza?
-	public void playOneGen() throws RuntimeException {		
-		int gameHeight;
+	public void playOneGen() throws RuntimeException {
+		// Copia per efficienza per evitare chiamate multiple a metodi sincronizzati
+		int gameHeight, gameWidth;
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
@@ -83,6 +83,7 @@ public final class GameController {
 		Optional<TubePair> firstTubePairOpt;
 		TubePair previousFirstTubePair = null, currTargetTubePair;
 		Optional<FlappyBird> randBirdOpt;
+		Optional<BirdBrain> autoSaveInGenBrain, autoSaveEndGenBrain;
 		FlappyBird randBird;
 		// Copia Snapshot per Thread-Safety
 		Set<AbstractGameObject> vGameObjSnapshot;
@@ -124,7 +125,7 @@ public final class GameController {
 					
 					synchronized (lock) {
 						// Aggiornare la vista per mostrare lo stato di pausa e animazioni
-			            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
+			            gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
 					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
@@ -145,10 +146,14 @@ public final class GameController {
 				// Calcolo del Tempo trascorso in Secondi tra Frames (Delta Time del Gioco - Influenzato dal Dt Multiplier)
 				dt = gameClock.getDeltaTime();
 				
+				// Aggiornare copia di gameHeight e gameWidth per evitare chiamate multiple a metodi sincronizzati
+				gameHeight = getGameHeight();
+				gameWidth = getGameWidth();
+				
 				// Controllo se l'Altezza della Finestra di Gioco è Cambiata
-				if (lastGameHeight != (gameHeight = getGameHeight())) {
+				if (lastGameHeight != gameHeight) {
 					// Ricreare tutti i Tube con la Nuova Altezza
-					recreateTubePairs();
+					recreateTubePairs(gameHeight);
 					lastGameHeight = gameHeight;
 				}
 				
@@ -182,10 +187,11 @@ public final class GameController {
 					}
 				}
 				
+				
 				// Aggiornare Oggetti di Gioco
-	            updateGameObjects(dt, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
+	            updateGameObjects(dt, gameWidth, gameHeight, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
 	            deleteDeadGameObjects();
-				checkNewTube();
+				checkNewTube(gameWidth);
 				
 				sleepTime = gameClock.setFrameEndTime();
 				
@@ -193,11 +199,27 @@ public final class GameController {
 				gameStats.fps = gameClock.getEMAFPS();
 				
 				// Aggiornare la Vista di Gioco
-				// Nota: Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
-	            gameView.updateDisplay(gameClock, gameStats, new HashSet<>(vGameObj));
+				// TODO Si passa il riferimento a gameStats ma nel frattempo i suoi campi potrebbero essere modificati dal thread di gioco
+				// Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
+				// TODO Ma comunque rimane il problema che i singoli oggetti di gioco all'interno non sono una copia 
+				// quindi rimangono mutabili e sono condivisi, rischio di inconsistenza visiva se il thread di gioco aggiorna un oggetto mentre il thread grafico lo sta disegnando
+	            //TODO soluzioni:
+				// 1) creare copie snapshot di gameStats e dei valori dei game objects usati per il rendering messi in records (x, y, ...) dentro un blocco synchronized e passarli al thread grafico fuori dal blocco synchronized (risolve problema di visibilità e consistenza ma ha un costo di allocazione a frame)
+				// 2) rendere i campi usati nel rendereing volatile in gameStats e nei game objects (x, y, ...) per garantire la visibilità tra thread (risolve problema di visibilità ma non di consistenza)
+				//    MA non risolve il problema di consistenza se il thread di gioco aggiorna un oggetto mentre il thread grafico lo sta disegnando
+				// Criterio di scelta:
+				// - gameStats: pochi campi primitivi -> costo trascurabile, usare Soluzione 1 (snapshot) sempre
+				// - game objects (potenzialmente molti, es. migliaia di bird): 
+				//   Soluzione 2 (volatile) se il difetto visivo di un frame "storto" è accettabile (costo ~0)
+				//   Soluzione 1 (snapshot) se serve consistenza garantita, valutando il costo di allocazione a frame
+				gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
 	            
-				checkAndAutoSaveInGen();
+	            // Controllo se autosave durante la generazione è da fare e ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
+	            autoSaveInGenBrain = checkAutoSaveInGen();
 			}
+			
+			// Autosave fatta fuori da synchronized per evitare di bloccare il thread di gioco durante serializzazione JSON di brain
+			autoSaveInGenBrain.ifPresent(this::createAutoSaveFile);
             
             // Se sleepTime < 0, significa che il frame è durato più del tempo target, quindi non dormire per recuperare il ritardo
             if (sleepTime > 0) {
@@ -212,15 +234,22 @@ public final class GameController {
 			}
         }
 		
+		// Optional del cervello da salvare se è il momento di fare l'autosave a fine generazione, altrimenti Optional vuoto
+		autoSaveEndGenBrain = Optional.empty();
+		
 		synchronized (lock) {
 			if (brainLoadRequest) {
 				brainLoadRequest = false;
 			    prepareForLoadedBrain();
 			} else {
-				checkAndAutoSaveOnEndGen();
+				// Controllo se autosave a fine generazione è da fare e ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
+				autoSaveEndGenBrain = checkAutoSaveOnEndGen();
 				prepareForNewGen();
 			}
 		}
+		
+		// Autosave fatta fuori da synchronized per evitare di bloccare il thread di gioco durante serializzazione JSON di brain
+		autoSaveEndGenBrain.ifPresent(this::createAutoSaveFile);
 	}
 	
 	public void resetGame() {	
@@ -239,14 +268,14 @@ public final class GameController {
 		return firstTubePairOpt.isPresent() ? firstTubePairOpt.get().getHitBox() : new Rectangle[0];
 	}
 	
-	private void recreateTubePairs() {
+	private void recreateTubePairs(int gameHeight) {
 		Set<TubePair> newTubePairs = new HashSet<>(15);
 		double holeRatio;
 		for (AbstractGameObject obj : vGameObj) {
 			if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
 				// Mantenere la posizione relativa del buco rispetto alla vecchia altezza
 				holeRatio = (double) currTubePair.getYTubeHoleCenter() / lastGameHeight;
-				newTubePairs.add(new TubePair(currTubePair.x, getGameHeight(), holeRatio));
+				newTubePairs.add(new TubePair(currTubePair.x, gameHeight, holeRatio));
 			}
 		}
 		
@@ -255,22 +284,23 @@ public final class GameController {
 		vGameObj.addAll(newTubePairs);
 	}
 
-	private void updateGameObjects(double dt, Rectangle[] tubeHitBoxes, Optional<TubePair> firstTubePairOpt) {
-        for (AbstractGameObject obj : vGameObj) {
+	private void updateGameObjects(double dt, int gameWidth, int gameHeight, Rectangle[] tubeHitBoxes, Optional<TubePair> firstTubePairOpt) {
+        TubePair firstTubePair;
+        
+		for (AbstractGameObject obj : vGameObj) {
         	
             if (obj instanceof FlappyBird currBird && currBird.isAlive()) {
                 
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
-                if (currBird.checkCollision(tubeHitBoxes) || currBird.isOutOfScreen(getGameWidth(), getGameHeight())) {
+                if (currBird.checkCollision(tubeHitBoxes) || currBird.isOutOfScreen(gameWidth, gameHeight)) {
                     currBird.setAlive(false);
         			--gameStats.nBirds;
                     continue;
                     
                 // AI Decision
                 } else if (firstTubePairOpt.isPresent()) {
-                	//Tube firstTopTube = firstTopTubeOpt.get();
                 	
-                	TubePair firstTubePair = firstTubePairOpt.get();
+                	firstTubePair = firstTubePairOpt.get();
                 	
                 	brainInputMap.put("yBird", (double) currBird.y);
                 	brainInputMap.put("vyBird", currBird.vy);
@@ -288,7 +318,7 @@ public final class GameController {
                 
             } else if (obj instanceof TubePair currTubePair && currTubePair.isAlive()) {
             	// Rimuovere i Tube che sono usciti dallo schermo           
-                if (currTubePair.isOutOfScreen(getGameWidth(), getGameHeight())) {
+                if (currTubePair.isOutOfScreen(gameWidth, gameHeight)) {
                     currTubePair.setAlive(false);
                 } else {
                     currTubePair.updateXY(dt);
@@ -329,7 +359,7 @@ public final class GameController {
 		return Optional.ofNullable(firstTubePair);
 	}
 
-	private void checkNewTube() {
+	private void checkNewTube(int gameWidth) {
 		TubePair lastTubePair = null;
 		
         for (AbstractGameObject obj : vGameObj) {
@@ -341,7 +371,7 @@ public final class GameController {
             }
         }
 
-		if (lastTubePair != null && lastTubePair.x + TubePair.WIDTH <= getGameWidth() - TubePair.DIST_X_BETWEEN_TUBES) {
+		if (lastTubePair != null && lastTubePair.x + TubePair.WIDTH <= gameWidth - TubePair.DIST_X_BETWEEN_TUBES) {
 			addNewTubePair();
 		} else if (lastTubePair == null) {
 			addNewTubePair();
@@ -405,37 +435,42 @@ public final class GameController {
 	}
 	
 	// Controllo autosave a fine generazione (On Gen)
-	private void checkAndAutoSaveOnEndGen() {
+	// ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
+	private Optional<BirdBrain> checkAutoSaveOnEndGen() {
 		// Controllo autosave per generazione
     	if (gameStats.isAutoSaveOnGenEnabled && gameStats.nGen % gameStats.getAutoSaveGenThreshold() == 0) {
-			createAutoSaveFile();
+			return bestBirdBrainOpt;
     	}
+    	
+    	return Optional.empty();
 	}
 	
 	// Controllo autosave durante la generazione attuale (On BLT e On Max Tube Passed)
-	private void checkAndAutoSaveInGen() {
+	// ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
+	private Optional<BirdBrain> checkAutoSaveInGen() {
 		if (bestBirdBrainOpt.isEmpty()) {
-			return;
+			return Optional.empty();
 		}
 		
 		// Controllo autosave per Best Life Time
     	if (gameStats.isAutoSaveOnBLTEnabled && gameStats.bestLifeTime > 0 && Math.floor(gameStats.bestLifeTime) != gameStats.getLastSavedBLT() && Math.floor(gameStats.bestLifeTime) % gameStats.getAutoSaveBLTThreshold() == 0) {
     		gameStats.setLastSavedBLT((int) Math.floor(gameStats.bestLifeTime));
-    		createAutoSaveFile();
     		// Evitare salvataggi multipli per stesso Frame
-    		return;
+    		return bestBirdBrainOpt;
     	}
     	
     	// Controllo autosave per Max Tube Passed
     	if (gameStats.isAutoSaveOnMaxTubePassedEnabled && gameStats.maxTubePassed > 0 && gameStats.maxTubePassed != gameStats.getLastSavedMaxTubePassed() && gameStats.maxTubePassed % gameStats.getAutoSaveMaxTubePassedThreshold() == 0) {
 			gameStats.setLastSavedMaxTubePassed(gameStats.maxTubePassed);
-    		createAutoSaveFile();
+    		return bestBirdBrainOpt;
     	}
+    	
+    	return Optional.empty();
 	}
 	
-	private void createAutoSaveFile() {
+	private void createAutoSaveFile(BirdBrain brain) {
 		// no try-catch attorno a saveAsync perchè ritorna subito un CompletableFuture e non lancia eccezioni, eventuali eccezioni sono catturate e gestite nel whenComplete
-		BirdBrainFileStorage.saveAsync(bestBirdBrainOpt.get(), gameStats)
+		BirdBrainFileStorage.saveAsync(brain, gameStats)
 		.whenComplete((_, ex) -> { // azione eseguita da thread di saveAsync quando il CompletableFuture non è subito pronto
             boolean success = (ex == null);
 			String header = (success ? "AUTO-SAVED!" : "AUTO-SAVE FAILED!");

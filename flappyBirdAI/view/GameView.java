@@ -5,7 +5,6 @@
 package flappyBirdAI.view;
 
 import flappyBirdAI.controller.GameController;
-import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import java.awt.GraphicsEnvironment;
@@ -54,7 +53,7 @@ public interface GameView {
     void close();
 	void setController(GameController controller);
 	void startChronometerTimer();
-    void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects);
+    void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObjects);
     void showBlockingWarning(String headerText, String detailText);
     void showAutoSaveMessage(boolean success, String headerText, String errorDetail);
     void togglePause();
@@ -62,5 +61,6 @@ public interface GameView {
     int getGameHeight();
     void repaintGame();
     void preloadSprites(Set<AbstractGameObject> vGameObjects);
+    void updateAnimations();
     
 }

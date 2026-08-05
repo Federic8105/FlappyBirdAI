@@ -77,7 +77,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private Set<AbstractGameObject> currentVGameObj;
     
     // Timers
-    private Timer chronometerTimer, autoCloseAutoSaveDialogTimer;
+    private Timer chronometerTimer, autoCloseAutoSaveDialogTimer, animationTimer;
     
     // UI Panels
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
@@ -107,12 +107,17 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		initWindow();
 		initPanels();
-		
 		setupListeners();
-		
-		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
+		initTimers();
 		
 		setVisible(true);
+	}
+	
+	private void initTimers() {
+		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
+		animationTimer = new Timer(AbstractGameObject.ANIMATION_REFRESH_MS, _ -> updateAnimations());
+		
+		animationTimer.start();
 	}
 	
 	private void setupListeners() {
@@ -668,6 +673,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		// invokeLater accoda le operazioni da eseguire sul thread dell'UI di Swing quando la funzione è chiamata da un altro thread, garantendo che l'aggiornamento della GUI avvenga in modo sicuro (EDT è unico thread che può modificare la GUI in Swing)
 		SwingUtilities.invokeLater(() -> {
 			chronometerTimer.stop();
+			animationTimer.stop();
 			dispose();
 		});
 	}
@@ -689,8 +695,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	@Override
-    public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
-		Objects.requireNonNull(clock, "Game Clock Cannot be Null");
+    public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 				
@@ -862,6 +867,23 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     		spriteRenderer.preloadSprites(vGameObj);
 		}
 	}
+    
+    @Override
+    public void updateAnimations() {
+    	if (currentVGameObj == null || currentVGameObj.isEmpty()) {
+            return;
+        }
+    	
+    	for (AbstractGameObject obj : currentVGameObj) {
+			if (obj.isAlive() && obj.isShowSprite() && obj.isAnimated()) {
+				obj.updateFrameIndex();
+			}
+		}
+    	
+    	// seconda chiamata a repaint dopo quella per aggiornare posizioni a ogni frame
+    	// ma no problema perchè EDT gestisce le chiamate multiple a repaint e le unisce in una sola se sono troppo ravvicinate
+    	gamePanel.repaint();
+    }
 
 	@Override
 	public void keyPressed(KeyEvent e) {

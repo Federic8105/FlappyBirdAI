@@ -4,13 +4,11 @@
 
 package flappyBirdAI.view.fx;
 
-import java.util.Set;
-
-import flappyBirdAI.controller.GameClock;
 import flappyBirdAI.controller.GameController;
 import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.view.GameView;
+import java.util.Set;
 
 public class FxGameView implements GameView {
 
@@ -43,7 +41,7 @@ public class FxGameView implements GameView {
 	}
 
 	@Override
-	public void updateDisplay(GameClock clock, GameStats stats, Set<AbstractGameObject> vGameObjects) {
+	public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObjects) {
 		
 		
 	}
@@ -86,6 +84,12 @@ public class FxGameView implements GameView {
 
 	@Override
 	public void preloadSprites(Set<AbstractGameObject> vGameObjects) {
+		
+		
+	}
+	
+	@Override
+	public void updateAnimations() {
 		
 		
 	}
