@@ -37,7 +37,7 @@ import javafx.stage.Stage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javaFX, javadocs e organizzazione metodi, richiesta posizione autosave in menù, refactor posizione resources
+//TODO: javaFX, javadocs e organizzazione metodi, richiesta posizione autosave in menù
 
 public final class GameMenu extends Application {
 
@@ -47,8 +47,8 @@ public final class GameMenu extends Application {
 	}
 	
 	private static final String MENU_WINDOW_TITLE = "Flappy Bird AI - Menu";
-	private static final String MENU_ICON_PATH = "/res/FB_ICON.png";
-	private static final String MENU_BACKGROUND_IMAGE_PATH = "/res/MENU_BACKGROUND.png";
+	private static final String MENU_ICON_PATH = "/images/FB_ICON.png";
+	private static final String MENU_BACKGROUND_IMAGE_PATH = "/images/MENU_BACKGROUND.png";
 	private static final double MENU_BACKGROUND_OPACITY = 0.6;
 	
 	private static final Image MENU_ICON = new Image(GameMenu.class.getResourceAsStream(MENU_ICON_PATH));

@@ -16,8 +16,8 @@ public interface GameView {
 	// Window and UI Constants
 
 	public static final String GAME_WINDOW_TITLE = "Flappy Bird AI";
-	public static final String GAME_ICON_PATH = "/res/FB_ICON.png";
-	public static final String GAME_BACKGROUND_IMAGE_PATH = "/res/GAME_BACKGROUND.png";
+	public static final String GAME_ICON_PATH = "/images/FB_ICON.png";
+	public static final String GAME_BACKGROUND_IMAGE_PATH = "/images/GAME_BACKGROUND.png";
 	public static final int AUTO_SAVE_SUCCESS_DISPLAY_MS = 1250;
     
     // Panel Minimum Dimensions Constants

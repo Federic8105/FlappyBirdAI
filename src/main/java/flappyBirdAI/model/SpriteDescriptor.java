@@ -8,7 +8,7 @@ import flappyBirdAI.model.entities.FlappyBird;
 import flappyBirdAI.model.entities.Tube;
 
 public record SpriteDescriptor(String resourceKey, int nFrames) {
-	public static final String IMG_PATH= "/res/";
+	public static final String IMG_PATH= "/images/";
 	public static final String IMG_EXT= ".png";
 	
     public static final SpriteDescriptor BIRD = new SpriteDescriptor(FlappyBird.IMG_NAME, FlappyBird.NUM_IMAGES);

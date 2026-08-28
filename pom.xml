@@ -4,7 +4,7 @@
   <artifactId>FlappyBirdAI</artifactId>
   <version>1.0.0</version>
   <name>FlappyBirdAI</name>
-  <description>Flappy Bird game with a simple ANN to learn the rules</description>
+  <description>Flappy Bird clone with neural-network-controlled birds that evolve through mutation-based training</description>
   
   <properties>
     <maven.compiler.release>23</maven.compiler.release>
