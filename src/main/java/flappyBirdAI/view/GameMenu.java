@@ -25,19 +25,26 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.DirectoryChooser;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javaFX, javadocs e organizzazione metodi, richiesta posizione autosave in menù
+//TODO: javadocs e organizzazione metodi, javaFX
 
 public final class GameMenu extends Application {
 
@@ -50,7 +57,6 @@ public final class GameMenu extends Application {
 	private static final String MENU_ICON_PATH = "/images/FB_ICON.png";
 	private static final String MENU_BACKGROUND_IMAGE_PATH = "/images/MENU_BACKGROUND.png";
 	private static final double MENU_BACKGROUND_OPACITY = 0.6;
-	
 	private static final Image MENU_ICON = new Image(GameMenu.class.getResourceAsStream(MENU_ICON_PATH));
 	
 	private static final int MIN_WIDTH = GameView.MIN_WINDOW_WIDTH;
@@ -77,6 +83,10 @@ public final class GameMenu extends Application {
     private static final String TOGGLE_BASE_STYLE = "-fx-font-size: 16px; -fx-pref-width: 150px; -fx-pref-height: 60px;";
     private static final String TOGGLE_SELECTED_STYLE = TOGGLE_BASE_STYLE + " -fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;";
     private static final String TOGGLE_UNSELECTED_STYLE = TOGGLE_BASE_STYLE + " -fx-background-color: #cccccc; -fx-text-fill: black;";
+    private static final String BROWSE_BUTTON_STYLE = "-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 4 10 4 10; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 4, 0.15, 0, 1);";
+    private static final String BROWSE_BUTTON_HOVER_STYLE = "-fx-background-color: #1b5e20; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 4 10 4 10; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 6, 0.2, 0, 2);";
+    private static final String RESET_BUTTON_STYLE = "-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 4 10 4 10; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 4, 0.15, 0, 1);";
+    private static final String RESET_BUTTON_HOVER_STYLE = "-fx-background-color: #8e0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 4 10 4 10; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 6, 0.2, 0, 2);";
     private static final String START_BUTTON_STYLE = "-fx-background-color: #c62828; -fx-background-radius: 8; -fx-padding: 8 16 8 16; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 6, 0.2, 0, 2);";
     private static final String START_BUTTON_HOVER_STYLE = "-fx-background-color: #a01f1f; -fx-background-radius: 8; -fx-padding: 8 16 8 16; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 8, 0.25, 0, 3);";
     // Uso di Data URI perchè CSS inline non funziona con TextArea
@@ -140,6 +150,9 @@ public final class GameMenu extends Application {
         // Spinner per percentuale di uccelli rigenerati dal miglior cervello
         Spinner<Integer> birdsRegenPercSpinner = createBirdsRegenPercSpinner();
         VBox birdsRegenPercField = rangedSpinnerField("% of Regenerated Birds with Best Brain: [%]", birdsRegenPercSpinner, MAIN_LABEL_TEXT_STYLE);
+        
+        // Contenitore verticale per la directory di autosalvataggio
+        VBox autosaveDirSection = labeledSection("Autosave Folder:", buildAutosaveDirSection(stage));
 
         // ToggleGroup per la scelta del motore grafico (Swing / JavaFX) con due ToggleButton, già mutualmente esclusivi
         ToggleButton swingButton = new ToggleButton("Swing");
@@ -155,14 +168,16 @@ public final class GameMenu extends Application {
         Button startButton = buildStartButton(stage, widthSpinner, heightSpinner, nBirdsSpinner, birdsRegenPercSpinner, cbFullScreen, graphicsGroup);
 
         // Contenitore verticale principale per tutti gli elementi del menù
-        VBox root = assembleRoot(titleBox, windowModeSection, widthField, heightField, nBirdsField, birdsRegenPercField, graphicsSection, startButton);
+        VBox root = assembleRoot(titleBox, windowModeSection, widthField, heightField, nBirdsField, birdsRegenPercField, autosaveDirSection, graphicsSection, startButton);
         
         // Contenitore a livelli per l'immagine di sfondo e il contenuto del menù sopra di essa
         StackPane container = buildContainer(root);
        
         // Creare la scena e impostarla sullo stage da mostrare
-        Scene scene = new Scene(container, 400, 570);
+        Scene scene = new Scene(container);
         stage.setScene(scene);
+        // Forzare il ridimensionamento della finestra in base al contenuto prima di mostrarla
+        stage.sizeToScene();
         stage.show();
         
         // .runLater() per accodare il codice da eseguire necessariamente dopo lo stage.show(), che pianifica internamente delle operazioni che potrebbero non essere ancora state eseguite
@@ -238,7 +253,6 @@ public final class GameMenu extends Application {
     // Costruisce il blocco Fullscreen/Windowed: mutua esclusione tra le due checkbox
     // e abilitazione/disabilitazione degli spinner larghezza/altezza in base alla scelta
     private VBox buildWindowModeBox(CheckBox cbFullScreen, CheckBox cbWindowed, VBox widthField, VBox heightField) {
-        
     	if (DEFAULT_FULLSCREEN_CHOICE) {
 			cbFullScreen.setSelected(true);
 		} else {
@@ -272,6 +286,65 @@ public final class GameMenu extends Application {
 
         return windowModeBox;
     }
+    
+	// Costruisce la sezione per la scelta della cartella di autosalvataggio:
+	// mostra il path corrente e permette di cambiarlo o ripristinare il default
+	private VBox buildAutosaveDirSection(Stage stage) {
+		TextField pathField = new TextField(BirdBrainFileStorage.getAutoSaveDir().toString());
+		pathField.setEditable(false);
+		pathField.setStyle("-fx-font-style: italic;");
+		// Tooltip col path completo, utile se il campo viene troncato visivamente
+		pathField.setTooltip(new Tooltip(pathField.getText()));
+	
+		Button browseButton = new Button("Browse");
+		browseButton.setStyle(BROWSE_BUTTON_STYLE);
+		
+		Button resetButton = new Button("Reset");
+		resetButton.setStyle(RESET_BUTTON_STYLE);
+	    
+	    // Cambiare lo stile dei bottoni quando il mouse passa sopra
+	    browseButton.hoverProperty().addListener((_, _, isHovering) -> 
+	        browseButton.setStyle(isHovering ? BROWSE_BUTTON_HOVER_STYLE : BROWSE_BUTTON_STYLE)
+	    );
+	    resetButton.hoverProperty().addListener((_, _, isHovering) -> 
+	        resetButton.setStyle(isHovering ? RESET_BUTTON_HOVER_STYLE : RESET_BUTTON_STYLE)
+	    );
+		
+		browseButton.setOnAction(_ -> {
+		    DirectoryChooser chooser = new DirectoryChooser();
+		    chooser.setTitle("Select Autosave Folder");
+	
+			// Se la cartella corrente esiste, usarla come punto di partenza del dialog
+			File currentDir = BirdBrainFileStorage.getAutoSaveDir().toFile();
+			if (currentDir.isDirectory()) {
+				chooser.setInitialDirectory(currentDir);
+			}
+			
+			File selected = chooser.showDialog(stage);
+			// Se l'utente ha selezionato una cartella, aggiorna il path di autosalvataggio e il campo di testo
+			if (selected != null) {
+			    Path chosenDir = selected.toPath();
+			    BirdBrainFileStorage.setAutoSaveDir(chosenDir);
+			    pathField.setText(chosenDir.toString());
+			    pathField.setTooltip(new Tooltip(chosenDir.toString()));
+			}
+		});
+	
+		resetButton.setOnAction(_ -> {
+			Path defaultDir = BirdBrainFileStorage.getDefaultAutoSaveDir();
+		    BirdBrainFileStorage.setAutoSaveDir(defaultDir);
+		    pathField.setText(defaultDir.toString());
+		    pathField.setTooltip(new Tooltip(defaultDir.toString()));
+		});
+		
+		Region buttonsSpacer = new Region();
+		// region viene espanso per spingere il bottone Reset a destra e lasciare il bottone Browse a sinistra
+		HBox.setHgrow(buttonsSpacer, Priority.ALWAYS);
+	
+		HBox buttonsRow = new HBox(8, browseButton, buttonsSpacer, resetButton);
+		
+		return new VBox(4, pathField, buttonsRow);
+	}
 
     // Costruisce il ToggleGroup Swing/JavaFX: mutua esclusione e aggiornamento stile in base alla selezione
     private ToggleGroup buildGraphicsEngineGroup(ToggleButton swingButton, ToggleButton javaFXButton) {
@@ -341,42 +414,54 @@ public final class GameMenu extends Application {
         return startButton;
     }
 
-    private VBox assembleRoot(VBox titleBox, VBox windowModeSection, VBox widthField, VBox heightField, VBox nBirdsField, VBox birdsRegenPercField, VBox graphicsSection, Button startButton) {
-    	// Linea di separazione
-    	Separator separator = new Separator();
-    	separator.getStyleClass().add("thick-separator");
-        separator.getStylesheets().add(THICK_SEPARATOR_STYLE);
+    private VBox assembleRoot(VBox titleBox, VBox windowModeSection, VBox widthField, VBox heightField, VBox nBirdsField, VBox birdsRegenPercField, VBox autosaveDirSection, VBox graphicsSection, Button startButton) {
+    	// Linee di separazione
+    	Separator[] seps = new Separator[2];
+    	for (int i = 0; i < seps.length; i++) {
+    		seps[i] = new Separator();
+    		seps[i].setPrefWidth(CONTENT_WIDTH);
+    		seps[i].getStyleClass().add("thick-separator");
+    		seps[i].getStylesheets().add(THICK_SEPARATOR_STYLE);
+		}
 
         VBox root = new VBox(14,
                 titleBox,
                 windowModeSection,
                 widthField,
                 heightField,
-                separator, // separatore tra le opzioni di finestra e il resto
+                seps[0],
                 nBirdsField,
                 birdsRegenPercField,
+                autosaveDirSection,
+                seps[1],
                 graphicsSection,
                 startButton
         );
         root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(50));
+        // Impostare un padding nei lati del contenitore principale per evitare che gli elementi tocchino i bordi della finestra
+        // Top, Right, Bottom, Left
+        root.setPadding(new Insets(0, 50, 20, 50));
         // Sfondo trasparente per permettere di vedere l'immagine di sfondo
         root.setStyle("-fx-background-color: transparent;");
-
-        // Aggiungere margine inferiore al pulsante "Start Game"
-        VBox.setMargin(startButton, new Insets(0, 0, 20, 0));
+        
+        // Aggiungere un margine extra sopra il bottone Start
+        VBox.setMargin(startButton, new Insets(10, 0, 0, 0));
 
         return root;
     }
 
     private StackPane buildContainer(VBox root) {
     	// Caricare l'immagine di sfondo e impostare l'opacità
+    	// posizione di default è già (0,0) angolo in alto a sinistra
         ImageView backgroundView = new ImageView(new Image(getClass().getResourceAsStream(MENU_BACKGROUND_IMAGE_PATH)));
         backgroundView.setOpacity(MENU_BACKGROUND_OPACITY);
         backgroundView.setPreserveRatio(false);
+        // immagine di sfondo resa "unmanaged" per evitare che il layout manager la consideri nel calcolo delle dimensioni del contenitore, userà solo i componenti di root
+        backgroundView.setManaged(false);
 
         // Contenitore a livelli per l'immagine messa come sfondo e il contenuto del menù sopra di essa
         StackPane container = new StackPane(backgroundView, root);
+        
         // Impostare le dimensioni dell'immagine di sfondo per adattarsi al contenitore se viene ridimensionato
         backgroundView.fitWidthProperty().bind(container.widthProperty());
         backgroundView.fitHeightProperty().bind(container.heightProperty());

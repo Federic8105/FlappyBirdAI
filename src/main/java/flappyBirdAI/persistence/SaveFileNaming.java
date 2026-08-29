@@ -8,12 +8,16 @@ import flappyBirdAI.controller.GameStats;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 // Visibilità package-private: questa classe è un dettaglio di implementazione del package persistence e non deve essere visibile all'esterno
 final class SaveFileNaming {
 	
-	// Directory in cui salvare i file di autosalvataggio
-	public static final Path AUTOSAVE_DIR = Path.of("autosaves");
+	// Directory di default in cui salvare i file di autosalvataggio: $HOME/.FlappyBirdAI/autosaves
+	static final Path DEFAULT_AUTOSAVE_DIR = Path.of(System.getProperty("user.home"), ".FlappyBirdAI", "autosaves");
+	
+	// Directory effettiva in cui salvare i file di autosalvataggio, inizializzata a DEFAULT_AUTOSAVE_DIR ma modificabile
+	private static volatile Path autosaveDir = DEFAULT_AUTOSAVE_DIR;
 	
 	// Template per i nomi dei file da salvare
 	private static final String AUTO_SAVE_FILENAME_TEMPLATE = "autosave_gen_%d_maxTubePassed_%d_BLT_%.2f_time_%s.json";
@@ -25,8 +29,16 @@ final class SaveFileNaming {
         throw new UnsupportedOperationException("SaveFileNaming is a utility class and cannot be instantiated.");
     }
     
+    static Path getAutosaveDir() {
+    	return autosaveDir;
+    }
+    
+    static void setAutosaveDir(Path newDir) throws NullPointerException {
+		autosaveDir = Objects.requireNonNull(newDir, "newDir Cannot be Null");
+	}
+    
     static Path createAutoSaveFilePath(GameStats stats) {
-		return AUTOSAVE_DIR.resolve(createAutoSaveFileName(stats));
+		return autosaveDir.resolve(createAutoSaveFileName(stats));
 	}
 
 	static String createManualSaveFileName(GameStats stats) {

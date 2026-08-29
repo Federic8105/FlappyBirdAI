@@ -39,7 +39,7 @@ public final class BirdBrainFileStorage {
     
     // Da chiamare una volta all'avvio del gioco, prima di qualunque save/load
     public static void cleanupOrphanedTempFiles() {
-        try (Stream<Path> stream = Files.list(SaveFileNaming.AUTOSAVE_DIR)) {
+        try (Stream<Path> stream = Files.list(SaveFileNaming.getAutosaveDir())) {
             stream.filter(p -> p.getFileName().toString().endsWith(".tmp"))
                   .forEach(p -> {
                       try {
@@ -149,6 +149,17 @@ public final class BirdBrainFileStorage {
     // No I/O, asincrono
 	public static String createManualSaveFileName(GameStats gameStats) {
 	    return SaveFileNaming.createManualSaveFileName(gameStats);
+	}
+	
+	public static Path getDefaultAutoSaveDir() {
+	    return SaveFileNaming.DEFAULT_AUTOSAVE_DIR;
+	}
+	public static Path getAutoSaveDir() {
+	    return SaveFileNaming.getAutosaveDir();
+	}
+
+	public static void setAutoSaveDir(Path dir) {
+	    SaveFileNaming.setAutosaveDir(dir);
 	}
 
 }
