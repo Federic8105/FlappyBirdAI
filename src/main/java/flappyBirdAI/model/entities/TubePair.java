@@ -16,16 +16,27 @@ public class TubePair extends AbstractGameObject {
 	
 	private static final Random RANDOM = new Random();
 	
+	// --- Costanti di Configurazione per Posizionamento ---
+	
 	// Percentuale di quanto si può spostare il buco verso l'alto o verso il basso rispetto al centro dello schermo
     private static final double HOLE_OFFSET_RATIO = 0.4;
     public static final int DIST_X_BETWEEN_TUBES = 750;
 	public static final int DIST_Y_BETWEEN_TUBES = 180;
 	
+	// --- Costanti di Configurazione per Dimensioni ---
+	
 	public static final int WIDTH = Tube.WIDTH;
+	
+	// --- Campi di Stato dei Componenti dell'Oggetto Composto ---
 	
 	// Vuoti se l'altezza calcolata per quel tubo è 0 (il tubo non esiste)
 	private final Optional<Tube> tubeUpOpt, tubeDownOpt;
+	
+	// --- Campi di Stato ---
+	
 	private final int yTubeHoleCenter;
+	
+	// --- Costruttori ---
 	
 	public TubePair(int x0, int gameHeight) throws IllegalStateException {
         this.yTubeHoleCenter = randomYTubeHoleCenter(gameHeight);
@@ -83,6 +94,8 @@ public class TubePair extends AbstractGameObject {
 		
 		updateHitBox();
 	}
+	
+	// --- Utility per Calcolo Posizione Buco ---
 
 	private static int calcMaxHoleOffset(int gamePanelHeight) {
     	// Calcolare offset massimo come percentuale dell'altezza
@@ -107,6 +120,8 @@ public class TubePair extends AbstractGameObject {
 	    return (gameHeight / 2) + tubeHoleOffset;
 	}
 	
+	// --- Getters/Setters ---
+	
 	public int getYTubeHoleCenter() {
 	    return yTubeHoleCenter;
 	}
@@ -117,6 +132,8 @@ public class TubePair extends AbstractGameObject {
 		tubeUpOpt.ifPresent(t -> t.setAlive(alive));
 		tubeDownOpt.ifPresent(t -> t.setAlive(alive));
 	}
+	
+	// --- Gestione HitBox ---
 	
 	@Override
 	public void updateHitBox() {
@@ -135,6 +152,8 @@ public class TubePair extends AbstractGameObject {
 		System.arraycopy(hitBoxDown, 0, hitBox, hitBoxUp.length, hitBoxDown.length);
 	}
 	
+	// --- Movimento ---
+	
 	@Override
 	public void updateXY(double dt_s) {
 		tubeUpOpt.ifPresent(t -> t.updateXY(dt_s));
@@ -146,6 +165,8 @@ public class TubePair extends AbstractGameObject {
 		updateHitBox();
 	}
 	
+	// --- Utility per Rendering ---
+	
 	@Override
 	public List<? extends GameObject> getRenderableComponents() {
 		List<AbstractGameObject> components = new ArrayList<>(2);
@@ -153,6 +174,8 @@ public class TubePair extends AbstractGameObject {
 		tubeDownOpt.ifPresent(components::add);
 		return components;
 	}
+	
+	// --- Object Methods Override ---
 	
 	@Override
 	public String toString() {

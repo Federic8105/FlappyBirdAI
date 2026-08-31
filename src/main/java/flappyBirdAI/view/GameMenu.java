@@ -44,14 +44,18 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javadocs e organizzazione metodi, javaFX
+//TODO: javadocs, javaFX
 
 public final class GameMenu extends Application {
+	
+	// --- Entry Point ---
 
 	public static void main(String[] args) {
 		// Avviare l'applicazione JavaFX
 	    launch(args);
 	}
+	
+	// --- Costanti di Configurazione ---
 	
 	private static final String MENU_WINDOW_TITLE = "Flappy Bird AI - Menu";
 	private static final String MENU_ICON_PATH = "/images/FB_ICON.png";
@@ -59,13 +63,15 @@ public final class GameMenu extends Application {
 	private static final double MENU_BACKGROUND_OPACITY = 0.6;
 	private static final Image MENU_ICON = new Image(GameMenu.class.getResourceAsStream(MENU_ICON_PATH));
 	
-	private static final int MIN_WIDTH = GameView.MIN_WINDOW_WIDTH;
-    private static final int MIN_HEIGHT = GameView.MIN_WINDOW_HEIGHT;
-    private static final int MIN_N_BIRDS = GameController.MIN_N_BIRDS_X_GEN;
-
-    private static final int MAX_WIDTH = GameView.MAX_WINDOW_WIDTH;
-    private static final int MAX_HEIGHT = GameView.MAX_WINDOW_HEIGHT;
-    private static final int MAX_N_BIRDS = GameController.MAX_N_BIRDS_X_GEN;
+	// --- Costanti di Dimensioni Minime e Massime ---
+	
+	private static final double CONTENT_WIDTH = 300; // per allineare tutti i blocchi a sinistra
+	
+	private static final int MIN_WIDTH = GameView.MIN_WINDOW_WIDTH, MAX_WIDTH = GameView.MAX_WINDOW_WIDTH;
+    private static final int MIN_HEIGHT = GameView.MIN_WINDOW_HEIGHT, MAX_HEIGHT = GameView.MAX_WINDOW_HEIGHT;
+    private static final int MIN_N_BIRDS = GameController.MIN_N_BIRDS_X_GEN, MAX_N_BIRDS = GameController.MAX_N_BIRDS_X_GEN;
+    
+    // --- Costanti di Default ---
 
     private static final int DEFAULT_WIDTH = Math.max(1250, MIN_WIDTH);
     private static final int DEFAULT_HEIGHT = Math.max(750, MIN_HEIGHT);
@@ -74,7 +80,7 @@ public final class GameMenu extends Application {
     private static final boolean DEFAULT_JAVAFX_CHOICE = false;
     private static final boolean DEFAULT_FULLSCREEN_CHOICE = false;
     
-    private static final double CONTENT_WIDTH = 300; // per allineare tutti i blocchi a sinistra
+    // --- Costanti di Stile CSS ---
 
     private static final String MAIN_TITLE_STYLE = "-fx-font-size: 30px; -fx-font-weight: bold; -fx-fill: yellow; -fx-stroke: black; -fx-stroke-width: 1.2;";
     private static final String OPTIONS_TITLE_STYLE = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-fill: green; -fx-stroke: black; -fx-stroke-width: 1.0;";
@@ -116,7 +122,11 @@ public final class GameMenu extends Application {
 	        + "}"
     );
     
+    // --- Riferimenti a Componenti Esterne ---
+    
     private GameController gameController;
+    
+    // --- Ciclo di Vita dell'Applicazione JavaFX ---
 
     @Override
     public void start(Stage stage) {
@@ -207,6 +217,8 @@ public final class GameMenu extends Application {
         });
     }
     
+    // --- Costruzione Componenti Spinner con Clamping dei Valori ---
+    
     private Spinner<Integer> createWidthSpinner() {
         Spinner<Integer> spinner = new Spinner<>(MIN_WIDTH, MAX_WIDTH, DEFAULT_WIDTH, 10);
         spinner.setEditable(true);
@@ -234,6 +246,45 @@ public final class GameMenu extends Application {
         attachSpinnerClamping(spinner, 0, 100);
         return spinner;
     }
+    
+    // Metodo per attaccare il clamping dei valori a uno Spinner, limitando i valori inseriti dall'utente tra min e max
+    private void attachSpinnerClamping(Spinner<Integer> spinner, int min, int max) {
+        // Contenitore per l'Ultimo Valore Valido (inizializzato al valore corrente dello Spinner)
+    	// Uso di un array per permettere la modifica del valore all'interno del listener (altrimenti sarebbe final o effectively final)
+        int[] lastValidValue = { spinner.getValue() };
+
+        // Aggiornare l'Ultimo Valore Valido ogni volta che lo Spinner cambia (frecce, o testo valido confermato)
+        spinner.valueProperty().addListener((_, _, newValue) -> {
+            if (newValue != null) {
+                lastValidValue[0] = newValue;
+            }
+        });
+
+        // Controllo del valore quando lo Spinner perde il focus
+        spinner.focusedProperty().addListener((_, _, isNowFocused) -> {
+            if (!isNowFocused) {
+                clampSpinnerValue(spinner, min, max, lastValidValue);
+            }
+        });
+
+        // Controllo del valore quando l'utente preme Invio
+        spinner.getEditor().setOnAction(_ -> clampSpinnerValue(spinner, min, max, lastValidValue));
+    }
+
+    // Controllo del valore dello Spinner e correzione se necessario
+    private void clampSpinnerValue(Spinner<Integer> spinner, int min, int max, int[] lastValidValue) {
+        try {
+            int value = Integer.parseInt(spinner.getEditor().getText());
+            // se il valore è fuori dai limiti, lo riporta al limite più vicino
+            int clamped = Math.max(min, Math.min(max, value));
+            spinner.getValueFactory().setValue(clamped);
+        } catch (NumberFormatException ex) {
+        	// se il valore non è numerico, torna all'ultimo valore valido
+            spinner.getValueFactory().setValue(lastValidValue[0]);
+        }
+    }
+    
+    // --- Costruzione Sezioni ---
 
     private VBox buildTitleBox() {
     	// Titolo Menù
@@ -413,6 +464,8 @@ public final class GameMenu extends Application {
 
         return startButton;
     }
+    
+    // --- Assemblaggio del Layout ---
 
     private VBox assembleRoot(VBox titleBox, VBox windowModeSection, VBox widthField, VBox heightField, VBox nBirdsField, VBox birdsRegenPercField, VBox autosaveDirSection, VBox graphicsSection, Button startButton) {
     	// Linee di separazione
@@ -468,6 +521,54 @@ public final class GameMenu extends Application {
 
         return container;
     }
+    
+    // --- Utility per Creazione Campi e Sezioni ---
+
+    // creare campo contenitore verticale con label con nome, spinner e label con range min-max
+    private VBox rangedSpinnerField(String labelText, Spinner<Integer> spinner, String labelStyle) {
+        Text label = new Text(labelText);
+        label.setStyle(labelStyle);
+
+        // Recuperare i valori min e max dallo Spinner per mostrarli nella label
+        SpinnerValueFactory.IntegerSpinnerValueFactory spinnerFactory = (SpinnerValueFactory.IntegerSpinnerValueFactory) spinner.getValueFactory();
+
+        Label rangeLabel = new Label("[Min: " + spinnerFactory.getMin() + " - Max: " + spinnerFactory.getMax() + "]");
+        rangeLabel.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #555555;");
+
+        // Contenitore orizzontale per spinner e label con range
+        HBox spinnerRow = new HBox(8, spinner, rangeLabel);
+        spinnerRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox box = new VBox(4, label, spinnerRow);
+        // Impostare la larghezza preferita del VBox per allineare tutti i blocchi a sinistra
+        box.setPrefWidth(CONTENT_WIDTH);
+        return box;
+    }
+    
+    // creare campo contenitore verticale con label e contenuto qualsiasi
+    private VBox labeledSection(String labelText, Node content) {
+        Text label = new Text(labelText);
+        label.setStyle(MAIN_LABEL_TEXT_STYLE);
+
+        VBox box = new VBox(6, label, content);
+        box.setPrefWidth(CONTENT_WIDTH);
+        return box;
+    }
+    
+    // --- Utility per Abilitazione/Disabilitazione Campi ---
+    
+    // abilitare/disabilitare campi larghezza e altezza finestra in base alla scelta di schermo intero o finestra
+    private void setWindowFieldsEnabled(boolean enabled, VBox widthField, VBox heightField) {
+    	widthField.getChildren().forEach(node -> node.setDisable(!enabled));
+    	heightField.getChildren().forEach(node -> node.setDisable(!enabled));
+    	
+        // campi opachi se disabilitati
+        double opacity = enabled ? 1.0 : 0.45;
+        widthField.setOpacity(opacity);
+        heightField.setOpacity(opacity);
+    }
+    
+    // --- Gestione Ciclo di Gioco ed Errori ---
     
     private void startGame() {
     	boolean continueGame = true;
@@ -540,85 +641,6 @@ public final class GameMenu extends Application {
         textArea.getStyleClass().add("error-text-area");
         textArea.getStylesheets().add(TRANSPARENT_TEXT_AREA_STYLE);
         return textArea;
-    }
-    
-    // abilitare/disabilitare campi larghezza e altezza finestra in base alla scelta di schermo intero o finestra
-    private void setWindowFieldsEnabled(boolean enabled, VBox widthField, VBox heightField) {
-    	widthField.getChildren().forEach(node -> node.setDisable(!enabled));
-    	heightField.getChildren().forEach(node -> node.setDisable(!enabled));
-    	
-        // campi opachi se disabilitati
-        double opacity = enabled ? 1.0 : 0.45;
-        widthField.setOpacity(opacity);
-        heightField.setOpacity(opacity);
-    }
-
-    // creare campo contenitore verticale con label con nome, spinner e label con range min-max
-    private VBox rangedSpinnerField(String labelText, Spinner<Integer> spinner, String labelStyle) {
-        Text label = new Text(labelText);
-        label.setStyle(labelStyle);
-
-        // Recuperare i valori min e max dallo Spinner per mostrarli nella label
-        SpinnerValueFactory.IntegerSpinnerValueFactory spinnerFactory = (SpinnerValueFactory.IntegerSpinnerValueFactory) spinner.getValueFactory();
-
-        Label rangeLabel = new Label("[Min: " + spinnerFactory.getMin() + " - Max: " + spinnerFactory.getMax() + "]");
-        rangeLabel.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #555555;");
-
-        // Contenitore orizzontale per spinner e label con range
-        HBox spinnerRow = new HBox(8, spinner, rangeLabel);
-        spinnerRow.setAlignment(Pos.CENTER_LEFT);
-
-        VBox box = new VBox(4, label, spinnerRow);
-        // Impostare la larghezza preferita del VBox per allineare tutti i blocchi a sinistra
-        box.setPrefWidth(CONTENT_WIDTH);
-        return box;
-    }
-    
-    // creare campo contenitore verticale con label e contenuto qualsiasi
-    private VBox labeledSection(String labelText, Node content) {
-        Text label = new Text(labelText);
-        label.setStyle(MAIN_LABEL_TEXT_STYLE);
-
-        VBox box = new VBox(6, label, content);
-        box.setPrefWidth(CONTENT_WIDTH);
-        return box;
-    }
-
-    // Metodo per attaccare il clamping dei valori a uno Spinner, limitando i valori inseriti dall'utente tra min e max
-    private void attachSpinnerClamping(Spinner<Integer> spinner, int min, int max) {
-        // Contenitore per l'Ultimo Valore Valido (inizializzato al valore corrente dello Spinner)
-    	// Uso di un array per permettere la modifica del valore all'interno del listener (altrimenti sarebbe final o effectively final)
-        int[] lastValidValue = { spinner.getValue() };
-
-        // Aggiornare l'Ultimo Valore Valido ogni volta che lo Spinner cambia (frecce, o testo valido confermato)
-        spinner.valueProperty().addListener((_, _, newValue) -> {
-            if (newValue != null) {
-                lastValidValue[0] = newValue;
-            }
-        });
-
-        // Controllo del valore quando lo Spinner perde il focus
-        spinner.focusedProperty().addListener((_, _, isNowFocused) -> {
-            if (!isNowFocused) {
-                clampSpinnerValue(spinner, min, max, lastValidValue);
-            }
-        });
-
-        // Controllo del valore quando l'utente preme Invio
-        spinner.getEditor().setOnAction(_ -> clampSpinnerValue(spinner, min, max, lastValidValue));
-    }
-
-    // Controllo del valore dello Spinner e correzione se necessario
-    private void clampSpinnerValue(Spinner<Integer> spinner, int min, int max, int[] lastValidValue) {
-        try {
-            int value = Integer.parseInt(spinner.getEditor().getText());
-            // se il valore è fuori dai limiti, lo riporta al limite più vicino
-            int clamped = Math.max(min, Math.min(max, value));
-            spinner.getValueFactory().setValue(clamped);
-        } catch (NumberFormatException ex) {
-        	// se il valore non è numerico, torna all'ultimo valore valido
-            spinner.getValueFactory().setValue(lastValidValue[0]);
-        }
     }
 
 }

@@ -6,25 +6,34 @@ package flappyBirdAI.controller;
 
 public final class GameStats {
 	
-	// Default values
+	// --- Costanti di Configurazione per Autosave con Valori di Default ---
 	
 	public static final int DEFAULT_AUTOSAVE_GEN_THRESHOLD = 50;
-	// in secondi
-	public static final int DEFAULT_AUTOSAVE_BLT_THRESHOLD = 30;
+	public static final int DEFAULT_AUTOSAVE_BLT_THRESHOLD = 30; // in secondi
 	public static final int DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD = 10;
 
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED = true;
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED = false;
 	public static final boolean DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED = false;
 	
-	// Min e Max valori per le soglie di autosave
+	// --- Costanti di Configurazione per Autosave con Valori Minimi e Massimi ---
+
 	public static final int MIN_AUTOSAVE_GEN_THRESHOLD = 1, MAX_AUTOSAVE_GEN_THRESHOLD = 1000;
 	public static final int MIN_AUTOSAVE_BLT_THRESHOLD = 10, MAX_AUTOSAVE_BLT_THRESHOLD = 36000;
 	public static final int MIN_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD = 1, MAX_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD = 100;
 	
+	// --- Campi di Stato per Autosave ---
+
+    public boolean isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
+    public boolean isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
+    public boolean isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;
+	
+	// --- Campi di Stato per Statistiche di Gioco ---
+	
     public int fps = 0, nGen = 1, nBirds = 0, nTubePassed = 0, maxTubePassed = 0;
-    // in secondi
-    public double currLifeTime = 0, bestLifeTime = 0;
+    public double currLifeTime = 0, bestLifeTime = 0; // in secondi
+    
+    // --- Campi di Stato per Soglie di Autosave e Ultimi Valori Salvati ---
     
     private int autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD;
     private int autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
@@ -33,10 +42,30 @@ public final class GameStats {
     private int lastSavedBLT = 0;
     private int lastSavedMaxTubePassed = 0;
     
-    // Stati di autosave
-    public boolean isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
-    public boolean isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
-    public boolean isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;
+    // --- Metodi di Reset ---
+    
+    public void resetToFirstGen() {
+		nGen = 1;
+		nBirds = 0;
+		nTubePassed = 0;
+		maxTubePassed = 0;
+		currLifeTime = 0;
+		bestLifeTime = 0;
+		lastSavedBLT = 0;
+		lastSavedMaxTubePassed = 0;
+	}
+    
+    public void resetToDefaults() {
+    	resetToFirstGen();
+    	autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD;
+    	autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
+    	autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
+    	isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
+    	isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
+    	isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;
+    }
+    
+    // --- Query di Stato ---
     
     public boolean isFirstGen() {
 		return nGen == 1;
@@ -45,6 +74,8 @@ public final class GameStats {
     public boolean isAutoSaveEnabled() {
 		return isAutoSaveOnGenEnabled || isAutoSaveOnBLTEnabled || isAutoSaveOnMaxTubePassedEnabled;
 	}
+    
+    // --- Getters/Setters per Soglie di Autosave ---
     
     public int getAutoSaveGenThreshold() {
     	return autoSaveGenThreshold;
@@ -79,6 +110,8 @@ public final class GameStats {
 		autoSaveMaxTubePassedThreshold = threshold;
 	}
     
+    // --- Getters/Setters per Ultimi Valori Salvati ---
+    
     public int getLastSavedBLT() {
     	return lastSavedBLT;
     }
@@ -93,27 +126,6 @@ public final class GameStats {
     
     public void setLastSavedMaxTubePassed(int maxTubePassed) {
     	lastSavedMaxTubePassed = maxTubePassed;
-    }
-    
-    public void resetToFirstGen() {
-		nGen = 1;
-		nBirds = 0;
-		nTubePassed = 0;
-		maxTubePassed = 0;
-		currLifeTime = 0;
-		bestLifeTime = 0;
-		lastSavedBLT = 0;
-		lastSavedMaxTubePassed = 0;
-	}
-    
-    public void resetToDefaults() {
-    	resetToFirstGen();
-    	autoSaveGenThreshold = DEFAULT_AUTOSAVE_GEN_THRESHOLD;
-    	autoSaveBLTThreshold = DEFAULT_AUTOSAVE_BLT_THRESHOLD;
-    	autoSaveMaxTubePassedThreshold = DEFAULT_AUTOSAVE_MAX_TUBE_PASSED_THRESHOLD;
-    	isAutoSaveOnGenEnabled = DEFAULT_IS_AUTOSAVE_ON_GEN_ENABLED;
-    	isAutoSaveOnBLTEnabled = DEFAULT_IS_AUTOSAVE_ON_BLT_ENABLED;
-    	isAutoSaveOnMaxTubePassedEnabled = DEFAULT_IS_AUTOSAVE_ON_MAX_TUBE_PASSED_ENABLED;
     }
     
 }

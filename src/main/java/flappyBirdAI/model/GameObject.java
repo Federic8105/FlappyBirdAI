@@ -10,21 +10,27 @@ import java.util.Objects;
 
 public interface GameObject {
 	
+	// --- Metodi Astratti per Getters/Setters e Query di Stato e Gestione HitBox ---
+	
 	boolean isAlive();
 	void setAlive(boolean alive);
 	int getX();
 	int getY();
 	int getW();
 	int getH();
-	void updateHitBox();
 	Rectangle[] getHitBox();
 	int getFrameIndex();
 	boolean isShowSprite();
+	void updateHitBox();
 	
-	default boolean isAnimated() { return false; }
+	// --- Metodi di Default per Movimento e Animazioni ---
+	
 	default void updateXY(double dt_s) {}
-	default void updateFrameIndex() {}
 	default SpriteDescriptor getSpriteDescriptor() { return null; }
+	default boolean isAnimated() { return false; }
+	default void updateFrameIndex() {}
+	
+	// --- Metodi di Default per Utility Geometriche e Rendering ---
 	
 	default boolean isOutOfScreen(int screenWidth, int screenHeight) {
 		return getX() + getW() < 0 || getX() > screenWidth || getY() + getH() < 0 || getY() > screenHeight;

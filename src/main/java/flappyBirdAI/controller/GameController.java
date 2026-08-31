@@ -24,14 +24,29 @@ import java.awt.Rectangle;
 
 public final class GameController {
 	
-	public static final int MIN_N_BIRDS_X_GEN = 1;
-	public static final int MAX_N_BIRDS_X_GEN = 100000;
+	// --- Costanti di Configurazione ---
+	
+	public static final int MIN_N_BIRDS_X_GEN = 1, MAX_N_BIRDS_X_GEN = 100000;
+	
+	// --- Riferimenti a Componenti Esterne ---
+	
+	private final GameView gameView;
+	private final GameStats gameStats = new GameStats();
+	private final GameClock gameClock = new GameClock();
     
-    private final GameView gameView;
+	// --- Campi di Stato ---
+	
     private final Set<AbstractGameObject> vGameObj;
     private final Map<String, Double> brainInputMap = new HashMap<>(BirdBrain.NUM_INPUT);
+    private final int nBirdsXGen, nBirdsRegen;
     
-    // Game Engine Variables
+    private int lastGameHeight;
+    private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
+    
+    // Flag per Richiesta di Reset del Gioco per Caricamento Cervello da File
+    private boolean brainLoadRequest = false;
+    
+    // --- Lock Objects per la Sincronizzazione tra Thread ---
     
     // Oggetto di Lock per la Sincronizzazione di Accesso a Variabili Condivise tra Thread (Game Thread e GUI Thread)
     private final Object lock = new Object();
@@ -40,18 +55,7 @@ public final class GameController {
     // Usato come Monitor per wait() e notify() per la pausa del gioco
     private final Object pauseLock = new Object();
     
-    // Game Statistics
-    private final GameStats gameStats = new GameStats();
-    
-    // Game Clock
-    private final GameClock gameClock = new GameClock();
-    
-    private final int nBirdsXGen, nBirdsRegen;
-    private int lastGameHeight;
-    private Optional<BirdBrain> bestBirdBrainOpt = Optional.empty();
-    
-    // Flag per Richiesta di Reset del Gioco per Caricamento Cervello da File
-    private boolean brainLoadRequest = false;
+    // -- - Costruttori ---
 
 	public GameController(GameView gameView, int nBirdsXGen, int birdsRegenPerc) throws NullPointerException, IllegalArgumentException {
 		this.gameView = Objects.requireNonNull(gameView, "GameView Cannot be Null");
@@ -70,7 +74,7 @@ public final class GameController {
 		gameClock.start();
 	}
 	
-	// Game Logic Methods
+	// -- Ciclo di Gioco ---
 	
 	public void playOneGen() throws RuntimeException {
 		// Copia per efficienza per evitare chiamate multiple a metodi sincronizzati
@@ -202,7 +206,7 @@ public final class GameController {
 				// Si passa una Copia della Lista per Evitare ConcurrentModificationException (Thread-Safe)
 				// TODO Ma comunque rimane il problema che i singoli oggetti di gioco all'interno non sono una copia 
 				// quindi rimangono mutabili e sono condivisi, rischio di inconsistenza visiva se il thread di gioco aggiorna un oggetto mentre il thread grafico lo sta disegnando
-	            //TODO soluzioni:
+	            // TODO soluzioni:
 				// 1) creare copie snapshot di gameStats e dei valori dei game objects usati per il rendering messi in records (x, y, ...) dentro un blocco synchronized e passarli al thread grafico fuori dal blocco synchronized (risolve problema di visibilità e consistenza ma ha un costo di allocazione a frame)
 				// 2) rendere i campi usati nel rendereing volatile in gameStats e nei game objects (x, y, ...) per garantire la visibilità tra thread (risolve problema di visibilità ma non di consistenza)
 				//    MA non risolve il problema di consistenza se il thread di gioco aggiorna un oggetto mentre il thread grafico lo sta disegnando
@@ -262,6 +266,8 @@ public final class GameController {
 	        addNewTubePair();
 	    }
 	}
+	
+	// --- Aggiornamento Oggetti di Gioco/Helper Methods ---
 	
 	private Rectangle[] getTubeHitBoxes(Optional<TubePair> firstTubePairOpt) {
 		return firstTubePairOpt.isPresent() ? firstTubePairOpt.get().getHitBox() : new Rectangle[0];
@@ -377,6 +383,8 @@ public final class GameController {
 		}
 	}
 	
+	// --- Creazione e Aggiunta Bird e TubePair ---
+	
 	private void addBirds(Set<AbstractGameObject> vBirds) {
 		vGameObj.addAll(vBirds);
 		gameStats.nBirds += vBirds.size();
@@ -433,6 +441,8 @@ public final class GameController {
 		vGameObj.add(new TubePair(getGameWidth(), getGameHeight()));
 	}
 	
+	// --- Gestione Autosave ---
+	
 	// Controllo autosave a fine generazione (On Gen)
 	// ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
 	private Optional<BirdBrain> checkAutoSaveOnEndGen() {
@@ -478,6 +488,8 @@ public final class GameController {
         });
 	}
 	
+	// --- Transizione di Stato tra Generazioni ---
+	
 	// Riavvio da Gen 1 dopo il caricamento di un cervello da file
 	private void prepareForLoadedBrain() {
 	    gameStats.resetToFirstGen();
@@ -495,6 +507,8 @@ public final class GameController {
 		addNewGenBirds();
 	}
 	
+	// --- Getter Interni per Dimensioni Area di Gioco ---
+	
 	private int getGameHeight() {
 		return gameView.getGameHeight();
 	}
@@ -503,7 +517,7 @@ public final class GameController {
 		return gameView.getGameWidth();
 	}
 	
-	// Import/Export Methods
+	// --- Gestione Import/Export ---
 	// Chiamati dal Thread Grafico
 	
 	public String createManualSaveFileName() {
@@ -533,8 +547,35 @@ public final class GameController {
 		        });
 	}
 	
-	// API Methods
-	// Chiamati dal Thread Grafico
+	// --- Gestione Pausa/Riprendi Gioco ---
+	
+	public void togglePause() {
+    	boolean nowRunning;
+    	
+    	synchronized (lock) {
+    		 if (gameClock.isGameRunning()) {
+    			 gameClock.pause();
+    			 nowRunning = false;
+    		 } else {
+    			 gameClock.resume();
+    			 nowRunning = true;
+    		 }
+    	}
+    	
+        if (nowRunning) {
+        	// Sbloccare subito il thread di gioco se in attesa senza aspettare il prossimo ciclo di sleep
+        	synchronized (pauseLock) {
+				pauseLock.notifyAll();
+        	}
+        }
+      
+        // Forzare l'aggiornamento del display per feedback visivo istantaneo
+        // Fuori dal blocco synchronized per evitare di bloccare il thread di gioco durante il repaint sul thread grafico
+        gameView.repaintGame();
+    }
+	
+	// --- Gestione Uscita Applicazione ---
+	// Chiamato dal Thread Grafico
 	
 	public void exitApplication() {
 		gameView.close();
@@ -556,7 +597,19 @@ public final class GameController {
 	    System.exit(0);
 	}
 	
-	// Getter and Setter Methods
+	// --- Getters/Setters e Query di Stato ---
+
+    public boolean isGameRunning() {
+    	return gameClock.isGameRunning();
+    }
+    
+    public boolean isFirstGen() {
+    	synchronized (lock) { return gameStats.isFirstGen(); }
+	}
+    
+    public boolean isAutoSaveEnabled() {
+    	synchronized (lock) { return gameStats.isAutoSaveEnabled(); }
+    }
     
     public Optional<BirdBrain> getBestBirdBrain() {
     	synchronized (lock) { return bestBirdBrainOpt; }
@@ -564,10 +617,6 @@ public final class GameController {
     
     public void setBestBirdBrain(BirdBrain brain) {
     	synchronized (lock) { bestBirdBrainOpt = Optional.of(brain); }
-    }
-    
-    public boolean isAutoSaveEnabled() {
-    	synchronized (lock) { return gameStats.isAutoSaveEnabled(); }
     }
     
     public void setAutoSaveOnGenEnabled(boolean enabled) {
@@ -594,14 +643,6 @@ public final class GameController {
     	synchronized (lock) { gameStats.setAutoSaveMaxTubePassedThreshold(threshold); }
 	}
     
-    public boolean isFirstGen() {
-    	synchronized (lock) { return gameStats.isFirstGen(); }
-	}
-    
-    public boolean isGameRunning() {
-    	return gameClock.isGameRunning();
-    }
-    
     public String getFormattedGameTimeElapsed() {
         return gameClock.getFormattedGameTimeElapsed();
     }
@@ -609,30 +650,5 @@ public final class GameController {
     public void setDtMultiplier(double multiplier) {
     	synchronized (lock) { gameClock.setDtMultiplier(multiplier); }
 	}
-    
-    public void togglePause() {
-    	boolean nowRunning;
-    	
-    	synchronized (lock) {
-    		 if (gameClock.isGameRunning()) {
-    			 gameClock.pause();
-    			 nowRunning = false;
-    		 } else {
-    			 gameClock.resume();
-    			 nowRunning = true;
-    		 }
-    	}
-    	
-        if (nowRunning) {
-        	// Sbloccare subito il thread di gioco se in attesa senza aspettare il prossimo ciclo di sleep
-        	synchronized (pauseLock) {
-				pauseLock.notifyAll();
-        	}
-        }
-      
-        // Forzare l'aggiornamento del display per feedback visivo istantaneo
-        // Fuori dal blocco synchronized per evitare di bloccare il thread di gioco durante il repaint sul thread grafico
-        gameView.repaintGame();
-    }
     
 }

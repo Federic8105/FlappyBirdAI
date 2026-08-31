@@ -40,7 +40,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	private static final long serialVersionUID = 1L;
     
-    // Colors
+    // --- Costanti di Colori ---
+	
     private static final Color GAME_BACKGROUND_COLOR = Color.CYAN;
     private static final Color STATS_BACKGROUND_COLOR = Color.DARK_GRAY;
     private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
@@ -49,7 +50,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 150);
     private static final Color PAUSE_SYMBOL_COLOR = new Color(150, 150, 150);
     
-    // Utility Functions
+    // --- Utility Statiche ---
     
     protected static JFileChooser createJsonFileChooser() {
         JFileChooser fileChooser = new JFileChooser();
@@ -57,48 +58,55 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         return fileChooser;
     }
     
-    // Initial Window Dimensions and Flags
- 	private final int initWidth, initHeight;
- 	private final boolean isFullScreen;
+    // --- Riferimenti a Componenti Esterne ---
     
-    // Caching Ultimi Valori di Statistica per Labels
+    // Visibilità package-private per permettere l'accessso solo alle classi dello stesso package (Classi Listeners)
+	GameController gameController;
+	
+	// Renderer per disegnare gli sprite dei GameObject
+	private final GameRenderer<Graphics2D> spriteRenderer = new SwingGameRenderer();
+	
+	// --- Campi per Caching delle Statistiche ---
+	
     private int lastGen = -1, lastNBirds = -1, lastTubePassed = -1, lastMaxTubePassed = -1;
     private boolean lastAutoSaveStatus = false;
     private double lastBestLifeTime = -1.0;
 	
-	// Controller Reference
-    // Visibilità package-private per permettere l'accessso solo alle classi dello stesso package (Classi Listeners)
-	GameController gameController;
-	
-	// Renderer for drawing game objects
-	private final GameRenderer<Graphics2D> spriteRenderer = new SwingGameRenderer();
-	
-	// Game Objects for Rendering
+	// --- Campi di Stato ---
+    
+ 	private final int initWidth, initHeight;
+ 	private final boolean isFullScreen;
+
     private Set<AbstractGameObject> currentVGameObj;
     
-    // Timers
+    // --- Timers ---
+    
     private Timer chronometerTimer, autoCloseAutoSaveDialogTimer, animationTimer;
     
-    // UI Panels
+    // --- Componenti UI ---
+    
+    // Pannelli Principali
     private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
     
-    // UI Components - Statistics
+    // Labels per Statistiche
 	private JLabel lFPS, lCurrLifeTime, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
 	
-	// UI Components - Auto-Save
+	// Dialog per Auto-Save
 	private JDialog autoSaveDialog;
 	
-	// UI Components - Controls
+	// Slider per Velocità di Gioco
 	private JSlider velocitySlider;
 	
-	// UI Components - Import/Export
+	// Componenti per Import/Export e Auto-Save
 	private JButton bSaveBrain, bLoadBrain;
 	private JLabel lLoadedBrain;
 	private JCheckBox cbAutoSaveOnGen, cbAutoSaveOnBLT, cbAutoSaveOnMaxTubePassed;
 	private JSpinner autoSaveGenThresholdSpinner, autoSaveBLThresholdSpinner, autoSaveMaxTubePassedThresholdSpinner;
 	
-	// UI Components - Chronometer
+	// Componenti per Cronometro
 	private JLabel lTime, lTimeValue;
+	
+	// --- Costruttori ---
 
 	public SwingGameView(int width, int height, boolean isFullScreen) {
 		this.isFullScreen = isFullScreen;
@@ -113,41 +121,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		setVisible(true);
 	}
 	
-	private void initTimers() {
-		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
-		animationTimer = new Timer(AbstractGameObject.ANIMATION_REFRESH_MS, _ -> updateAnimations());
-		
-		animationTimer.start();
-	}
-	
-	private void setupListeners() {
-		// Aggiungere il KeyListener alla finestra principale
-		addKeyListener(this);
-		
-		// Assicurarsi che la finestra possa ricevere eventi da tastiera
-		setFocusable(true);
-		
-		addWindowListener(new WindowAdapter() {
-			// Richiedere il focus per input quando la finestra diventa visibile (prima apertura, click, primo piano)
-			@Override
-			public void windowActivated(WindowEvent e) {
-				requestFocusInWindow();
-			}
-			// Gestire la chiusura della finestra in modo sicuro
-			@Override
-	        public void windowClosing(WindowEvent e) {
-	            exitGame();
-	        }
-		});
-		
-		// Restituire il focus quando si clicca sulla finestra in un punto qualsiasi non focusable
-		addMouseListener(new MouseAdapter() {
-	        @Override
-	        public void mousePressed(MouseEvent e) {
-	            requestFocusInWindow();
-	        }
-	    });
-	}
+	// --- Inizializzazione Finestra e Layout ---
 	
 	private void initWindow() {
 		if (isFullScreen) {
@@ -219,6 +193,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    // Controllo Width Min
         return Math.max((int) (initWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
     }
+	
+	// --- Inizializzazione Pannelli Principali ---
 	
 	private void initImportExportPanel(int panelWidth) {
 		importExportPanel = new JPanel();
@@ -304,74 +280,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         
         add(gamePanel, BorderLayout.CENTER);
     }
-
-	private void drawPauseOverlay(Graphics2D g2d) {
-	    int width = gamePanel.getWidth();
-	    int height = gamePanel.getHeight();
-	    
-	    // Disegnare overlay scuro semi-trasparente
-	    g2d.setColor(PAUSE_OVERLAY_COLOR);
-	    g2d.fillRect(0, -1, width, height + 1);
-	    
-	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
-	    int symbolSize = Math.min(width, height) / 6;
-	    // Centrare il simbolo di pausa
-	    int symbolX = (width - symbolSize) / 2;
-	    int symbolY = (height - symbolSize) / 2;
-
-	    // Dimensioni delle barre del simbolo di pausa
-	    int barWidth = (int) (symbolSize * BAR_WIDTH_RATIO);
-	    int barHeight = (int) (symbolSize * BAR_HEIGHT_RATIO);
-	    int barSpacing = (int) (symbolSize * BAR_GAP_RATIO);
-	    
-	    // Prima barra
-	    int barY = symbolY + (symbolSize - barHeight) / 2;
-	    int bar1X = symbolX + (symbolSize - 2 * barWidth - barSpacing) / 2;
-	    RoundRectangle2D bar1 = new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5);
-	    
-	    // Seconda barra
-	    int bar2X = bar1X + barWidth + barSpacing;
-	    RoundRectangle2D bar2 = new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5);
-	    
-	    g2d.setColor(PAUSE_SYMBOL_COLOR);
-	    g2d.fill(bar1);
-	    g2d.fill(bar2);
-	    
-	    // Spessore del bordo delle barre
-	    g2d.setStroke(new BasicStroke(1.7f));
-	    // Colore del bordo delle barre
-	    g2d.setColor(Color.BLACK);
-	    g2d.draw(bar1);
-	    g2d.draw(bar2);
-	    
-	    g2d.setColor(Color.WHITE);
-	    g2d.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, symbolSize / 4));
-	    
-	    String pauseText = "PAUSED";
-	    
-	    // Calcolare posizione del testo sotto il simbolo di pausa
-	    FontMetrics fm = g2d.getFontMetrics();
-	    int textWidth = fm.stringWidth(pauseText);
-	    int textX = symbolX + (symbolSize - textWidth) / 2;
-	    int textY = symbolY + symbolSize + fm.getHeight();
-	   
-	    // Ombra del testo (testo nero leggermente spostato)
-	    g2d.setColor(Color.BLACK);
-	    g2d.drawString(pauseText, textX + 3, textY + 3);
-	    
-	    // Testo principale bianco
-	    g2d.setColor(Color.WHITE);
-	    g2d.drawString(pauseText, textX, textY);
-	}
-	
-	private Image createGameBackgroundImage() {
-        try {
-            return ImageIO.read(getClass().getResource(GAME_BACKGROUND_IMAGE_PATH));
-        } catch (IOException e) {
-            System.err.println("Error Loading Game Panel Background Image: " + e.getMessage());
-            return null;
-        }
-    }
 	
 	private void initStatsPanel() {
 		statsPanel = new JPanel();
@@ -395,6 +303,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		add(controlsPanel, BorderLayout.CENTER);
 	}
+	
+	// -- Inizializzazione Componenti UI ---
 	
 	private void initImportExportUI(int importExportPanelWidth) {
 		// Lasciare un margine di 10px per lato
@@ -508,27 +418,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		importExportPanel.add(Box.createVerticalGlue());
 	}
 	
-	private JButton createImportExportButton(String text, Color backgroundColor, int width) {
-        JButton button = new JButton(text);
-        button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setMaximumSize(new Dimension(width, 30));
-        button.setBackground(backgroundColor);
-        button.setForeground(Color.BLACK);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setFocusPainted(false);
-        return button;
-    }
-	
-	private JCheckBox createAutoSaveCheckBox(String text, int width) {
-	    JCheckBox checkBox = new JCheckBox(text);
-	    checkBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-	    checkBox.setMaximumSize(new Dimension(width, 25));
-	    checkBox.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
-	    checkBox.setFont(new Font("Arial", Font.BOLD, 11));
-	    checkBox.setFocusPainted(false);
-	    return checkBox;
-	}
-	
 	private void initChronometerUI() {
 		// Spacing
 		chronometerPanel.add(Box.createVerticalStrut(15));
@@ -614,6 +503,29 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         controlsPanel.add(velocitySlider, BorderLayout.CENTER);
 	}
 	
+	// --- Utility per Creazione Campi e Sezioni ---
+	
+	private JButton createImportExportButton(String text, Color backgroundColor, int width) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setMaximumSize(new Dimension(width, 30));
+        button.setBackground(backgroundColor);
+        button.setForeground(Color.BLACK);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        button.setFocusPainted(false);
+        return button;
+    }
+	
+	private JCheckBox createAutoSaveCheckBox(String text, int width) {
+	    JCheckBox checkBox = new JCheckBox(text);
+	    checkBox.setAlignmentX(Component.CENTER_ALIGNMENT);
+	    checkBox.setMaximumSize(new Dimension(width, 25));
+	    checkBox.setBackground(IMPORT_EXPORT_BACKGROUND_COLOR);
+	    checkBox.setFont(new Font("Arial", Font.BOLD, 11));
+	    checkBox.setFocusPainted(false);
+	    return checkBox;
+	}
+	
 	private JLabel createStatsLabel(String text) {
 		JLabel label = new JLabel(text);
 		label.setOpaque(true);
@@ -632,7 +544,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		sl.setMinorTickSpacing(1);
         sl.setMajorTickSpacing(1);
 		sl.setBackground(CONTROLS_BACKGROUND_COLOR);
-		sl.addChangeListener(_ -> handleVelocitySliderChange());
+		sl.addChangeListener(_ -> gameController.setDtMultiplier(velocitySlider.getValue()));
 
 		TitledBorder sliderTitle = BorderFactory.createTitledBorder("Velocity Multiplier");
 		sliderTitle.setTitleJustification(TitledBorder.CENTER);
@@ -644,9 +556,115 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		return sl;
 	}
 	
-	void handleVelocitySliderChange() {
-		gameController.setDtMultiplier(velocitySlider.getValue());
+	// --- Inizializzazione Listeners e Timers ---
+	
+	private void setupListeners() {
+		// Aggiungere il KeyListener alla finestra principale
+		addKeyListener(this);
+		
+		// Assicurarsi che la finestra possa ricevere eventi da tastiera
+		setFocusable(true);
+		
+		addWindowListener(new WindowAdapter() {
+			// Richiedere il focus per input quando la finestra diventa visibile (prima apertura, click, primo piano)
+			@Override
+			public void windowActivated(WindowEvent e) {
+				requestFocusInWindow();
+			}
+			// Gestire la chiusura della finestra in modo sicuro
+			@Override
+	        public void windowClosing(WindowEvent e) {
+	            exitGame();
+	        }
+		});
+		
+		// Restituire il focus quando si clicca sulla finestra in un punto qualsiasi non focusable
+		addMouseListener(new MouseAdapter() {
+	        @Override
+	        public void mousePressed(MouseEvent e) {
+	            requestFocusInWindow();
+	        }
+	    });
 	}
+	
+	private void initTimers() {
+		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
+		animationTimer = new Timer(AbstractGameObject.ANIMATION_REFRESH_MS, _ -> updateAnimations());
+		
+		animationTimer.start();
+	}
+	
+	// --- Rendering Pannello di Gioco ---
+
+	private void drawPauseOverlay(Graphics2D g2d) {
+	    int width = gamePanel.getWidth();
+	    int height = gamePanel.getHeight();
+	    
+	    // Disegnare overlay scuro semi-trasparente
+	    g2d.setColor(PAUSE_OVERLAY_COLOR);
+	    g2d.fillRect(0, -1, width, height + 1);
+	    
+	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
+	    int symbolSize = Math.min(width, height) / 6;
+	    // Centrare il simbolo di pausa
+	    int symbolX = (width - symbolSize) / 2;
+	    int symbolY = (height - symbolSize) / 2;
+
+	    // Dimensioni delle barre del simbolo di pausa
+	    int barWidth = (int) (symbolSize * BAR_WIDTH_RATIO);
+	    int barHeight = (int) (symbolSize * BAR_HEIGHT_RATIO);
+	    int barSpacing = (int) (symbolSize * BAR_GAP_RATIO);
+	    
+	    // Prima barra
+	    int barY = symbolY + (symbolSize - barHeight) / 2;
+	    int bar1X = symbolX + (symbolSize - 2 * barWidth - barSpacing) / 2;
+	    RoundRectangle2D bar1 = new RoundRectangle2D.Double(bar1X, barY, barWidth, barHeight, 5, 5);
+	    
+	    // Seconda barra
+	    int bar2X = bar1X + barWidth + barSpacing;
+	    RoundRectangle2D bar2 = new RoundRectangle2D.Double(bar2X, barY, barWidth, barHeight, 5, 5);
+	    
+	    g2d.setColor(PAUSE_SYMBOL_COLOR);
+	    g2d.fill(bar1);
+	    g2d.fill(bar2);
+	    
+	    // Spessore del bordo delle barre
+	    g2d.setStroke(new BasicStroke(1.7f));
+	    // Colore del bordo delle barre
+	    g2d.setColor(Color.BLACK);
+	    g2d.draw(bar1);
+	    g2d.draw(bar2);
+	    
+	    g2d.setColor(Color.WHITE);
+	    g2d.setFont(new Font("Arial", Font.BOLD | Font.ITALIC, symbolSize / 4));
+	    
+	    String pauseText = "PAUSED";
+	    
+	    // Calcolare posizione del testo sotto il simbolo di pausa
+	    FontMetrics fm = g2d.getFontMetrics();
+	    int textWidth = fm.stringWidth(pauseText);
+	    int textX = symbolX + (symbolSize - textWidth) / 2;
+	    int textY = symbolY + symbolSize + fm.getHeight();
+	   
+	    // Ombra del testo (testo nero leggermente spostato)
+	    g2d.setColor(Color.BLACK);
+	    g2d.drawString(pauseText, textX + 3, textY + 3);
+	    
+	    // Testo principale bianco
+	    g2d.setColor(Color.WHITE);
+	    g2d.drawString(pauseText, textX, textY);
+	}
+	
+	private Image createGameBackgroundImage() {
+        try {
+            return ImageIO.read(getClass().getResource(GAME_BACKGROUND_IMAGE_PATH));
+        } catch (IOException e) {
+            System.err.println("Error Loading Game Panel Background Image: " + e.getMessage());
+            return null;
+        }
+    }
+	
+	// --- Utility per Aggiornamento UI ---
 	
 	// Aggiorna la label del nome del cervello caricato, rimuovendo l'estensione ".json"
 	void setLoadedBrainLabel(String fileName) {
@@ -657,13 +675,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    });
 	}
 	
-	// GameView Interface Methods
+	// --- Gestione Ciclo di Vita ---
 	
-	// Eseguito su un thread separato per non bloccare l'EDT durante l'attesa di terminazione dei thread del gioco (eventuali salvataggi)
 	@Override
-	public void exitGame() {	    
-	    new Thread(gameController::exitApplication, "safe-shutdown").start();
-	}
+    public void setController(GameController gameController) {
+        this.gameController = gameController;
+    }
 	
 	// Chiude la finestra in modo thread-safe
 	@Override
@@ -678,21 +695,13 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		});
 	}
 	
+	// Eseguito su un thread separato per non bloccare l'EDT durante l'attesa di terminazione dei thread del gioco (eventuali salvataggi)
 	@Override
-    public void setController(GameController gameController) {
-        this.gameController = gameController;
-    }
-	
-	@Override
-	public void startChronometerTimer() {
-	    chronometerTimer.start();
+	public void exitGame() {	    
+	    new Thread(gameController::exitApplication, "safe-shutdown").start();
 	}
 	
-	private void updateChronometerLabel() {
-		if (gameController.isGameRunning()) {
-	        lTimeValue.setText(gameController.getFormattedGameTimeElapsed());
-	    }
-	}
+	// --- Aggiornamento UI ---
 	
 	@Override
     public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
@@ -707,6 +716,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             gamePanel.repaint();
         });
     }
+	
+	@Override
+    public void repaintGame() {
+    	gamePanel.repaint();
+    }
+	
+	@Override
+	public void startChronometerTimer() {
+	    chronometerTimer.start();
+	}
 	
 	private void updateStatsLabels(GameStats stats) {
 		lFPS.setText("FPS: " + stats.fps + "/" + GameClock.MAX_FPS);
@@ -744,6 +763,54 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             lastAutoSaveStatus = stats.isAutoSaveEnabled();
 		}
 	}
+	
+	private void updateChronometerLabel() {
+		if (gameController.isGameRunning()) {
+	        lTimeValue.setText(gameController.getFormattedGameTimeElapsed());
+	    }
+	}
+	
+	// --- Rendering e Animazioni ---
+	
+	@Override
+    public void preloadSprites(Set<AbstractGameObject> vGameObj) {
+    	if (vGameObj != null && !vGameObj.isEmpty()) {
+    		// Precaricare le immagini dei GameObject per evitare ritardi durante il rendering
+    		spriteRenderer.preloadSprites(vGameObj);
+		}
+	}
+    
+    @Override
+    public void updateAnimations() {
+    	if (currentVGameObj == null || currentVGameObj.isEmpty()) {
+            return;
+        }
+    	
+    	for (AbstractGameObject obj : currentVGameObj) {
+			if (obj.isAlive() && obj.isShowSprite() && obj.isAnimated()) {
+				obj.updateFrameIndex();
+			}
+		}
+    	
+    	// seconda chiamata a repaint dopo quella per aggiornare posizioni a ogni frame
+    	// ma no problema perchè EDT gestisce le chiamate multiple a repaint e le unisce in una sola se sono troppo ravvicinate
+    	gamePanel.repaint();
+    }
+    
+    // --- Gestione Pausa ---
+    
+    @Override
+	public void togglePause() {
+		gameController.togglePause();
+        
+        if (gameController.isGameRunning()) {
+			chronometerTimer.start();
+		} else {
+			chronometerTimer.stop();
+		}
+	}
+    
+    // --- Gestione Messaggi e Notifiche ---
 	
 	@Override
 	public void showBlockingWarning(String headerText, String detailText) {
@@ -822,16 +889,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    return dialog;
 	}
 	
-	@Override
-	public void togglePause() {
-		gameController.togglePause();
-        
-        if (gameController.isGameRunning()) {
-			chronometerTimer.start();
-		} else {
-			chronometerTimer.stop();
-		}
-	}
+	// --- Getters per Dimensioni Pannello di Gioco ---
     
 	@Override
     public int getGameWidth() {
@@ -855,35 +913,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         return Math.max(initHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
     }
     
-    @Override
-    public void repaintGame() {
-    	gamePanel.repaint();
-    }
-    
-    @Override
-    public void preloadSprites(Set<AbstractGameObject> vGameObj) {
-    	if (vGameObj != null && !vGameObj.isEmpty()) {
-    		// Precaricare le immagini dei GameObject per evitare ritardi durante il rendering
-    		spriteRenderer.preloadSprites(vGameObj);
-		}
-	}
-    
-    @Override
-    public void updateAnimations() {
-    	if (currentVGameObj == null || currentVGameObj.isEmpty()) {
-            return;
-        }
-    	
-    	for (AbstractGameObject obj : currentVGameObj) {
-			if (obj.isAlive() && obj.isShowSprite() && obj.isAnimated()) {
-				obj.updateFrameIndex();
-			}
-		}
-    	
-    	// seconda chiamata a repaint dopo quella per aggiornare posizioni a ogni frame
-    	// ma no problema perchè EDT gestisce le chiamate multiple a repaint e le unisce in una sola se sono troppo ravvicinate
-    	gamePanel.repaint();
-    }
+    // --- Gestione Input da Tastiera ---
 
 	@Override
 	public void keyPressed(KeyEvent e) {
@@ -921,11 +951,13 @@ class ValidatedIntegerSpinner extends JSpinner {
     
     private static final long serialVersionUID = 1L;
     
-    private final int minValue;
-    private final int maxValue;
-    private final int defaultValue;
+    // --- Campi di Stato ---
+    
+    private final int minValue, maxValue, defaultValue;
     private int lastValidValue;
     private Consumer<Integer> onValidValueChange;
+    
+    // --- Costruttori ---
     
     public ValidatedIntegerSpinner(int minValue, int maxValue, int defaultValue) {
         super();
@@ -938,13 +970,7 @@ class ValidatedIntegerSpinner extends JSpinner {
         customizeArrowButtons();
     }
     
-    public void setOnValidValueChange(Consumer<Integer> callback) {
-        this.onValidValueChange = callback;
-    }
-   
-    public int getValidatedValue() {
-        return (int) getValue();
-    }
+    // --- Inizializzazione ---
 
     private void initializeSpinner() {
         setValue(defaultValue);
@@ -998,6 +1024,46 @@ class ValidatedIntegerSpinner extends JSpinner {
         });
     }
     
+    private void customizeArrowButtons() {
+        // Trova e personalizza i pulsanti freccia
+        Component[] components = getComponents();
+        for (Component component : components) {
+            if (component instanceof JButton) {
+                JButton arrowButton = (JButton) component;
+                
+                // Rimuovi tutti i listener esistenti
+                ActionListener[] listeners = arrowButton.getActionListeners();
+                for (ActionListener listener : listeners) {
+                    arrowButton.removeActionListener(listener);
+                }
+                
+                // Aggiungi il nostro listener personalizzato
+                arrowButton.addActionListener(_ -> handleArrowButtonClick(arrowButton));
+            }
+        }
+    }
+    
+    private void handleArrowButtonClick(JButton arrowButton) {
+        int currValue = getValidatedValue();
+        
+        // Determina la direzione basandosi sulla posizione del pulsante
+        // Il pulsante "su" è generalmente il primo componente
+        Component[] components = getComponents();
+        boolean isUpButton = components.length > 0 && components[0] == arrowButton;
+        
+        if (isUpButton) {
+            // Incrementa
+            setValue(currValue + 1);
+            lastValidValue = currValue + 1;
+        } else {
+            // Decrementa (ma non sotto il minimo)
+        	setValue(Math.max(minValue, currValue - 1));
+        	lastValidValue = Math.max(minValue, currValue - 1);
+        }
+    }
+    
+    // --- Validazione del Valore ---
+    
     private void validateValue() {
     	// Campo contiene solo numeri, quindi parse sicuro
     	
@@ -1028,23 +1094,14 @@ class ValidatedIntegerSpinner extends JSpinner {
         }
     }
     
-    private void customizeArrowButtons() {
-        // Trova e personalizza i pulsanti freccia
-        Component[] components = getComponents();
-        for (Component component : components) {
-            if (component instanceof JButton) {
-                JButton arrowButton = (JButton) component;
-                
-                // Rimuovi tutti i listener esistenti
-                ActionListener[] listeners = arrowButton.getActionListeners();
-                for (ActionListener listener : listeners) {
-                    arrowButton.removeActionListener(listener);
-                }
-                
-                // Aggiungi il nostro listener personalizzato
-                arrowButton.addActionListener(_ -> handleArrowButtonClick(arrowButton));
-            }
-        }
+    // --- Getters/Setters ---
+    
+    public int getValidatedValue() {
+        return (int) getValue();
+    }
+    
+    public void setOnValidValueChange(Consumer<Integer> callback) {
+        this.onValidValueChange = callback;
     }
     
     /**
@@ -1068,24 +1125,7 @@ class ValidatedIntegerSpinner extends JSpinner {
         setValue(lastValidValue);
     }
     
-    private void handleArrowButtonClick(JButton arrowButton) {
-        int currValue = getValidatedValue();
-        
-        // Determina la direzione basandosi sulla posizione del pulsante
-        // Il pulsante "su" è generalmente il primo componente
-        Component[] components = getComponents();
-        boolean isUpButton = components.length > 0 && components[0] == arrowButton;
-        
-        if (isUpButton) {
-            // Incrementa
-            setValue(currValue + 1);
-            lastValidValue = currValue + 1;
-        } else {
-            // Decrementa (ma non sotto il minimo)
-        	setValue(Math.max(minValue, currValue - 1));
-        	lastValidValue = Math.max(minValue, currValue - 1);
-        }
-    }
+    // --- Utility per Dimensioni ---
     
     /**
      * Metodo di utilità per creare uno spinner con dimensioni specifiche
@@ -1099,11 +1139,18 @@ class ValidatedIntegerSpinner extends JSpinner {
 // Classes for Action Listeners
 
 class SaveBrainListener implements ActionListener {
+	
+	// --- Riferimento alla Vista Principale ---
+	
 	private final SwingGameView parentView;
+	
+	// --- Costruttori ---
 	
 	public SaveBrainListener(SwingGameView parentView) throws NullPointerException {
 		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
 	}
+	
+	// --- Gestione Evento ---
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -1140,11 +1187,18 @@ class SaveBrainListener implements ActionListener {
 }
 
 class LoadBrainListener implements ActionListener {
+	
+	// --- Riferimento alla Vista Principale ---
+	
 	private final SwingGameView parentView;
+	
+	// --- Costruttori ---
 	
 	public LoadBrainListener(SwingGameView parentView) throws NullPointerException {
 		this.parentView = Objects.requireNonNull(parentView, "Parent View Cannot be Null");
 	}
+	
+	// --- Gestione Evento ---
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -1173,6 +1227,8 @@ class LoadBrainListener implements ActionListener {
 			}
 		}
 	}
+	
+	// --- Gestione Errori di Caricamento ---
 	
 	private void handleLoadError(Throwable ex) {
         // ex è una CompletionException: la vera causa è dentro getCause()

@@ -12,14 +12,12 @@ import java.util.Set;
 
 public interface GameRenderer<G> {
 	
-	void renderSingle(G graphicsContext, GameObject obj);
+	// --- Metodi Astratti ---
+	
 	Image[] ensureLoaded(SpriteDescriptor desc);
-
-	default void render(G graphicsContext, AbstractGameObject obj) {
-		for (GameObject part : obj.getRenderableComponents()) {
-			renderSingle(graphicsContext, part);
-		}
-	}
+	void renderSingle(G graphicsContext, GameObject obj);
+	
+	// --- Metodi di Default ---
 
 	default void preloadSprites(Set<AbstractGameObject> vGameObj) {
 		vGameObj.stream()
@@ -27,6 +25,12 @@ public interface GameRenderer<G> {
 			.map(GameObject::getSpriteDescriptor)
 			.distinct()
 			.forEach(this::ensureLoaded);
+	}
+	
+	default void render(G graphicsContext, AbstractGameObject obj) {
+		for (GameObject part : obj.getRenderableComponents()) {
+			renderSingle(graphicsContext, part);
+		}
 	}
 	
 }

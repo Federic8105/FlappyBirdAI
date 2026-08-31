@@ -9,9 +9,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 public final class GameClock {
-
+	
+	// --- Costanti di Formattazione ---
+	
 	// Usa Locale di Default per il formato decimale
     private static final DecimalFormat TWO_DECIMALS = new DecimalFormat("0.00");
+	
+	// --- Costanti di Configurazione ---
     
     public static final int PAUSE_SLEEP_MS = 100;
   	public static final int MAX_FPS = 60;
@@ -23,25 +27,21 @@ public final class GameClock {
     // Valori più bassi danno più peso ai valori recenti, rendendo la media più reattiva
     private static final double FPS_SMOOTHING_FACTOR = 0.9;
     
-    public static String roundAndFormatTwoDecimals(double value) {
-        return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
-    }
-    
-    // --- FPS ---
+    // --- Campi di Stato per FPS ---
     
     // Coda per memorizzare i tempi dei frame più recenti (in nanosecondi)
     private final Deque<Long> dequeFrameDurationsNs = new ArrayDeque<>(FPS_SAMPLE_SIZE);
     private long frameStartTime, frameEndTime, lastFrameStartTime;
     private double smoothedFPS = 0;
 
-    // --- Delta Time ---
+    // --- Campi di Stato per Delta Time ---
     
     // Ultimo timestamp usato per dt (ns)
     private long lastUpdateTime;
     // Permette slow-motion o fast-forward
     private double dtMultiplier = 1.0; 
 
-    // --- Cronometro Totale ---
+    // --- Campi di Stato per Cronometro Totale ---
     // Sessione: Tempo Trascorso dall'inizio della sessione di gioco/ultima ripresa del gioco fino alla pausa o al reset (ms)
     // Variabile volatile per garantire la visibilità tra thread sempre dei valori aggiornati senza sincronizzazione esplicita
     
@@ -50,21 +50,15 @@ public final class GameClock {
     // Timestamp di inizio sessione attuale (ms)
     private volatile long sessionStartTime;
     private volatile boolean isGameRunning = false;
-
     private final StringBuilder chronoBuilder = new StringBuilder(11);
     
-    // --- Metodi privati ---
+    // --- Utily Statiche ---
     
-    private void registerFrameDuration(long frameDurationNs) {
-        dequeFrameDurationsNs.addLast(frameDurationNs);
-        
-        // Mantenere solo gli ultimi FPS_SAMPLE_SIZE frame
-        if (dequeFrameDurationsNs.size() > FPS_SAMPLE_SIZE) {
-            dequeFrameDurationsNs.removeFirst();
-        }
+    public static String roundAndFormatTwoDecimals(double value) {
+        return TWO_DECIMALS.format(Math.round(value * 100) / 100.0);
     }
-
-    // --- API pubblica ---
+    
+    // --- Gestione Frame ---
     
     public void setFrameStartTime() {
     	lastFrameStartTime = frameStartTime;
@@ -85,6 +79,17 @@ public final class GameClock {
 		// Calcolare il tempo di sleep necessario per mantenere gli FPS target
         return TARGET_FRAME_TIME_NS - (frameEndTime - frameStartTime);
 	}
+    
+    private void registerFrameDuration(long frameDurationNs) {
+        dequeFrameDurationsNs.addLast(frameDurationNs);
+        
+        // Mantenere solo gli ultimi FPS_SAMPLE_SIZE frame
+        if (dequeFrameDurationsNs.size() > FPS_SAMPLE_SIZE) {
+            dequeFrameDurationsNs.removeFirst();
+        }
+    }
+    
+    // --- Calcolo FPS ---
     
     // Calcolare gli FPS con media mobile sugli ultimi frame
     public int getAvgFPS() {
@@ -135,6 +140,8 @@ public final class GameClock {
          // Convertire in FPS (1 secondo = 1_000_000_000 nanosecondi)
          return (int) (1_000_000_000.0 / lastFrameDuration);
     }
+    
+    // --- Gestione Cronometro Totale ---
 
     // Avvio Clock
     public void start() {
@@ -170,6 +177,15 @@ public final class GameClock {
         lastUpdateTime = System.nanoTime();
         isGameRunning = true;
     }
+    
+    // Reset Totale Clock e riavvio della sessione
+    public void reset() {
+    	totElapsedPastSessionsTime = 0;
+    	startSession();
+    	setLastUpdateTimeNow();
+    }
+    
+    // --- Getters Delta Time e Tempo Totale ---
 
     // Calcolare il delta time (in secondi) dall'ultimo frame
     public double getDeltaTime() {
@@ -224,14 +240,8 @@ public final class GameClock {
         return chronoBuilder.toString();
     }
 
-    // Reset Totale Clock e riavvio della sessione
-    public void reset() {
-    	totElapsedPastSessionsTime = 0;
-    	startSession();
-    	setLastUpdateTimeNow();
-    }
-
-    // --- Getter/Setter ---
+    // --- Getters/Setters e Query di Stato ---
+    
     public boolean isGameRunning() {
         return isGameRunning;
     }

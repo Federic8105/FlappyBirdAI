@@ -7,6 +7,8 @@ package flappyBirdAI.persistence;
 public class BadFileFormatException extends Exception {
 
 	private static final long serialVersionUID = 1L;
+	
+	// --- Costruttori ---
 
 	public BadFileFormatException(String message) {
 		super(message);

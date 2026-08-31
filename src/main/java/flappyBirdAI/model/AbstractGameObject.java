@@ -8,16 +8,24 @@ import java.awt.Rectangle;
 
 public abstract class AbstractGameObject implements GameObject {
 	
+	// --- Costanti di Configurazione per Animazioni ---
+	
 	public static final int ANIMATION_REFRESH_MS = 150;
+	
+	// --- Campi di Stato ---
 	
 	// Pubblici per Performance in Game Loop
 	public int x, y, w, h;
 	
 	protected boolean isAlive = true;
+	protected Rectangle[] hitBox;
+	
+	// --- Campi di Stato per Animazioni ---
 	
 	protected int frameIndex = 0;
 	protected boolean showSprite = true;
-	protected Rectangle[] hitBox;
+	
+	// --- Getters/Setters e Query di Stato ---
 	
 	@Override
 	public boolean isAlive() {
@@ -48,15 +56,6 @@ public abstract class AbstractGameObject implements GameObject {
 	public int getH() {
 		return h;
 	}
-
-	@Override
-	public void updateHitBox() {
-		if (hitBox == null) {
-			hitBox = new Rectangle[] { new Rectangle(x, y, w, h) };
-		} else {
-			hitBox[0].setBounds(x, y, w, h);
-		}
-	}
 	
 	@Override
 	public Rectangle[] getHitBox() {
@@ -72,6 +71,19 @@ public abstract class AbstractGameObject implements GameObject {
 	public boolean isShowSprite() {
 		return showSprite;
 	}
+	
+	// --- Gestione HitBox ---
+	
+	@Override
+	public void updateHitBox() {
+		if (hitBox == null) {
+			hitBox = new Rectangle[] { new Rectangle(x, y, w, h) };
+		} else {
+			hitBox[0].setBounds(x, y, w, h);
+		}
+	}
+	
+	// --- Object Methods Override ---
 	
 	@Override
 	public String toString() {

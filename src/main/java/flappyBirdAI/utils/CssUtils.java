@@ -8,11 +8,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public final class CssUtils {
+	
+	// --- Costruttori ---
 
     // Costruttore privato per evitare l'istanziazione
     private CssUtils() {
         throw new UnsupportedOperationException("CssUtils is a utility class and cannot be instantiated.");
     }
+    
+    // --- Utility per Conversione CSS ---
 
     // Convertire Stringa CSS in Data URI Base64 per poterla usare come foglio di stile esterno
     public static String toDataUri(String css) {

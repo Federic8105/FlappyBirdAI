@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public final class BirdBrainFileStorage {
+	
+	// --- Costanti di Servizio ---
     
 	// classe con 1 thread e una coda FIFO di task
     private static final ExecutorService PERSISTENCE_EXECUTOR =
@@ -31,11 +33,15 @@ public final class BirdBrainFileStorage {
                 t.setDaemon(false);
                 return t;
             });
+    
+    // --- Costruttori ---
 	
 	// Costruttore privato per evitare l'istanziazione
     private BirdBrainFileStorage() {
         throw new UnsupportedOperationException("BirdBrainFileStorage is a utility class and cannot be instantiated.");
     }
+    
+    // --- Gestione Servizio di Persistenza e File Temporanei ---
     
     // Da chiamare una volta all'avvio del gioco, prima di qualunque save/load
     public static void cleanupOrphanedTempFiles() {
@@ -78,6 +84,8 @@ public final class BirdBrainFileStorage {
         }
     }
     
+    // --- Salvataggio del BirdBrain ---
+    
     public static CompletableFuture<Void> saveAsync(BirdBrain brain, GameStats gameStats) {
         Objects.requireNonNull(brain, "Brain Cannot be Null");
         Objects.requireNonNull(gameStats, "GameStats Cannot be Null");
@@ -98,6 +106,8 @@ public final class BirdBrainFileStorage {
         String json = brain.toJson();
         return CompletableFuture.runAsync(() -> atomicWriteJson(json, file), PERSISTENCE_EXECUTOR);
     }
+    
+    // --- Utility per Scrittura ---
     
     private static void atomicWriteJson(String json, Path file) {
         try {
@@ -123,6 +133,8 @@ public final class BirdBrainFileStorage {
             throw new CompletionException(e);
         }
     }
+    
+    // --- Caricamento del BirdBrain ---
 	
     public static CompletableFuture<BirdBrain> loadAsync(Path file) {
         Objects.requireNonNull(file, "File Path Cannot be Null");
@@ -143,13 +155,15 @@ public final class BirdBrainFileStorage {
             }
         }, PERSISTENCE_EXECUTOR);
     }
-	
-	// API Methods
+    
+    // --- Utility per Nomi File di Salvataggio ---
 	
     // No I/O, asincrono
 	public static String createManualSaveFileName(GameStats gameStats) {
 	    return SaveFileNaming.createManualSaveFileName(gameStats);
 	}
+	
+	// --- Getters/Setters ---
 	
 	public static Path getDefaultAutoSaveDir() {
 	    return SaveFileNaming.DEFAULT_AUTOSAVE_DIR;

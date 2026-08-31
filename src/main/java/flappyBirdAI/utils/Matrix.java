@@ -17,7 +17,11 @@ public class Matrix implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	
-	// Factory Methods
+	// --- Fields ---
+	
+	private final double[][] data;
+	
+	// --- Factory Methods ---
 	
     public static Matrix identity(int size) {
         Matrix m = new Matrix(size, size);
@@ -124,10 +128,8 @@ public class Matrix implements Serializable {
         
         return matrix;
     }
-	
-    private final double[][] data;
 
-    // Constructors
+    // --- Constructors ---
     
     // Inizializza tutti gli elementi a 0.0 di default
     public Matrix(int nRows, int nCols) throws IllegalArgumentException {
@@ -196,7 +198,7 @@ public class Matrix implements Serializable {
 		}
     }
     	
-    // Utility Methods
+    // --- Utility Methods ---
     
     public boolean checkDimensions(Matrix otherMatrix) throws NullPointerException {
     	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
@@ -221,7 +223,7 @@ public class Matrix implements Serializable {
         return mResult;
     }
     
-    // Matrix Operations
+    // --- Matrix Operations ---
     
     public Matrix transpose() {
         Matrix mResult = new Matrix(getNCols(), getNRows());
@@ -310,7 +312,7 @@ public class Matrix implements Serializable {
 		return mResult;
     }
     
-    // Element-wise Operations
+    // --- Element-Wise Operations ---
     
     public Matrix elementWiseMultiply(Matrix otherMatrix) throws NullPointerException, IllegalArgumentException {
     	Objects.requireNonNull(otherMatrix, "Other Matrix Cannot be Null");
@@ -353,7 +355,7 @@ public class Matrix implements Serializable {
         return multiplyByScalar(1.0 / scalar);
     }
     
-    // Accessors
+    // --- Dimensions Accessors ---
 
     public int getNRows() {
         return data.length;
@@ -362,6 +364,8 @@ public class Matrix implements Serializable {
     public int getNCols() {
         return data[0].length;
     }
+    
+    // --- Element Accessors ---
 
     public double get(int row, int col) {
         return data[row][col];
@@ -370,6 +374,8 @@ public class Matrix implements Serializable {
     public void set(int row, int col, double value) {
         data[row][col] = value;
     }
+    
+    // --- Row and Column Accessors ---
     
     // Ritorna una copia della riga per evitare modifiche esterne
     public double[] getRow(int rowIndex) throws IndexOutOfBoundsException {
@@ -426,6 +432,8 @@ public class Matrix implements Serializable {
 			set(i, colIndex, newCol[i]);
 		}
     }
+    
+    // --- Data Accessors ---
    
     // Restituisce una copia dell'array per evitare modifiche esterne
     public double[][] getDataCopy() {
@@ -483,6 +491,28 @@ public class Matrix implements Serializable {
     public Matrix copy() {
     	return new Matrix(this);
     }
+    
+    // --- JSON Serialization ---
+    
+    public JsonObject toJson() {
+        JsonObject jsonMatrix = new JsonObject();
+        jsonMatrix.addProperty("nRows", getNRows());
+        jsonMatrix.addProperty("nCols", getNCols());
+        
+        JsonArray jsonData = new JsonArray();
+        for (int i = 0; i < getNRows(); ++i) {
+            JsonArray jsonRow = new JsonArray();
+            for (int j = 0; j < getNCols(); ++j) {
+                jsonRow.add(get(i, j));
+            }
+            jsonData.add(jsonRow);
+        }
+        jsonMatrix.add("data", jsonData);
+        
+        return jsonMatrix;
+    }
+    
+    // --- Object Overrides ---
 
     @Override
 	public int hashCode() {
@@ -507,24 +537,6 @@ public class Matrix implements Serializable {
 		Matrix other = (Matrix) obj;
 		return Arrays.deepEquals(data, other.data);
 	}
-	
-	public JsonObject toJson() {
-        JsonObject jsonMatrix = new JsonObject();
-        jsonMatrix.addProperty("nRows", getNRows());
-        jsonMatrix.addProperty("nCols", getNCols());
-        
-        JsonArray jsonData = new JsonArray();
-        for (int i = 0; i < getNRows(); ++i) {
-            JsonArray jsonRow = new JsonArray();
-            for (int j = 0; j < getNCols(); ++j) {
-                jsonRow.add(get(i, j));
-            }
-            jsonData.add(jsonRow);
-        }
-        jsonMatrix.add("data", jsonData);
-        
-        return jsonMatrix;
-    }
 
 	@Override
     public String toString() {

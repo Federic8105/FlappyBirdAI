@@ -20,28 +20,15 @@ import javax.imageio.ImageIO;
 
 public class SwingGameRenderer implements GameRenderer<Graphics2D> {
 	
+	// --- Campi per Caching delle Immagini ---
+	
 	private final Map<String, Image[]> spriteCache = new HashMap<>();
+	
+	// --- Caricamento degli Sprite ---
 	
 	@Override
 	public Image[] ensureLoaded(SpriteDescriptor desc) {
         return spriteCache.computeIfAbsent(desc.resourceKey(), _ -> loadFrames(desc));
-    }
-	
-	@Override
-	public void renderSingle(Graphics2D g2d, GameObject obj) {
-        SpriteDescriptor desc = obj.getSpriteDescriptor();
-        Image[] frames = ensureLoaded(desc);
-        Image frame = frames.length > 0 ? frames[obj.getFrameIndex() % frames.length] : null;
-
-        if (obj.isShowSprite() && frame != null && obj instanceof AbstractGameObject gameObj) {
-        	// Disegna l'immagine scalata alle dimensioni dell'oggetto
-            g2d.drawImage(frame, gameObj.x, gameObj.y, gameObj.w, gameObj.h, null);
-        } else {
-            g2d.setColor(Color.red);
-            for (Shape box : obj.getHitBox()) {
-                g2d.draw(box);
-            }
-        }
     }
 	
 	private Image[] loadFrames(SpriteDescriptor desc) {
@@ -76,5 +63,24 @@ public class SwingGameRenderer implements GameRenderer<Graphics2D> {
 	        return null;
 	    }
 	}
+	
+	// --- Rendering ---
+	
+	@Override
+	public void renderSingle(Graphics2D g2d, GameObject obj) {
+        SpriteDescriptor desc = obj.getSpriteDescriptor();
+        Image[] frames = ensureLoaded(desc);
+        Image frame = frames.length > 0 ? frames[obj.getFrameIndex() % frames.length] : null;
+
+        if (obj.isShowSprite() && frame != null && obj instanceof AbstractGameObject gameObj) {
+        	// Disegna l'immagine scalata alle dimensioni dell'oggetto
+            g2d.drawImage(frame, gameObj.x, gameObj.y, gameObj.w, gameObj.h, null);
+        } else {
+            g2d.setColor(Color.red);
+            for (Shape box : obj.getHitBox()) {
+                g2d.draw(box);
+            }
+        }
+    }
     
 }

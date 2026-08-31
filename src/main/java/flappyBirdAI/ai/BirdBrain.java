@@ -32,6 +32,8 @@ public class BirdBrain implements Serializable {
 	
 	// Random condiviso per tutte le operazioni di mutazione
 	private static final Random RANDOM = new Random();
+
+	// --- Costanti di Configurazione ---
 	
 	public static final Set<String> V_INPUT_KEYS = Set.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int NUM_INPUT = V_INPUT_KEYS.size();
@@ -39,8 +41,35 @@ public class BirdBrain implements Serializable {
     private static final List<Integer> V_NEURONS = List.of(4, 4, 1);
     private static final int NUM_LAYERS = V_NEURONS.size();
 
-    private static final int WEIGHT_MAX_VALUE = 1, WEIGHT_MIN_VALUE = -1;
+    private static final int WEIGHT_MIN_VALUE = -1, WEIGHT_MAX_VALUE = 1;
     private static final double WEIGHT_UPDATE_STEP = 0.0001;
+    
+    // --- Campi di Stato ---
+
+    private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
+    private Optional<Matrix> mInputsOpt = Optional.empty();
+    
+    // --- Costruttori ---
+
+    public BirdBrain() {
+        setRandomWeights();
+    }
+    
+    public BirdBrain(BirdBrain otherBrain) throws NullPointerException {
+    	Objects.requireNonNull(otherBrain, "Brain Not Initialized");
+
+    	for (Matrix otherMatrix : otherBrain.vmWeights) {
+            Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
+            for (int i = 0; i < otherMatrix.getNRows(); ++i) {
+                for (int j = 0; j < otherMatrix.getNCols(); ++j) {
+                    newMatrix.set(i, j, otherMatrix.get(i, j));
+                }
+            }
+            vmWeights.add(newMatrix);
+        }
+	}
+    
+    // --- Factory Method da JSON ---
     
     // Converte una stringa JSON in un BirdBrain
   	public static BirdBrain fromJson(String json) throws NullPointerException, BadFileFormatException {
@@ -90,49 +119,9 @@ public class BirdBrain implements Serializable {
 	    
 	    return new BirdBrain(tempBrain);
 	}
-
-    private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
-    private Optional<Matrix> mInputsOpt = Optional.empty();
-
-    public BirdBrain() {
-        setRandomWeights();
-    }
     
-    public BirdBrain(BirdBrain otherBrain) throws NullPointerException {
-    	Objects.requireNonNull(otherBrain, "Brain Not Initialized");
-
-    	for (Matrix otherMatrix : otherBrain.vmWeights) {
-            Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
-            for (int i = 0; i < otherMatrix.getNRows(); ++i) {
-                for (int j = 0; j < otherMatrix.getNCols(); ++j) {
-                    newMatrix.set(i, j, otherMatrix.get(i, j));
-                }
-            }
-            vmWeights.add(newMatrix);
-        }
-	}
-
-    // Normalizzazione dei Valori di Input Tra -1 e +1
-    private Map<String, Double> normalize(Map<String, Double> list) {
-        Map<String, Double>  normalizedList = new HashMap<>(list.size());
-
-        // Ottenere Valore Massimo e Minimo da Lista di Input
-        double max = Collections.max(list.values());
-        double min = Collections.min(list.values());
-
-        // Normalizzare i Valori di Input Tra -1 e +1
-        for (Map.Entry<String, Double> entry : list.entrySet()) {
-            normalizedList.put(entry.getKey(), 2 * ((entry.getValue() - min) / (max - min)) - 1);
-        }
-
-        return normalizedList;
-    }
-
-    // Funzione di Attivazione (Sigmoid) --> Result Range: 0 - 1
-    private double sigmoid(double x) {
-        return 1 / (1 + Math.exp(-x));
-    }
-
+    // --- Logica Rete Neurale ---
+    
     public void setInputs(Map<String, Double> vInputs) throws NullPointerException, IllegalArgumentException {
     	Objects.requireNonNull(vInputs, "Inputs Map Cannot be Null");
     	if (vInputs.size() != NUM_INPUT) {
@@ -156,7 +145,30 @@ public class BirdBrain implements Serializable {
             ++i;
         }
     }
+    
+    public boolean think() throws NullPointerException, IllegalArgumentException {
+    	if (mInputsOpt.isEmpty()) {
+			throw new NullPointerException("Inputs Not Initialized");
+		}
+		Matrix mInputs = mInputsOpt.get();
+    	
+    	if (vmWeights.isEmpty()) {
+            throw new IllegalArgumentException("Weights Not Initialized");
+        }
 
+        Matrix tempInputs = mInputs, tempResult = null;
+
+        for (int i = 0; i < NUM_LAYERS; ++i) {
+        	tempResult = vmWeights.get(i).multiply(tempInputs);
+            tempResult = tempResult.applyFunction(this::sigmoid);
+            tempInputs = tempResult;
+        }
+
+        return tempResult.get(0, 0) > 0.5;
+    }
+    
+    // --- Gestione Pesi ---
+    
     private void setRandomWeights() {
         int nRows, nCols;
         
@@ -196,27 +208,31 @@ public class BirdBrain implements Serializable {
             }
         }
     }
+    
+    // --- Funzioni di Supporto Interne alla Rete Neurale ---
 
-    public boolean think() throws NullPointerException, IllegalArgumentException {
-    	if (mInputsOpt.isEmpty()) {
-			throw new NullPointerException("Inputs Not Initialized");
-		}
-		Matrix mInputs = mInputsOpt.get();
-    	
-    	if (vmWeights.isEmpty()) {
-            throw new IllegalArgumentException("Weights Not Initialized");
+    // Normalizzazione dei Valori di Input Tra -1 e +1
+    private Map<String, Double> normalize(Map<String, Double> list) {
+        Map<String, Double>  normalizedList = new HashMap<>(list.size());
+
+        // Ottenere Valore Massimo e Minimo da Lista di Input
+        double max = Collections.max(list.values());
+        double min = Collections.min(list.values());
+
+        // Normalizzare i Valori di Input Tra -1 e +1
+        for (Map.Entry<String, Double> entry : list.entrySet()) {
+            normalizedList.put(entry.getKey(), 2 * ((entry.getValue() - min) / (max - min)) - 1);
         }
 
-        Matrix tempInputs = mInputs, tempResult = null;
-
-        for (int i = 0; i < NUM_LAYERS; ++i) {
-        	tempResult = vmWeights.get(i).multiply(tempInputs);
-            tempResult = tempResult.applyFunction(this::sigmoid);
-            tempInputs = tempResult;
-        }
-
-        return tempResult.get(0, 0) > 0.5;
+        return normalizedList;
     }
+
+    // Funzione di Attivazione (Sigmoid) --> Result Range: 0 - 1
+    private double sigmoid(double x) {
+        return 1 / (1 + Math.exp(-x));
+    }
+    
+    // --- JSON Serialization ---
     
     public String toJson() {
     	// setPrettyPrinting() crea Json con indentazione (altrimenti tutto su una riga)
@@ -244,6 +260,8 @@ public class BirdBrain implements Serializable {
         
         return brainJson;
     }
+    
+    // --- Object Methods Override ---
     
     @Override
 	public int hashCode() {
