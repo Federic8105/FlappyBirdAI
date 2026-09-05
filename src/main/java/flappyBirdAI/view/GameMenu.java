@@ -44,7 +44,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javadocs, javaFX
+//TODO: javadocs, uml, javaFX
 
 public final class GameMenu extends Application {
 	
@@ -95,7 +95,7 @@ public final class GameMenu extends Application {
     private static final String RESET_BUTTON_HOVER_STYLE = "-fx-background-color: #8e0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 4 10 4 10; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 6, 0.2, 0, 2);";
     private static final String START_BUTTON_STYLE = "-fx-background-color: #c62828; -fx-background-radius: 8; -fx-padding: 8 16 8 16; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 6, 0.2, 0, 2);";
     private static final String START_BUTTON_HOVER_STYLE = "-fx-background-color: #a01f1f; -fx-background-radius: 8; -fx-padding: 8 16 8 16; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 8, 0.25, 0, 3);";
-    // Uso di Data URI perchè CSS inline non funziona con TextArea
+    // Uso di Data URI perchè CSS inline non funziona con getStylesheets().add() 
     private static final String TRANSPARENT_TEXT_AREA_STYLE = CssUtils.toDataUri(
             ".error-text-area, .error-text-area .content, .error-text-area .viewport, .error-text-area .scroll-pane {"
             + "-fx-background-color: transparent;"

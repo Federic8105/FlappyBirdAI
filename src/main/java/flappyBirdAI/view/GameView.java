@@ -58,13 +58,13 @@ public interface GameView {
     
     // --- Metodi Astratti per Aggiornamento della UI ---
     
-    void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObjects);
+    void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj);
     void repaintGame();
     void startChronometerTimer();
     
     // --- Metodi Astratti per Rendering e Animazioni ---
     
-    void preloadSprites(Set<AbstractGameObject> vGameObjects);
+    void preloadSprites(Set<AbstractGameObject> vGameObj);
     void updateAnimations();
     
     // --- Metodi Astratti per Gestione Pausa ---

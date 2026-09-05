@@ -18,39 +18,27 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
 
-public class SwingGameRenderer implements GameRenderer<Graphics2D> {
+public class SwingGameRenderer implements GameRenderer<Graphics2D, Image> {
 	
-	// --- Campi per Caching delle Immagini ---
+	// --- Campi per Caching Immagini ---
 	
 	private final Map<String, Image[]> spriteCache = new HashMap<>();
 	
-	// --- Caricamento degli Sprite ---
+	// --- Caricamento Sprite ---
 	
 	@Override
 	public Image[] ensureLoaded(SpriteDescriptor desc) {
-        return spriteCache.computeIfAbsent(desc.resourceKey(), _ -> loadFrames(desc));
+        return spriteCache.computeIfAbsent(desc.resourceKey(), _ -> loadFrames(desc, Image[]::new));
     }
 	
-	private Image[] loadFrames(SpriteDescriptor desc) {
-	    Image[] frames = new Image[desc.nFrames()];
-
-	    if (desc.nFrames() == 1) {
-	        frames[0] = loadRawImage(SpriteDescriptor.IMG_PATH + desc.resourceKey() + SpriteDescriptor.IMG_EXT);
-	    } else {
-	        for (int i = 0; i < desc.nFrames(); ++i) {
-	            frames[i] = loadRawImage(SpriteDescriptor.IMG_PATH + desc.resourceKey() + i + SpriteDescriptor.IMG_EXT);
-	        }
-	    }
-
-	    return frames;
-	}
-	
-	private Image loadRawImage(String path) {
+	@Override
+	public Image loadRawImage(String path) {
 	    URL url = getClass().getResource(path);
 	    if (url == null) {
 	        System.err.println("Image Not Found: " + path);
 	        return null;
 	    }
+	    
 	    try {
 	        Image img = ImageIO.read(url);
 	        // ImageIO.read può restituire null oltre a lanciare eccezioni
@@ -67,18 +55,18 @@ public class SwingGameRenderer implements GameRenderer<Graphics2D> {
 	// --- Rendering ---
 	
 	@Override
-	public void renderSingle(Graphics2D g2d, GameObject obj) {
+	public void renderSingle(Graphics2D gc, GameObject obj) {
         SpriteDescriptor desc = obj.getSpriteDescriptor();
         Image[] frames = ensureLoaded(desc);
         Image frame = frames.length > 0 ? frames[obj.getFrameIndex() % frames.length] : null;
 
         if (obj.isShowSprite() && frame != null && obj instanceof AbstractGameObject gameObj) {
         	// Disegna l'immagine scalata alle dimensioni dell'oggetto
-            g2d.drawImage(frame, gameObj.x, gameObj.y, gameObj.w, gameObj.h, null);
+        	gc.drawImage(frame, gameObj.x, gameObj.y, gameObj.w, gameObj.h, null);
         } else {
-            g2d.setColor(Color.red);
+        	gc.setColor(Color.RED);
             for (Shape box : obj.getHitBox()) {
-                g2d.draw(box);
+            	gc.draw(box);
             }
         }
     }

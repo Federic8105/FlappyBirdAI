@@ -60,11 +60,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // --- Riferimenti a Componenti Esterne ---
     
-    // Visibilità package-private per permettere l'accessso solo alle classi dello stesso package (Classi Listeners)
+    // Visibilità package-private per permettere l'accesso solo alle classi dello stesso package (Classi Listeners)
 	GameController gameController;
 	
 	// Renderer per disegnare gli sprite dei GameObject
-	private final GameRenderer<Graphics2D> spriteRenderer = new SwingGameRenderer();
+	private final GameRenderer<Graphics2D, Image> spriteRenderer = new SwingGameRenderer();
 	
 	// --- Campi per Caching delle Statistiche ---
 	
@@ -678,8 +678,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	// --- Gestione Ciclo di Vita ---
 	
 	@Override
-    public void setController(GameController gameController) {
-        this.gameController = gameController;
+    public void setController(GameController controller) {
+        this.gameController = controller;
     }
 	
 	// Chiude la finestra in modo thread-safe
