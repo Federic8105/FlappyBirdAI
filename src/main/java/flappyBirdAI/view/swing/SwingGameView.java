@@ -44,9 +44,9 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
     private static final Color GAME_BACKGROUND_COLOR = Color.CYAN;
     private static final Color STATS_BACKGROUND_COLOR = Color.DARK_GRAY;
-    private static final Color CONTROLS_BACKGROUND_COLOR = Color.decode("#800020");
+    private static final Color CONTROLS_BACKGROUND_COLOR = new Color(128, 0, 32);
     private static final Color IMPORT_EXPORT_BACKGROUND_COLOR = Color.LIGHT_GRAY;
-    private static final Color CHRONOMETER_BACKGROUND_COLOR = Color.decode("#F0E68C");
+    private static final Color CHRONOMETER_BACKGROUND_COLOR = new Color(240, 230, 140);
     private static final Color PAUSE_OVERLAY_COLOR = new Color(0, 0, 0, 150);
     private static final Color PAUSE_SYMBOL_COLOR = new Color(150, 150, 150);
     
@@ -125,6 +125,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	private void initWindow() {
 		if (isFullScreen) {
+			// Impostare la finestra a schermo intero senza bordi
 	        setUndecorated(true);
 	        Rectangle screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
 	        setBounds(screenBounds);
@@ -897,7 +898,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    if (gamePanel != null) {
 	        return gamePanel.getWidth();
 	    }
-	    
+	    // Calcolo della larghezza disponibile basandosi sullo spazio reale della finestra disponibile
+	    // larghezza totale - larghezza pannello import/export (MIN_IMPORT_EXPORT_PANEL_WIDTH)
 	    return Math.max(initWidth - MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_GAME_PANEL_WIDTH);
     }
     
@@ -909,7 +911,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         }
         
         // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
-        // altezza totale - altezza pannelli stats (GameController.STATS_HEIGHT) e controls (SLIDER_HEIGHT)
+        // altezza totale - altezza pannelli stats e controls
         return Math.max(initHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
     }
     
