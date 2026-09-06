@@ -9,11 +9,18 @@ import flappyBirdAI.controller.GameStats;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.view.GameRenderer;
 import flappyBirdAI.view.GameView;
+import javafx.animation.Animation;
+import javafx.animation.AnimationTimer;
+import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
+import javafx.scene.Scene;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-
 import java.util.Set;
 
 public class FxGameView implements GameView {
@@ -31,8 +38,6 @@ public class FxGameView implements GameView {
 	// --- Riferimenti a Componenti Esterne ---
     
 	private GameController gameController;
-	
-	// Renderer per disegnare gli sprite dei GameObject
 	private final GameRenderer<GraphicsContext, Image> spriteRenderer = new FxGameRenderer();
 	
 	// --- Campi per Caching delle Statistiche ---
@@ -48,9 +53,16 @@ public class FxGameView implements GameView {
 
     private Set<AbstractGameObject> currentVGameObj;
     
+    // --- Timers ---
+    
+    private Timeline animationTimer;
+    private AnimationTimer chronometerTimer;
+    private PauseTransition autoCloseAutoSaveDialogTimer;
+    
     // --- Componenti UI ---
     
     private final Stage stage;
+    private final StackPane rootPane;
 	
 	// --- Costruttori ---
 
@@ -61,8 +73,12 @@ public class FxGameView implements GameView {
 		
 		stage = createStage();
 		
-		//creare scene
+		rootPane = new StackPane();
 		
+		initTimers();
+		
+		Scene scene = new Scene(rootPane);
+		stage.setScene(scene);
 		stage.show();
 	}
 	
@@ -79,6 +95,24 @@ public class FxGameView implements GameView {
 		stage.setMaxHeight(MAX_WINDOW_HEIGHT);
 		
 		return stage;
+	}
+	
+	// --- Inizializzazione Timers ---
+	
+	private void initTimers() {
+		chronometerTimer = new AnimationTimer() {
+			// "now" è timestamp corrente in nanosecondi fornito da JavaFX AnimationTimer
+	        @Override
+	        public void handle(long now) {
+	        	updateChronometerLabel();
+	        }
+	    };
+	    							  // KeyFrame specifica intervallo di tempo e azione da eseguire
+		animationTimer = new Timeline(new KeyFrame(Duration.millis(ANIMATION_REFRESH_MS), _ -> updateAnimations()));
+		
+		// timer con durata indefinita per aggiornare le animazioni dei GameObject
+		animationTimer.setCycleCount(Animation.INDEFINITE);
+		animationTimer.play();
 	}
 	
 	// --- Gestione Ciclo di Vita ---
@@ -116,8 +150,13 @@ public class FxGameView implements GameView {
 	
 	@Override
 	public void startChronometerTimer() {
-		
-		
+		chronometerTimer.start();
+	}
+	
+	private void updateChronometerLabel() {
+		if (gameController.isGameRunning()) {
+	        //lTimeValue.setText(gameController.getFormattedGameTimeElapsed());
+	    }
 	}
 	
 	// --- Rendering e Animazioni ---
@@ -138,8 +177,13 @@ public class FxGameView implements GameView {
 	
 	@Override
 	public void togglePause() {
-		
-		
+		gameController.togglePause();
+        
+        if (gameController.isGameRunning()) {
+			chronometerTimer.start();
+		} else {
+			chronometerTimer.stop();
+		}
 	}
 	
 	// --- Gestione Messaggi e Notifiche ---

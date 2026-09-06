@@ -39,6 +39,10 @@ import java.awt.geom.RoundRectangle2D;
 public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	private static final long serialVersionUID = 1L;
+	
+	// --- Costanti di Configurazione ---
+	
+    public static final int CHRONOMETER_REFRESH_MS = 10;
     
     // --- Costanti di Colori ---
 	
@@ -62,8 +66,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // Visibilità package-private per permettere l'accesso solo alle classi dello stesso package (Classi Listeners)
 	GameController gameController;
-	
-	// Renderer per disegnare gli sprite dei GameObject
 	private final GameRenderer<Graphics2D, Image> spriteRenderer = new SwingGameRenderer();
 	
 	// --- Campi per Caching delle Statistiche ---
@@ -81,7 +83,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // --- Timers ---
     
-    private Timer chronometerTimer, autoCloseAutoSaveDialogTimer, animationTimer;
+    // gestione cronometro potrebbe essere fatta insieme all'aggiornamento dello schermo in updateDisplay
+    // ma se il game-thread rallenta, il cronometro non si aggiorna fluidamente, quindi è meglio avere un timer separato per il cronometro
+    // (non isola da rallentamenti del EDT perchè ogni timer viene eseguito sull'EDT)
+    private Timer animationTimer, chronometerTimer, autoCloseAutoSaveDialogTimer;
     
     // --- Componenti UI ---
     
@@ -590,7 +595,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	private void initTimers() {
 		chronometerTimer = new Timer(CHRONOMETER_REFRESH_MS, _ -> updateChronometerLabel());
-		animationTimer = new Timer(AbstractGameObject.ANIMATION_REFRESH_MS, _ -> updateAnimations());
+		animationTimer = new Timer(ANIMATION_REFRESH_MS, _ -> updateAnimations());
 		
 		animationTimer.start();
 	}
@@ -714,7 +719,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         	updateStatsLabels(stats);
         	
             currentVGameObj = vGameObj;
-            gamePanel.repaint();
+            repaintGame();
         });
     }
 	

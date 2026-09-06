@@ -8,10 +8,6 @@ import java.awt.Rectangle;
 
 public abstract class AbstractGameObject implements GameObject {
 	
-	// --- Costanti di Configurazione per Animazioni ---
-	
-	public static final int ANIMATION_REFRESH_MS = 150;
-	
 	// --- Campi di Stato ---
 	
 	// Pubblici per Performance in Game Loop

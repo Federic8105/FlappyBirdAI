@@ -82,7 +82,6 @@ public final class GameController {
 		// Delta Time del Gioco - Influenzato dal Dt Multiplier
 		double dt;
 		long sleepTime;
-		boolean isGameRunning;
 		Optional<TubePair> firstTubePairOpt;
 		TubePair previousFirstTubePair = null, currTargetTubePair;
 		Optional<FlappyBird> randBirdOpt;
@@ -99,6 +98,7 @@ public final class GameController {
 				gameClock.startSession();
 				// Aggiungere Uccelli alla Prima Generazione
 				addFirstGenBirds();
+				// avviare il cronometro solo poco prima di iniziare il ciclo di gioco per evitare che il tempo trascorso durante la creazione degli uccelli e dei tubi venga conteggiato nel tempo di gioco
 				gameView.startChronometerTimer();
 			}
 			addNewTubePair();
@@ -118,31 +118,31 @@ public final class GameController {
 				}
 				
 				gameClock.setFrameStartTime();
-				isGameRunning = gameClock.isGameRunning();
+				
 			}
 			
-			if (!isGameRunning) {
+			// Acquisizione del Lock per la Pausa
+			synchronized (pauseLock) {
 				
-				// Acquisizione del Lock per la Pausa
-				synchronized (pauseLock) {
-					
+				// controllo se il gioco è in pausa viene fatto dentro lo stesso lock di wait/notify per evitare di perdere la notifica di ripresa se arriva subito dopo il controllo ma prima della wait
+				if (!isGameRunning()) {
+				
 					synchronized (lock) {
-						// Aggiornare la vista per mostrare lo stato di pausa e animazioni
+						// Aggiornare la vista per mostrare lo stato di pausa
 			            gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
 					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 		            try {
-		            	// Rilascia Momentaneamente il Lock per Permettere la Notifica di Ripresa
-		            	// Thread si Sospende Qui Fino a Notifica o Timeout (dopo sleep di PAUSE_SLEEP_MS)
-		            	pauseLock.wait(GameClock.PAUSE_SLEEP_MS);
+		            	// Thread si Sospende Qui Fino a Notifica o Timeout (dopo sleep di PAUSE_POLL_INTERVAL_MS) di sicurezza
+		            	pauseLock.wait(GameClock.PAUSE_POLL_INTERVAL_MS);
 		            } catch (InterruptedException e) {
 		                throw new RuntimeException("Game Thread Interrupted During Pause: " + e.getMessage(), e);
 		            }
-				}
 	            
-	            continue;
-	        }
+		            continue;
+				}
+			}
 			
 			synchronized (lock) {
 
@@ -544,16 +544,23 @@ public final class GameController {
 		                bestBirdBrainOpt = Optional.of(loadedBrain);
 		                brainLoadRequest = true;
 		            }
+		            
+		            // Sbloccare subito il game-thread se è in pausa e in attesa su pauseLock
+	                // così non deve aspettare fino a PAUSE_POLL_INTERVAL_MS per accorgersi della richiesta di caricamento cervello
+	                synchronized (pauseLock) {
+	                    pauseLock.notify();
+	                }
 		        });
 	}
 	
 	// --- Gestione Pausa/Riprendi Gioco ---
+	// Chiamato dal Thread Grafico
 	
 	public void togglePause() {
     	boolean nowRunning;
     	
     	synchronized (lock) {
-    		 if (gameClock.isGameRunning()) {
+    		 if (isGameRunning()) {
     			 gameClock.pause();
     			 nowRunning = false;
     		 } else {
@@ -563,9 +570,10 @@ public final class GameController {
     	}
     	
         if (nowRunning) {
-        	// Sbloccare subito il thread di gioco se in attesa senza aspettare il prossimo ciclo di sleep
+        	// Sbloccare subito il thread di gioco se in attesa
+        	// così non deve aspettare fino a PAUSE_POLL_INTERVAL_MS per accorgersi della ripresa del gioco
         	synchronized (pauseLock) {
-				pauseLock.notifyAll();
+				pauseLock.notify();
         	}
         }
       

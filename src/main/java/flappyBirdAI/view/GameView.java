@@ -47,8 +47,9 @@ public interface GameView {
     public static final double BAR_HEIGHT_RATIO = 0.8;
     public static final double BAR_GAP_RATIO = 1.0 / 3.0;
     
+    // velocità di scambio frame per animazioni
+    public static final int ANIMATION_REFRESH_MS = 150;
     public static final int AUTO_SAVE_SUCCESS_DISPLAY_MS = 1250;
-    public static final int CHRONOMETER_REFRESH_MS = 10;
 	
     // --- Metodi Astratti per Gestione Ciclo di Vita ---
     

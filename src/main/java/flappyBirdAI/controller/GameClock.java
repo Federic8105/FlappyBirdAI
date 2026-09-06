@@ -17,7 +17,8 @@ public final class GameClock {
 	
 	// --- Costanti di Configurazione ---
     
-    public static final int PAUSE_SLEEP_MS = 100;
+    // Intervallo di polling per il thread di gioco quando è in pausa
+    public static final int PAUSE_POLL_INTERVAL_MS = 100;
   	public static final int MAX_FPS = 60;
   	private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / MAX_FPS;
   	// Numero di frame da considerare per la media mobile
