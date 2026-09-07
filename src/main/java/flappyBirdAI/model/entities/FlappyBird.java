@@ -27,7 +27,7 @@ public class FlappyBird extends AbstractGameObject {
 	// --- Campi di Stato ---
 	
 	// Pubblici per Performance in Game Loop
-	public double lifeTime = 0, vy = 0;
+	public double vy = 0;
     
 	private final BirdBrain brain;
 	
@@ -65,7 +65,6 @@ public class FlappyBird extends AbstractGameObject {
 		y += (int) (vy * dt_s + 0.5 * GRAVITY * Math.pow(dt_s, 2));
 
 		updateHitBox();
-		lifeTime += dt_s;
 	}
 	
 	@Override
@@ -100,7 +99,6 @@ public class FlappyBird extends AbstractGameObject {
 	        "H: " + h,
 	        "X: " + x,
 	        "Y: " + y,
-	        "LifeTime: " + String.format("%.2f", lifeTime),
 	        "Vy: " + String.format("%.2f", vy),
 	        brain.toString()
 	    );

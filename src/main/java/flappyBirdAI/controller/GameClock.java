@@ -37,13 +37,21 @@ public final class GameClock {
 
     // --- Campi di Stato per Delta Time ---
     
-    // Ultimo timestamp usato per dt (ns)
+    // Ultimo timestamp usato per dt (ns) usato come punto di riferimento per calcolare il delta time tra frame
     private long lastUpdateTime;
     // Permette slow-motion o fast-forward
     private double dtMultiplier = 1.0; 
+    
+    // --- Campi di Stato per LifeTime della Generazione Attuale ---
+    
+    // Tempo totale di vita della generazione attuale (s)
+    private double genLifeTime = 0;
+    
+	// Nota: il cronometro, essendo sempre in esecuzione, tende a restare leggermente avanti rispetto al lifeTime di generazione (basato sul dt accumulato solo durante il loop),
+	// perché il tempo speso tra una generazione e l'altra (prepareForNewGen, creazione bird/tubi, ...) non viene mai contato nel lifeTime
 
     // --- Campi di Stato per Cronometro Totale ---
-    // Sessione: Tempo Trascorso dall'inizio della sessione di gioco/ultima ripresa del gioco fino alla pausa o al reset (ms)
+    // Sessione: Tempo Trascorso dall'inizio del gioco/ultima ripresa del gioco fino alla pausa o al reset (ms)
     // Variabile volatile per garantire la visibilità tra thread sempre dei valori aggiornati senza sincronizzazione esplicita
     
     // Tempo accumulato dalle sessioni precedenti (ms)
@@ -142,6 +150,20 @@ public final class GameClock {
          return (int) (1_000_000_000.0 / lastFrameDuration);
     }
     
+    // --- Gestione LifeTime della Generazione Attuale ---
+    
+    public void resetGenLifeTime() {
+		genLifeTime = 0;
+	}
+    
+    public double addGenLifeTime(double dt) {
+		return genLifeTime += dt;
+	}
+    
+    public double getGenLifeTime() {
+    	return genLifeTime;
+    }
+    
     // --- Gestione Cronometro Totale ---
 
     // Avvio Clock
@@ -174,7 +196,7 @@ public final class GameClock {
         
         // Riavviare il conteggio del tempo della sessione
         sessionStartTime = System.currentTimeMillis();
-        // Resettare il lastDt per evitare un salto di tempo anomalo quando il gioco riprende
+        // Resettare per evitare un salto di tempo anomalo quando il gioco riprende
         lastUpdateTime = System.nanoTime();
         isGameRunning = true;
     }
@@ -182,13 +204,14 @@ public final class GameClock {
     // Reset Totale Clock e riavvio della sessione
     public void reset() {
     	totElapsedPastSessionsTime = 0;
+    	resetGenLifeTime();
     	startSession();
     	setLastUpdateTimeNow();
     }
     
     // --- Getters Delta Time e Tempo Totale ---
 
-    // Calcolare il delta time (in secondi) dall'ultimo frame
+    // Calcolare il delta time (s) dall'ultimo frame
     public double getDeltaTime() {
         if (!isGameRunning) {
         	return 0.0;
@@ -203,13 +226,13 @@ public final class GameClock {
     }
 
     // Ottenere il tempo totale di gioco in millisecondi
-    public long getElapsedMs() {  
+    public long getGameTimeElapsedMs() {  
         return totElapsedPastSessionsTime + (isGameRunning ? System.currentTimeMillis() - sessionStartTime : 0);
     }
 
     // Ritorna il tempo di gioco totale formattato come "HH:MM:SS.CS"
     public String getFormattedGameTimeElapsed() {
-        long elapsedMs = getElapsedMs();
+        long elapsedMs = getGameTimeElapsedMs();
         long totalSeconds = elapsedMs / 1000;
         long hours = totalSeconds / 3600;
         long minutes = (totalSeconds % 3600) / 60;

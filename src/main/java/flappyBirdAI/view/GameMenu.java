@@ -44,7 +44,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javadocs, uml, javaFX, timer cronometro diverso blt
+//TODO: javadocs, uml, javaFX, ridimensionamento in pausa non aggiorna tubi
 
 public final class GameMenu extends Application {
 	

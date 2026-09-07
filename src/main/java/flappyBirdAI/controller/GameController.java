@@ -86,30 +86,36 @@ public final class GameController {
 		TubePair previousFirstTubePair = null, currTargetTubePair;
 		Optional<FlappyBird> randBirdOpt;
 		Optional<BirdBrain> autoSaveInGenBrain, autoSaveEndGenBrain;
-		FlappyBird randBird;
 		// Copia Snapshot per Thread-Safety
 		Set<AbstractGameObject> vGameObjSnapshot;
 		
 		lastGameHeight = getGameHeight();
 		
 		synchronized (lock) {
-			// Avviare una nuova sessione a inizio gioco (prima generazione)
 			if (isFirstGen()) {
-				gameClock.startSession();
 				// Aggiungere Uccelli alla Prima Generazione
 				addFirstGenBirds();
-				// avviare il cronometro solo poco prima di iniziare il ciclo di gioco per evitare che il tempo trascorso durante la creazione degli uccelli e dei tubi venga conteggiato nel tempo di gioco
-				gameView.startChronometerTimer();
 			}
 			addNewTubePair();
 			vGameObjSnapshot = new HashSet<>(vGameObj);
-			gameClock.setLastUpdateTimeNow();
 		}
 		
 		// Precaricare le Sprite per Migliorare le Prestazioni di Rendering
 		// Fuori da synchronized per Evitare di Bloccare il Thread di Gioco durante il Preload di Sprite I/O
 		gameView.preloadSprites(vGameObjSnapshot);
+		
+		synchronized (lock) {
+			// avvio della sessione di gioco e del cronometro dopo il preload delle sprite per evitare che il tempo di caricamento delle sprite venga conteggiato nel tempo di gioco
+		    if (isFirstGen()) {
+		        gameClock.startSession();
+				gameView.startChronometerTimer();
+		    }
+		    
+		    // inizializzazione del lastUpdateTime per il calcolo del delta time tra frame
+		    gameClock.setLastUpdateTimeNow();
+		}
 
+		// Inizio del Ciclo di Gioco per la Generazione Corrente
 		while (true) {
 			synchronized (lock) {
 				// Controllo di Uscita dal Ciclo di Gioco
@@ -159,19 +165,22 @@ public final class GameController {
 					lastGameHeight = gameHeight;
 				}
 				
+				// Aggiornare il Tempo di Vita della Generazione Attuale
+				gameStats.currLifeTime = gameClock.addGenLifeTime(dt);
+				
 				randBirdOpt = getRandomBird();
 				
-				// Aggiornare Statistica Tempo di Vita Attuale, Migliore e Cervello del Miglior Uccello
-	        	if (randBirdOpt.isPresent() && (randBird = randBirdOpt.get()).lifeTime > gameStats.currLifeTime) {
-	        		gameStats.currLifeTime = randBird.lifeTime;
-	            	
-	            	// Nuovo Record di Vita
-	            	if (gameStats.currLifeTime > gameStats.bestLifeTime) {
-						gameStats.bestLifeTime = randBird.lifeTime;
-						bestBirdBrainOpt = Optional.of(randBird.getBrain());
-					}
-	            }
-	        	
+				// Nuovo Record di BLT quindi aggiornare bestBirdBrainOpt con il cervello dell'uccello casuale selezionato, hanno tutti lo stesso lifetime
+				if (gameStats.currLifeTime > gameStats.bestLifeTime) {
+				    gameStats.bestLifeTime = gameStats.currLifeTime;
+				    
+				    if (randBirdOpt.isPresent()) {
+				    	bestBirdBrainOpt = Optional.of(randBirdOpt.get().getBrain());
+				    } else {
+				    	bestBirdBrainOpt = Optional.empty();
+				    }
+				}
+				
 	        	firstTubePairOpt = getFirstTubePair(randBirdOpt);
 				if (firstTubePairOpt.isPresent()) {
 					currTargetTubePair = firstTubePairOpt.get();
@@ -189,8 +198,6 @@ public final class GameController {
 					}
 				}
 				
-				
-				// Aggiornare Oggetti di Gioco
 	            updateGameObjects(dt, gameWidth, gameHeight, getTubeHitBoxes(firstTubePairOpt), firstTubePairOpt);
 	            deleteDeadGameObjects();
 				checkNewTube(gameWidth);
@@ -502,6 +509,7 @@ public final class GameController {
 		gameStats.nBirds = 0;
 		gameStats.nTubePassed = 0;
 		gameStats.currLifeTime = 0;
+		gameClock.resetGenLifeTime();
 		vGameObj.clear();
 		addNewGenBirds();
 	}
