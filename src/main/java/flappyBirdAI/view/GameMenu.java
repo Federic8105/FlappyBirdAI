@@ -44,7 +44,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javadocs, uml, javaFX
+//TODO: javadocs, uml, javaFX, timer cronometro diverso blt
 
 public final class GameMenu extends Application {
 	
@@ -455,6 +455,7 @@ public final class GameMenu extends Application {
             int birdsRegenPerc = birdsRegenPercSpinner.getValue();
             
             // Chiudere il menù prima di avviare il gioco
+            // il thread attuale rimane attivo e può continuare a eseguire il codice per avviare il gioco, mentre lo stage del menù viene chiuso
             stage.close();
 
             gameController = new GameController(useFX ? new FxGameView(w, h, isFullScreen) : new SwingGameView(w, h, isFullScreen), nBirds, birdsRegenPerc);

@@ -21,6 +21,8 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+
+import java.util.Objects;
 import java.util.Set;
 
 public class FxGameView implements GameView {
@@ -123,6 +125,11 @@ public class FxGameView implements GameView {
 	}
 	
 	@Override
+	public void startChronometerTimer() {
+		chronometerTimer.start();
+	}
+	
+	@Override
 	public void close() {
 		
 		
@@ -137,8 +144,15 @@ public class FxGameView implements GameView {
 	// --- Aggiornamento UI ---
 	
 	@Override
-	public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) {
+	public void updateGameStatsAndRepaint(GameStats stats) throws NullPointerException {
+		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		
+	}
+	
+	@Override
+	public void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
+		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
+		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 		
 	}
 
@@ -146,11 +160,6 @@ public class FxGameView implements GameView {
 	public void repaintGame() {
 		
 		
-	}
-	
-	@Override
-	public void startChronometerTimer() {
-		chronometerTimer.start();
 	}
 	
 	private void updateChronometerLabel() {
@@ -184,6 +193,13 @@ public class FxGameView implements GameView {
 		} else {
 			chronometerTimer.stop();
 		}
+        
+        updatePauseOverlay();
+	}
+	
+	@Override
+    public void updatePauseOverlay() {
+		
 	}
 	
 	// --- Gestione Messaggi e Notifiche ---

@@ -54,14 +54,15 @@ public interface GameView {
     // --- Metodi Astratti per Gestione Ciclo di Vita ---
     
     void setController(GameController controller);
+    void startChronometerTimer();
     void close();
     void exitGame();
     
     // --- Metodi Astratti per Aggiornamento della UI ---
     
-    void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj);
+    void updateGameStatsAndRepaint(GameStats stats);
+    void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj);
     void repaintGame();
-    void startChronometerTimer();
     
     // --- Metodi Astratti per Rendering e Animazioni ---
     
@@ -71,6 +72,7 @@ public interface GameView {
     // --- Metodi Astratti per Gestione Pausa ---
     
     void togglePause();
+    void updatePauseOverlay();
 
 	// --- Metodi Astratti per Gestione Messaggi e Notifiche ---
     

@@ -123,18 +123,17 @@ public final class GameController {
 			
 			// Acquisizione del Lock per la Pausa
 			synchronized (pauseLock) {
-				
 				// controllo se il gioco è in pausa viene fatto dentro lo stesso lock di wait/notify per evitare di perdere la notifica di ripresa se arriva subito dopo il controllo ma prima della wait
 				if (!isGameRunning()) {
 				
 					synchronized (lock) {
-						// Aggiornare la vista per mostrare lo stato di pausa
-			            gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
+						// Aggiornare la vista per mostrare lo stato di pausa senza copiare gli oggetti di gioco che non cambiano durante la pausa
+						gameView.updateGameStatsAndRepaint(gameStats);
 					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
 		            try {
-		            	// Thread si Sospende Qui Fino a Notifica o Timeout (dopo sleep di PAUSE_POLL_INTERVAL_MS) di sicurezza
+		            	// Thread si Sospende Qui Fino a Notifica o Timeout di sicurezza (dopo sleep di PAUSE_POLL_INTERVAL_MS) 
 		            	pauseLock.wait(GameClock.PAUSE_POLL_INTERVAL_MS);
 		            } catch (InterruptedException e) {
 		                throw new RuntimeException("Game Thread Interrupted During Pause: " + e.getMessage(), e);
@@ -215,7 +214,7 @@ public final class GameController {
 				// - game objects (potenzialmente molti, es. migliaia di bird): 
 				//   Soluzione 2 (volatile) se il difetto visivo di un frame "storto" è accettabile (costo ~0)
 				//   Soluzione 1 (snapshot) se serve consistenza garantita, valutando il costo di allocazione a frame
-				gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
+				gameView.updateDisplayAndRepaint(gameStats, new HashSet<>(vGameObj));
 	            
 	            // Controllo se autosave durante la generazione è da fare e ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
 	            autoSaveInGenBrain = checkAutoSaveInGen();
@@ -570,16 +569,11 @@ public final class GameController {
     	}
     	
         if (nowRunning) {
-        	// Sbloccare subito il thread di gioco se in attesa
-        	// così non deve aspettare fino a PAUSE_POLL_INTERVAL_MS per accorgersi della ripresa del gioco
+  	  		// Sbloccare il game-thread se è in pausa
         	synchronized (pauseLock) {
 				pauseLock.notify();
         	}
         }
-      
-        // Forzare l'aggiornamento del display per feedback visivo istantaneo
-        // Fuori dal blocco synchronized per evitare di bloccare il thread di gioco durante il repaint sul thread grafico
-        gameView.repaintGame();
     }
 	
 	// --- Gestione Uscita Applicazione ---

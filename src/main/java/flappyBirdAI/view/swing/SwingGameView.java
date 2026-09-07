@@ -90,8 +90,12 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // --- Componenti UI ---
     
-    // Pannelli Principali
-    private JPanel gamePanel, statsPanel, controlsPanel, importExportPanel, chronometerPanel;
+    // Pannello di gioco con layer per gestire overlay di pausa
+    private JLayeredPane gameLayeredPane;
+    private JPanel gamePanel, pauseOverlayPanel;
+    
+    // Altri Pannelli Principali
+    private JPanel statsPanel, controlsPanel, importExportPanel, chronometerPanel;
     
     // Labels per Statistiche
 	private JLabel lFPS, lCurrLifeTime, lBestLifeTime, lNGen, lNBirds, lNTubePassed, lMaxTubePassed, lAutoSave;
@@ -151,21 +155,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	}
 	
 	private void initPanels() {
-		// Inizializzare per Primi per averli a SX
+		// aggiunti in BorderLayout.WEST
 		initLeftPanels();
-		
-		JPanel centralPanel = new JPanel(new BorderLayout());
-		centralPanel.setPreferredSize(new Dimension(initWidth, initHeight));
-		
-		initGamePanel();
-		initStatsPanel();
-		initControlsPanel();
-		
-		centralPanel.add(statsPanel, BorderLayout.NORTH);
-	    centralPanel.add(gamePanel, BorderLayout.CENTER);
-	    centralPanel.add(controlsPanel, BorderLayout.SOUTH);
-	    
-	    add(centralPanel, BorderLayout.CENTER);
+		// aggiunti in BorderLayout.CENTER
+		initCentralPanels();
 	    
 	    if (isFullScreen) {
 	        // Riadattare i componenti dentro la finestra di dimensioni fisse (fullscreen)
@@ -199,6 +192,21 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    // Controllo Width Min
         return Math.max((int) (initWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
     }
+	
+	private void initCentralPanels() {
+		JPanel centralPanel = new JPanel(new BorderLayout());
+		centralPanel.setPreferredSize(new Dimension(initWidth, initHeight));
+		
+		initGameLayeredPane();
+		initStatsPanel();
+		initControlsPanel();
+		
+		centralPanel.add(gameLayeredPane, BorderLayout.CENTER);
+		centralPanel.add(statsPanel, BorderLayout.NORTH);
+	    centralPanel.add(controlsPanel, BorderLayout.SOUTH);
+	    
+	    add(centralPanel, BorderLayout.CENTER);
+	}
 	
 	// --- Inizializzazione Pannelli Principali ---
 	
@@ -237,9 +245,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		initChronometerUI();
 	}
 	
-	private void initGamePanel() {
+	private void initGameLayeredPane() {
 		Image backgroundImg = createGameBackgroundImage();
 		
+		// inizializzare il pannello di gioco con un paintComponent personalizzato per disegnare lo sfondo e gli oggetti di gioco
         gamePanel = new JPanel() {
             private static final long serialVersionUID = 1L;
             
@@ -262,29 +271,50 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
                         }
                     }
                 }
-                
-                // Disegnare overlay di pausa se il gioco è in pausa
-                if (!gameController.isGameRunning()) {
-                    drawPauseOverlay(g2d);
-                }
             }
         };
         
-        gamePanel.addMouseListener(new MouseAdapter() {
+        // se l'immagine di sfondo non è disponibile, usare un colore di sfondo visibile solo se non è presente l'immagine di sfondo
+        gamePanel.setBackground(GAME_BACKGROUND_COLOR);
+        
+        // inizializzare il pannello di overlay per la pausa
+        pauseOverlayPanel = new JPanel() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                drawPauseOverlay(g2d);
+            }
+        };
+        // impostare il pannello di overlay come trasparente per permettere la visualizzazione del pannello di gioco sottostante quando l'overlay è attivo
+        pauseOverlayPanel.setOpaque(false);
+        // a inizio gioco il pannello di overlay di pausa è invisibile
+        pauseOverlayPanel.setVisible(false);
+        
+        // evento di click per pausa/riprendi
+        MouseAdapter togglePauseOnClick = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                // Click sinistro per pausa/riprendi
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     togglePause();
                 }
             }
-        });
+        };
         
-        // Se l'immagine di sfondo non è disponibile, usare un colore di sfondo
-        gamePanel.setBackground(GAME_BACKGROUND_COLOR);
-        gamePanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_GAME_PANEL_HEIGHT));
+        // gestione pausa aggiunto a entrambi i pannelli per permettere di cliccare sia sul pannello di gioco che sull'overlay di pausa quando è invisibile
+        gamePanel.addMouseListener(togglePauseOnClick);
+        pauseOverlayPanel.addMouseListener(togglePauseOnClick);
         
-        add(gamePanel, BorderLayout.CENTER);
+        // inizializzare il JLayeredPane per gestire il pannello di gioco e l'overlay di pausa
+        gameLayeredPane = new JLayeredPane();
+        gameLayeredPane.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_GAME_PANEL_HEIGHT));
+        gameLayeredPane.add(gamePanel, JLayeredPane.DEFAULT_LAYER);
+        // disegnato sopra il pannello di gioco, quindi layer più alto
+        gameLayeredPane.add(pauseOverlayPanel, JLayeredPane.PALETTE_LAYER);
+        // layout per sovrapporre i pannelli di gioco e overlay di pausa, entrambi con dimensioni uguali al JLayeredPane
+        gameLayeredPane.setLayout(new OverlayLayout(gameLayeredPane));
     }
 	
 	private void initStatsPanel() {
@@ -295,8 +325,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		statsPanel.setMinimumSize(new Dimension(MIN_STATS_PANEL_WIDTH, MIN_STATS_PANEL_HEIGHT));
 		
 		initStatsUI();
-		
-		add(statsPanel, BorderLayout.NORTH);
 	}
 	
 	private void initControlsPanel() {
@@ -306,8 +334,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		controlsPanel.setMinimumSize(new Dimension(MIN_GAME_PANEL_WIDTH, MIN_CONTROLS_PANEL_HEIGHT));
 		
 		initControlsUI();
-		
-		add(controlsPanel, BorderLayout.CENTER);
 	}
 	
 	// -- Inizializzazione Componenti UI ---
@@ -603,8 +629,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	// --- Rendering Pannello di Gioco ---
 
 	private void drawPauseOverlay(Graphics2D g2d) {
-	    int width = gamePanel.getWidth();
-	    int height = gamePanel.getHeight();
+	    int width = pauseOverlayPanel.getWidth();
+	    int height = pauseOverlayPanel.getHeight();
 	    
 	    // Disegnare overlay scuro semi-trasparente
 	    g2d.setColor(PAUSE_OVERLAY_COLOR);
@@ -688,6 +714,11 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         this.gameController = controller;
     }
 	
+	@Override
+	public void startChronometerTimer() {
+	    chronometerTimer.start();
+	}
+	
 	// Chiude la finestra in modo thread-safe
 	@Override
 	public void close() {
@@ -710,14 +741,27 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	// --- Aggiornamento UI ---
 	
 	@Override
-    public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
+	public void updateGameStatsAndRepaint(GameStats stats) throws NullPointerException {
+		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
+		
+		// Aggiornare UI Thread-Safe
+		// aggiornamenti eseguiti su EDT per evitare problemi di concorrenza e garantire che la GUI sia aggiornata in modo sicuro
+        SwingUtilities.invokeLater(() -> {
+        	updateStatsLabels(stats);
+            repaintGame();
+        });
+	}
+	
+	@Override
+    public void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 				
 		// Aggiornare UI Thread-Safe
+		// aggiornamenti eseguiti su EDT per evitare problemi di concorrenza e garantire che la GUI sia aggiornata in modo sicuro
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
-        	
+        	// assegnazione fatta dentro invokeLater per evitare che i dati aggiornati delle statistiche non si rifersicano agli oggetti di gioco attuali
             currentVGameObj = vGameObj;
             repaintGame();
         });
@@ -727,11 +771,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     public void repaintGame() {
     	gamePanel.repaint();
     }
-	
-	@Override
-	public void startChronometerTimer() {
-	    chronometerTimer.start();
-	}
 	
 	private void updateStatsLabels(GameStats stats) {
 		lFPS.setText("FPS: " + stats.fps + "/" + GameClock.MAX_FPS);
@@ -814,6 +853,14 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		} else {
 			chronometerTimer.stop();
 		}
+  
+        updatePauseOverlay();
+	}
+    
+    @Override
+    public void updatePauseOverlay() {
+    	// setVisible innesca in automatico il repaint del pannello di overlay, quindi non serve chiamare repaint() manualmente
+    	pauseOverlayPanel.setVisible(!gameController.isGameRunning());
 	}
     
     // --- Gestione Messaggi e Notifiche ---
