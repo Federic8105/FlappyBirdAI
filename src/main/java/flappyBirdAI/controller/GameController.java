@@ -135,12 +135,7 @@ public final class GameController {
 					synchronized (lock) {
 						gameHeight = getGameHeight();
 						
-						// Controllo se l'Altezza della Finestra di Gioco è Cambiata
-						if (lastGameHeight != gameHeight) {
-							// Ricreare tutti i Tube con la Nuova Altezza
-							recreateTubePairs(gameHeight);
-							lastGameHeight = gameHeight;
-							
+						if (checkAndRecreateTubesOnResize(gameHeight)) {
 							// Aggiornare la Vista per Mostrare lo Stato di Pausa con Copia Snapshot degli Oggetti di Gioco (Thread-Safe)
 							gameView.updateDisplayAndRepaint(gameStats, new HashSet<>(vGameObj));
 						} else {
@@ -170,12 +165,7 @@ public final class GameController {
 				gameHeight = getGameHeight();
 				gameWidth = getGameWidth();
 				
-				// Controllo se l'Altezza della Finestra di Gioco è Cambiata
-				if (lastGameHeight != gameHeight) {
-					// Ricreare tutti i Tube con la Nuova Altezza
-					recreateTubePairs(gameHeight);
-					lastGameHeight = gameHeight;
-				}
+				checkAndRecreateTubesOnResize(gameHeight);
 				
 				// Aggiornare il Tempo di Vita della Generazione Attuale
 				gameStats.currLifeTime = gameClock.addGenLifeTime(dt);
@@ -289,6 +279,18 @@ public final class GameController {
 	
 	private Rectangle[] getTubeHitBoxes(Optional<TubePair> firstTubePairOpt) {
 		return firstTubePairOpt.isPresent() ? firstTubePairOpt.get().getHitBox() : new Rectangle[0];
+	}
+	
+
+	private boolean checkAndRecreateTubesOnResize(int gameHeight) {
+	    // Controllo se l'Altezza della Finestra di Gioco è Cambiata
+		if (lastGameHeight != gameHeight) {
+			// Ricreare tutti i Tube con la Nuova Altezza
+			recreateTubePairs(gameHeight);
+			lastGameHeight = gameHeight;
+			return true;
+		}
+	    return false;
 	}
 	
 	private void recreateTubePairs(int gameHeight) {
@@ -534,6 +536,17 @@ public final class GameController {
 	
 	private int getGameWidth() {
 		return gameView.getGameWidth();
+	}
+	
+	// --- Gestione Notifica Ridimensionamento Finestra ---
+	// Chiamati dal Thread Grafico quando la finestra di gioco viene ridimensionata, per notificare al game-thread che l'altezza della finestra è cambiata e deve ricreare i Tube con la nuova altezza
+	
+	// Modifica ai game objects (TubePair) e repaint della vista devono essere fatti nel game-thread per evitare problemi di concorrenza, quindi il game-thread deve essere sbloccato se è in pausa e in attesa su pauseLock
+	// così da non dover aspettare fino a PAUSE_POLL_INTERVAL_MS per accorgersi della richiesta di ridimensionamento e ricreare i Tube con la nuova altezza
+	public void notifyViewResized() {
+	    synchronized (pauseLock) {
+	        pauseLock.notify();
+	    }
 	}
 	
 	// --- Gestione Import/Export ---

@@ -25,6 +25,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
@@ -92,7 +94,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     
     // Pannello di gioco con layer per gestire overlay di pausa
     private JLayeredPane gameLayeredPane;
-    private JPanel gamePanel, pauseOverlayPanel;
+    private JPanel pauseOverlayPanel;
     
     // Altri Pannelli Principali
     private JPanel statsPanel, controlsPanel, importExportPanel, chronometerPanel;
@@ -249,7 +251,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		Image backgroundImg = createGameBackgroundImage();
 		
 		// inizializzare il pannello di gioco con un paintComponent personalizzato per disegnare lo sfondo e gli oggetti di gioco
-        gamePanel = new JPanel() {
+        JPanel gamePanel = new JPanel() {
             private static final long serialVersionUID = 1L;
             
             @Override
@@ -285,7 +287,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                drawPauseOverlay(g2d);
+                drawPauseOverlay(g2d, getWidth(), getHeight());
             }
         };
         // impostare il pannello di overlay come trasparente per permettere la visualizzazione del pannello di gioco sottostante quando l'overlay è attivo
@@ -617,6 +619,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	            requestFocusInWindow();
 	        }
 	    });
+		
+		// Notificare il GameController quando cambia la dimensione del pannello di gioco
+		gameLayeredPane.addComponentListener(new ComponentAdapter() {
+	        @Override
+	        public void componentResized(ComponentEvent e) {
+	            if (gameController != null) {
+	                gameController.notifyViewResized();
+	            }
+	        }
+	    });
 	}
 	
 	private void initTimers() {
@@ -628,19 +640,16 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	// --- Rendering Pannello di Gioco ---
 
-	private void drawPauseOverlay(Graphics2D g2d) {
-	    int width = pauseOverlayPanel.getWidth();
-	    int height = pauseOverlayPanel.getHeight();
-	    
+	private void drawPauseOverlay(Graphics2D g2d, int panelWidth, int panelHeight) {
 	    // Disegnare overlay scuro semi-trasparente
 	    g2d.setColor(PAUSE_OVERLAY_COLOR);
-	    g2d.fillRect(0, -1, width, height + 1);
+	    g2d.fillRect(0, -1, panelWidth, panelHeight + 1);
 	    
 	    // Calcolare dimensioni del simbolo di pausa in rapporto alla dimensione del pannello
-	    int symbolSize = Math.min(width, height) / 6;
+	    int symbolSize = Math.min(panelWidth, panelHeight) / 6;
 	    // Centrare il simbolo di pausa
-	    int symbolX = (width - symbolSize) / 2;
-	    int symbolY = (height - symbolSize) / 2;
+	    int symbolX = (panelWidth - symbolSize) / 2;
+	    int symbolY = (panelHeight - symbolSize) / 2;
 
 	    // Dimensioni delle barre del simbolo di pausa
 	    int barWidth = (int) (symbolSize * BAR_WIDTH_RATIO);
@@ -769,7 +778,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	@Override
     public void repaintGame() {
-    	gamePanel.repaint();
+		gameLayeredPane.repaint();
     }
 	
 	private void updateStatsLabels(GameStats stats) {
@@ -839,7 +848,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     	
     	// seconda chiamata a repaint dopo quella per aggiornare posizioni a ogni frame
     	// ma no problema perchè EDT gestisce le chiamate multiple a repaint e le unisce in una sola se sono troppo ravvicinate
-    	gamePanel.repaint();
+    	repaintGame();
     }
     
     // --- Gestione Pausa ---
@@ -947,8 +956,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	@Override
     public int getGameWidth() {
     	// Ritornare la larghezza effettiva del pannello di gioco se è già inizializzato
-	    if (gamePanel != null) {
-	        return gamePanel.getWidth();
+	    if (gameLayeredPane != null) {
+	        return gameLayeredPane.getWidth();
 	    }
 	    // Calcolo della larghezza disponibile basandosi sullo spazio reale della finestra disponibile
 	    // larghezza totale - larghezza pannello import/export (MIN_IMPORT_EXPORT_PANEL_WIDTH)
@@ -958,8 +967,8 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
     @Override
     public int getGameHeight() {
     	// Ritornare l'altezza effettiva del pannello di gioco se è già inizializzato
-        if (gamePanel != null) {
-            return gamePanel.getHeight();
+        if (gameLayeredPane != null) {
+            return gameLayeredPane.getHeight();
         }
         
         // Calcolo dell'altezza disponibile basato sulle dimensioni reali della finestra
