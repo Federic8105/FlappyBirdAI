@@ -133,8 +133,20 @@ public final class GameController {
 				if (!isGameRunning()) {
 				
 					synchronized (lock) {
-						// Aggiornare la vista per mostrare lo stato di pausa senza copiare gli oggetti di gioco che non cambiano durante la pausa
-						gameView.updateGameStatsAndRepaint(gameStats);
+						gameHeight = getGameHeight();
+						
+						// Controllo se l'Altezza della Finestra di Gioco è Cambiata
+						if (lastGameHeight != gameHeight) {
+							// Ricreare tutti i Tube con la Nuova Altezza
+							recreateTubePairs(gameHeight);
+							lastGameHeight = gameHeight;
+							
+							// Aggiornare la Vista per Mostrare lo Stato di Pausa con Copia Snapshot degli Oggetti di Gioco (Thread-Safe)
+							gameView.updateDisplayAndRepaint(gameStats, new HashSet<>(vGameObj));
+						} else {
+							// Aggiornare la Vista per Mostrare lo Stato di Pausa senza copiare gli oggetti di gioco che non cambiano durante la pausa
+							gameView.updateGameStatsAndRepaint(gameStats);
+						}
 					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
