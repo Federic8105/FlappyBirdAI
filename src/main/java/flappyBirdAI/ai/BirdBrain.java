@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
 import java.util.StringJoiner;
 
@@ -47,7 +46,6 @@ public class BirdBrain implements Serializable {
     // --- Campi di Stato ---
 
     private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
-    private Optional<Matrix> mInputsOpt = Optional.empty();
     
     // --- Costruttori ---
 
@@ -122,41 +120,8 @@ public class BirdBrain implements Serializable {
     
     // --- Logica Rete Neurale ---
     
-    public void setInputs(Map<String, Double> vInputs) throws NullPointerException, IllegalArgumentException {
-    	Objects.requireNonNull(vInputs, "Inputs Map Cannot be Null");
-    	if (vInputs.size() != NUM_INPUT) {
-            throw new IllegalArgumentException("Incorrect Number of Inputs");
-        }
-    	
-        for (String key : vInputs.keySet()) {
-            if (!V_INPUT_KEYS.contains(key)) {
-                throw new IllegalArgumentException("Incorrect Input Key: " + key);
-            }
-        }
-
-        // Normalizzazione degli Input
-        Map<String, Double> vInputsNormalized = normalize(vInputs);
-
-        // Creazione Matrice degli Input
-        mInputsOpt = Optional.of(new Matrix(vInputs.size(), 1));
-        int i = 0;
-        for (Map.Entry<String, Double> entry : vInputsNormalized.entrySet()) {
-            mInputsOpt.get().set(i, 0, entry.getValue());
-            ++i;
-        }
-    }
-    
-    public boolean think() throws NullPointerException, IllegalArgumentException {
-    	if (mInputsOpt.isEmpty()) {
-			throw new NullPointerException("Inputs Not Initialized");
-		}
-		Matrix mInputs = mInputsOpt.get();
-    	
-    	if (vmWeights.isEmpty()) {
-            throw new IllegalArgumentException("Weights Not Initialized");
-        }
-
-        Matrix tempInputs = mInputs, tempResult = null;
+    public boolean think(Map<String, Double> vInputs) throws NullPointerException, IllegalArgumentException {
+		Matrix mInputs = buildInputMatrix(vInputs), tempInputs = mInputs, tempResult = null;
 
         for (int i = 0; i < NUM_LAYERS; ++i) {
         	tempResult = vmWeights.get(i).multiply(tempInputs);
@@ -165,6 +130,31 @@ public class BirdBrain implements Serializable {
         }
 
         return tempResult.get(0, 0) > 0.5;
+    }
+    
+    // --- Gestione Input ---
+    
+    private Matrix buildInputMatrix(Map<String, Double> vInputs) {
+        Objects.requireNonNull(vInputs, "Inputs Map Cannot be Null");
+        if (vInputs.size() != NUM_INPUT) {
+            throw new IllegalArgumentException("Incorrect Number of Inputs");
+        }
+        for (String key : vInputs.keySet()) {
+            if (!V_INPUT_KEYS.contains(key)) {
+                throw new IllegalArgumentException("Incorrect Input Key: " + key);
+            }
+        }
+        
+        // Normalizzazione degli Input
+        Map<String, Double> vInputsNormalized = normalize(vInputs);
+        
+        // Creazione Matrice degli Input
+        Matrix mInputs = new Matrix(NUM_INPUT, 1);
+        int i = 0;
+        for (Double value : vInputsNormalized.values()) {
+            mInputs.set(i++, 0, value);
+        }
+        return mInputs;
     }
     
     // --- Gestione Pesi ---
@@ -265,7 +255,7 @@ public class BirdBrain implements Serializable {
     
     @Override
 	public int hashCode() {
-		return Objects.hash(mInputsOpt.get(), vmWeights);
+		return vmWeights.hashCode();
 	}
 
 	@Override
@@ -273,15 +263,12 @@ public class BirdBrain implements Serializable {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (obj == null || getClass() != obj.getClass()) {
 			return false;
 		}
 		
 		BirdBrain other = (BirdBrain) obj;
-		return Objects.equals(mInputsOpt.get(), other.mInputsOpt.get()) && Objects.equals(vmWeights, other.vmWeights);
+		return vmWeights.equals(other.vmWeights);
 	}
 
 	@Override

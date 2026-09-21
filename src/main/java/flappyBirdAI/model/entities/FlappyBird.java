@@ -7,6 +7,8 @@ package flappyBirdAI.model.entities;
 import flappyBirdAI.ai.BirdBrain;
 import flappyBirdAI.model.AbstractGameObject;
 import flappyBirdAI.model.SpriteDescriptor;
+
+import java.util.Map;
 import java.util.Objects;
 
 public class FlappyBird extends AbstractGameObject {
@@ -45,8 +47,8 @@ public class FlappyBird extends AbstractGameObject {
 	
 	// --- Cervello e Decisione AI ---
 
-	public boolean think() {
-		return brain.think();
+	public boolean think(Map<String, Double> vInputs) {
+		return brain.think(vInputs);
 	}
 	
 	public BirdBrain getBrain() {

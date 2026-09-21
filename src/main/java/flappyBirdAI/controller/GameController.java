@@ -331,10 +331,8 @@ public final class GameController {
                 	brainInputMap.put("vyBird", currBird.vy);
                 	brainInputMap.put("yCenterTubeHole", (double) firstTubePair.getYTubeHoleCenter());
                 	brainInputMap.put("xDistBirdTube", (double) firstTubePair.x - currBird.x);
-
-                	currBird.getBrain().setInputs(brainInputMap);
                     
-                    if (currBird.think()) {
+                    if (currBird.think(brainInputMap)) {
                         currBird.jump();
                     }
                 }
@@ -432,7 +430,8 @@ public final class GameController {
 		FlappyBird bird;
 		
 		for (int i = 0; i < nBirds; ++i) {
-			bird = new FlappyBird(20, startY, bestBirdBrain);
+			// ogni uccello ha una copia del cervello con pesi aggiornati per evitare che tutti gli uccelli condividano lo stesso cervello e quindi abbiano lo stesso comportamento
+			bird = new FlappyBird(20, startY, new BirdBrain(bestBirdBrain));
 			bird.getBrain().updateWeights();
 			vBirds.add(bird);
 		}

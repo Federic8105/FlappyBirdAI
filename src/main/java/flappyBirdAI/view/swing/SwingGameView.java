@@ -980,11 +980,21 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 
 	@Override
 	public void keyPressed(KeyEvent e) {
-		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			togglePause();
-		} else if (e.getKeyCode() == KeyEvent.VK_ESCAPE && isFullScreen) {
-	        handleExitRequest();
-	    }
+		switch (e.getKeyCode()) {
+			case KeyEvent.VK_SPACE: {
+				togglePause();
+				break;
+			}
+			case KeyEvent.VK_ESCAPE: {
+				if (isFullScreen) {
+					handleExitRequest();
+				}
+				break;
+			}
+			default: {
+				break;
+			}
+		}
 	}
 	
 	private void handleExitRequest() {

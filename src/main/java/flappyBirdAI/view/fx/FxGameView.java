@@ -18,10 +18,10 @@ import javafx.util.Duration;
 import javafx.scene.Scene;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-
 import java.util.Objects;
 import java.util.Set;
 
@@ -80,6 +80,7 @@ public class FxGameView implements GameView {
 		initTimers();
 		
 		Scene scene = new Scene(rootPane);
+		setupKeyEventHandlers(scene);
 		stage.setScene(scene);
 		stage.show();
 	}
@@ -99,7 +100,31 @@ public class FxGameView implements GameView {
 		return stage;
 	}
 	
-	// --- Inizializzazione Timers ---
+	// --- Inizializzazione Listeners e Timers ---
+	
+	private void setupKeyEventHandlers(Scene scene) {
+		scene.setOnKeyPressed(event -> {
+			switch (event.getCode()) {
+				case KeyCode.SPACE: {
+					togglePause();
+					break;
+				}
+				case KeyCode.ESCAPE: {
+					if (isFullScreen) {
+						handleExitRequest();
+					}
+					break;
+				}
+				default: {
+					break;
+				}
+			}
+		});
+	}
+	
+	private void handleExitRequest() {
+	    
+	}
 	
 	private void initTimers() {
 		chronometerTimer = new AnimationTimer() {
