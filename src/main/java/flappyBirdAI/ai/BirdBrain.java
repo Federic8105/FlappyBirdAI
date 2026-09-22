@@ -16,7 +16,7 @@ import java.lang.reflect.Type;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +37,7 @@ public class BirdBrain implements Serializable {
 	public static final Set<String> V_INPUT_KEYS = Set.of("yBird", "vyBird", "yCenterTubeHole", "xDistBirdTube");
     public static final int NUM_INPUT = V_INPUT_KEYS.size();
 
+    // numero di neuroni per ogni layer della rete neurale
     private static final List<Integer> V_NEURONS = List.of(4, 4, 1);
     private static final int NUM_LAYERS = V_NEURONS.size();
 
@@ -45,7 +46,9 @@ public class BirdBrain implements Serializable {
     
     // --- Campi di Stato ---
 
-    private final List<Matrix> vmWeights = new ArrayList<>(NUM_LAYERS);
+    // una matrice per ogni layer della rete neurale
+    // num righe = numero di neuroni nel layer (num output), num colonne = num di input del layer (num neuroni layer precedente o num input se primo layer)
+    private final Matrix[] weights = new Matrix[NUM_LAYERS];
     
     // --- Costruttori ---
 
@@ -54,16 +57,18 @@ public class BirdBrain implements Serializable {
     }
     
     public BirdBrain(BirdBrain otherBrain) throws NullPointerException {
-    	Objects.requireNonNull(otherBrain, "Brain Not Initialized");
-
-    	for (Matrix otherMatrix : otherBrain.vmWeights) {
+    	Objects.requireNonNull(otherBrain, "Brain Cannot be Null");
+    	
+    	// copia profonda dei pesi della rete neurale
+    	for (int i = 0; i < otherBrain.weights.length; ++i) {
+            Matrix otherMatrix = otherBrain.weights[i];
             Matrix newMatrix = new Matrix(otherMatrix.getNRows(), otherMatrix.getNCols());
-            for (int i = 0; i < otherMatrix.getNRows(); ++i) {
-                for (int j = 0; j < otherMatrix.getNCols(); ++j) {
-                    newMatrix.set(i, j, otherMatrix.get(i, j));
+            for (int r = 0; r < otherMatrix.getNRows(); ++r) {
+                for (int c = 0; c < otherMatrix.getNCols(); ++c) {
+                    newMatrix.set(r, c, otherMatrix.get(r, c));
                 }
             }
-            vmWeights.add(newMatrix);
+            weights[i] = newMatrix;
         }
 	}
     
@@ -84,7 +89,20 @@ public class BirdBrain implements Serializable {
     private static BirdBrain fromJsonObject(JsonObject brainJson) throws NullPointerException, BadFileFormatException {
     	Objects.requireNonNull(brainJson, "JSON Object Cannot be Null");
     	
-	    // Validazione parametri del cervello
+    	// Verifica la presenza dei campi richiesti nel JSON
+    	if (!brainJson.has("nInputs")) {
+    		throw new BadFileFormatException("Missing 'nInputs' Field in JSON");
+	    }
+    	if (!brainJson.has("inputKeys")) {
+			throw new BadFileFormatException("Missing 'inputKeys' Field in JSON");
+	    }
+    	if (!brainJson.has("nNeurons")) {
+    		throw new BadFileFormatException("Missing 'nNeurons' Field in JSON");
+    	}
+    	if (!brainJson.has("weights")) {
+			throw new BadFileFormatException("Missing 'weights' Field in JSON");
+		}
+    	
 	    int jsonNInputs = brainJson.get("nInputs").getAsInt();
 	    if (jsonNInputs != NUM_INPUT) {
 	        throw new BadFileFormatException("Incompatible Input Size: Expected " + NUM_INPUT + ", Found " + jsonNInputs);
@@ -96,26 +114,38 @@ public class BirdBrain implements Serializable {
 	    
 	    // Converte List a Set per il confronto con V_INPUT_KEYS
 	    if (!new HashSet<>(jsonInputKeys).equals(V_INPUT_KEYS)) {
-	        throw new BadFileFormatException("Incompatible Input Keys");
+	        throw new BadFileFormatException("Incompatible Input Keys: Expected " + V_INPUT_KEYS + ", Found " + jsonInputKeys);
 	    }
 	    
 	    Type typeIntegerList = new TypeToken<List<Integer>>() {}.getType();
 	    List<Integer> jsonNNeurons = gson.fromJson(brainJson.get("nNeurons"), typeIntegerList);
 	    if (!jsonNNeurons.equals(V_NEURONS)) {
-	        throw new BadFileFormatException("Incompatible Neural Network Structure");
+	        throw new BadFileFormatException("Incompatible Neural Network Structure: Expected " + V_NEURONS + ", Found " + jsonNNeurons);
 	    }
 	    
-	    // Creare nuovo cervello per template
-	    BirdBrain tempBrain = new BirdBrain();
-	    tempBrain.vmWeights.clear();
-	    
+	    BirdBrain brain = new BirdBrain(); // ha dei pesi random ma vengono sovrascritti
 	    JsonArray weightsArray = brainJson.getAsJsonArray("weights");
-	    for (int i = 0; i < weightsArray.size(); ++i) {
-	        JsonObject matrixJson = weightsArray.get(i).getAsJsonObject();
-	        tempBrain.vmWeights.add(Matrix.fromJson(matrixJson));
+	    if (weightsArray.size() != NUM_LAYERS) {
+	        throw new BadFileFormatException("Incompatible Number of Layers: Expected " + NUM_LAYERS + ", Found " + weightsArray.size());
 	    }
 	    
-	    return new BirdBrain(tempBrain);
+	    Matrix m;
+	    for (int i = 0; i < NUM_LAYERS; ++i) {
+	        try {
+	            m = Matrix.fromJson(weightsArray.get(i).getAsJsonObject());
+	        } catch (IllegalArgumentException | IllegalStateException e) {
+	            throw new BadFileFormatException("Invalid Weights Matrix " + i + ": " + e.getMessage(), e);
+	        }
+
+	        int expectedCols = i > 0 ? V_NEURONS.get(i - 1) : NUM_INPUT;
+	        if (m.getNRows() != V_NEURONS.get(i) || m.getNCols() != expectedCols) {
+	            throw new BadFileFormatException("Incompatible Weights Matrix " + i + " Size");
+	        }
+	        
+	        brain.weights[i] = m;
+	    }
+	    
+	    return brain;
 	}
     
     // --- Logica Rete Neurale ---
@@ -124,7 +154,7 @@ public class BirdBrain implements Serializable {
 		Matrix mInputs = buildInputMatrix(vInputs), tempInputs = mInputs, tempResult = null;
 
         for (int i = 0; i < NUM_LAYERS; ++i) {
-        	tempResult = vmWeights.get(i).multiply(tempInputs);
+        	tempResult = weights[i].multiply(tempInputs);
             tempResult = tempResult.applyFunction(this::sigmoid);
             tempInputs = tempResult;
         }
@@ -161,15 +191,13 @@ public class BirdBrain implements Serializable {
     
     private void setRandomWeights() {
         int nRows, nCols;
-        
-        // Creazione Lista di Matrici dei Pesi
         for (int i = 0; i < NUM_LAYERS; ++i) {
             nRows = V_NEURONS.get(i);
             nCols = i > 0 ? V_NEURONS.get(i - 1) : NUM_INPUT;
-            vmWeights.add(new Matrix(nRows, nCols));
-            for (int j = 0; j < vmWeights.get(i).getNRows(); ++j) {
-                for (int k = 0; k < vmWeights.get(i).getNCols(); ++k) {
-                    vmWeights.get(i).set(j, k, WEIGHT_MIN_VALUE + (WEIGHT_MAX_VALUE - WEIGHT_MIN_VALUE) * RANDOM.nextDouble());
+            weights[i] = new Matrix(nRows, nCols);
+            for (int j = 0; j < weights[i].getNRows(); ++j) {
+                for (int k = 0; k < weights[i].getNCols(); ++k) {
+                    weights[i].set(j, k, WEIGHT_MIN_VALUE + (WEIGHT_MAX_VALUE - WEIGHT_MIN_VALUE) * RANDOM.nextDouble());
                 }
             }
         }
@@ -179,7 +207,7 @@ public class BirdBrain implements Serializable {
     public void updateWeights() {
         double updateWeightValue;
 
-        for (Matrix mWeight : vmWeights) {
+        for (Matrix mWeight : weights) {
             for (int j = 0; j < mWeight.getNRows(); ++j) {
                 for (int k = 0; k < mWeight.getNCols(); ++k) {
 
@@ -243,7 +271,7 @@ public class BirdBrain implements Serializable {
         brainJson.addProperty("updateWeightABSValue", WEIGHT_UPDATE_STEP);
         
         JsonArray weightsArray = new JsonArray();
-        for (Matrix m : vmWeights) {
+        for (Matrix m : weights) {
             weightsArray.add(m.toJson());
         }
         brainJson.add("weights", weightsArray);
@@ -255,7 +283,7 @@ public class BirdBrain implements Serializable {
     
     @Override
 	public int hashCode() {
-		return vmWeights.hashCode();
+		return Arrays.hashCode(weights);
 	}
 
 	@Override
@@ -268,15 +296,16 @@ public class BirdBrain implements Serializable {
 		}
 		
 		BirdBrain other = (BirdBrain) obj;
-		return vmWeights.equals(other.vmWeights);
+		// basta Arrays.equals perché Matrix implementa correttamente equals e hashCode e array è di solo oggetti Matrix e non un array di array
+		return Arrays.equals(weights, other.weights);
 	}
 
 	@Override
     public String toString() {
 		StringJoiner sj = new StringJoiner(System.lineSeparator(), "Brain --> Weights:" + System.lineSeparator(), "");
 
-		for (int i = 0; i < vmWeights.size(); ++i) {
-			sj.add("Layer " + (i + 1) + ":" + System.lineSeparator() + vmWeights.get(i));
+		for (int i = 0; i < weights.length; ++i) {
+			sj.add("Layer " + (i + 1) + ":" + System.lineSeparator() + weights[i]);
 		}
 
 		return sj.toString();

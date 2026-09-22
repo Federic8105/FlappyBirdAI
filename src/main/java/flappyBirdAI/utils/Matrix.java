@@ -102,11 +102,14 @@ public class Matrix implements Serializable {
 		} catch (ClassCastException e) {
 			throw new IllegalArgumentException("Malformed JSON: 'data' Must be an Array", e);
 		}
+		
+		if (jsonData.size() != nRows) {
+		    throw new IllegalArgumentException("Expected " + nRows + " Rows, Found " + jsonData.size());
+		}
         
         Matrix matrix = new Matrix(nRows, nCols);
         JsonArray jsonRow;
         for (int i = 0; i < nRows; ++i) {
-            jsonRow = jsonData.get(i).getAsJsonArray();
             try {
                 jsonRow = jsonData.get(i).getAsJsonArray();
             } catch (Exception e) {
@@ -535,6 +538,7 @@ public class Matrix implements Serializable {
 		}
 		
 		Matrix other = (Matrix) obj;
+		// Arrays.deepEquals is used to compare 2 arrays of arrays (2D arrays) for equality
 		return Arrays.deepEquals(data, other.data);
 	}
 
