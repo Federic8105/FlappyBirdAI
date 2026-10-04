@@ -141,10 +141,10 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	        Rectangle screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
 	        setBounds(screenBounds);
 	        setResizable(false);
+	        showExitHint("Press ESC to Exit the Game");
 	    } else {
 	        setSize(initWidth, initHeight);
 	        setMinimumSize(new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
-	        setResizable(true);
 	    }
 		
         setTitle(GAME_WINDOW_TITLE);
@@ -949,6 +949,28 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    JDialog dialog = optionPane.createDialog(GAME_WINDOW_TITLE + " - " + titleSuffix);
 	    dialog.setIconImage(new ImageIcon(getClass().getResource(GAME_ICON_PATH)).getImage());
 	    return dialog;
+	}
+	
+	//TODO
+	private void showExitHint(String text) {
+	    JLabel lExitHint = new JLabel(text, SwingConstants.CENTER);
+	    // per rendere visibile il background
+	    lExitHint.setOpaque(true);
+	    lExitHint.setBackground(new Color(0, 0, 0, 180));
+	    lExitHint.setForeground(Color.WHITE);
+	    lExitHint.setFont(lExitHint.getFont().deriveFont(16f));
+	    lExitHint.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+	    // incapsulare il JLabel in un JPanel per poterlo posizionare al centro della finestra con un layout
+	    // Glass Pane è un pannello trasparente sopra ogni altro compomente della finestra
+	    JPanel glass = (JPanel) getGlassPane();
+	    glass.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 60));
+	    glass.add(lExitHint);
+	    glass.setVisible(true);
+
+	    Timer timer = new Timer(2500, _ -> glass.setVisible(false));
+	    timer.setRepeats(false);
+	    timer.start();
 	}
 	
 	// --- Getters per Dimensioni Pannello di Gioco ---

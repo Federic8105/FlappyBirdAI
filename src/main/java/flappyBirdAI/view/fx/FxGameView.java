@@ -14,13 +14,17 @@ import javafx.animation.AnimationTimer;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.geometry.Rectangle2D;
 import javafx.util.Duration;
 import javafx.scene.Scene;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import java.util.Objects;
 import java.util.Set;
@@ -80,6 +84,7 @@ public class FxGameView implements GameView {
 		initTimers();
 		
 		Scene scene = new Scene(rootPane);
+		
 		setupKeyEventHandlers(scene);
 		stage.setScene(scene);
 		stage.show();
@@ -89,6 +94,17 @@ public class FxGameView implements GameView {
 	
 	private Stage createStage() {
 		Stage stage = new Stage();
+		
+		if (isFullScreen) {
+			stage.setFullScreen(true);
+		    stage.setFullScreenExitHint("Press ESC to Exit the Game");
+		    stage.setFullScreenExitKeyCombination(KeyCombination.valueOf("ESC"));
+		} else {
+		    stage.setWidth(initWidth);
+		    stage.setHeight(initHeight);
+		    stage.setMinWidth(MIN_WINDOW_WIDTH);
+		    stage.setMinHeight(MIN_WINDOW_HEIGHT);
+		}
 		
 		stage.setTitle(GAME_WINDOW_TITLE);
 		stage.getIcons().add(new Image(getClass().getResourceAsStream(GAME_ICON_PATH)));
