@@ -18,6 +18,9 @@ import javafx.geometry.Rectangle2D;
 import javafx.util.Duration;
 import javafx.scene.Scene;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -121,25 +124,28 @@ public class FxGameView implements GameView {
 	private void setupKeyEventHandlers(Scene scene) {
 		scene.setOnKeyPressed(event -> {
 			switch (event.getCode()) {
-				case KeyCode.SPACE: {
-					togglePause();
-					break;
-				}
-				case KeyCode.ESCAPE: {
+				case KeyCode.SPACE -> togglePause();
+				case KeyCode.ESCAPE -> {
 					if (isFullScreen) {
 						handleExitRequest();
 					}
-					break;
 				}
-				default: {
-					break;
-				}
+				default -> {}
 			}
 		});
 	}
 	
 	private void handleExitRequest() {
+		Alert alert = new Alert(AlertType.CONFIRMATION, "Do you want to Quit the Game?", ButtonType.YES, ButtonType.NO);
+	    alert.setTitle("Confirm Exit");
+	    alert.setHeaderText(null);
+	    alert.initOwner(stage);
+
+	    alert.showAndWait();
 	    
+	    if (alert.getResult() == ButtonType.YES) {
+	    	exitGame();
+	    }
 	}
 	
 	private void initTimers() {

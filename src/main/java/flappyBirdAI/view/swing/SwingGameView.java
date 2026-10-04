@@ -31,14 +31,14 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class SwingGameView extends JFrame implements GameView, KeyListener {
+
+public class SwingGameView extends JFrame implements GameView {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -126,7 +126,7 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 		
 		initWindow();
 		initPanels();
-		setupListeners();
+		setupWindowListeners();
 		initTimers();
 		
 		setVisible(true);
@@ -152,7 +152,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         getContentPane().setBackground(Color.WHITE);
         // Impedire la chiusura della finestra tramite il pulsante di chiusura standard, gestire la chiusura manualmente
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setFocusable(false);
         setLayout(new BorderLayout());
 	}
 	
@@ -592,12 +591,22 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	
 	// --- Inizializzazione Listeners e Timers ---
 	
-	private void setupListeners() {
-		// Aggiungere il KeyListener alla finestra principale
-		addKeyListener(this);
+	private void setupWindowListeners() {
 		
-		// Assicurarsi che la finestra possa ricevere eventi da tastiera
-		setFocusable(true);
+		addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				switch (e.getKeyCode()) {
+					case KeyEvent.VK_SPACE -> togglePause();
+					case KeyEvent.VK_ESCAPE-> {
+						if (isFullScreen) {
+							handleExitRequest();
+						}
+					}
+					default -> {}
+				}
+			}
+		});
 		
 		addWindowListener(new WindowAdapter() {
 			// Richiedere il focus per input quando la finestra diventa visibile (prima apertura, click, primo piano)
@@ -629,6 +638,14 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	            }
 	        }
 	    });
+	}
+	
+	private void handleExitRequest() {
+	    int choice = JOptionPane.showConfirmDialog(this, "Do you want to Quit the Game?", "Confirm Exit", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+	    if (choice == JOptionPane.YES_OPTION) {
+	        exitGame();
+	    }
 	}
 	
 	private void initTimers() {
@@ -951,7 +968,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
 	    return dialog;
 	}
 	
-	//TODO
 	private void showExitHint(String text) {
 	    JLabel lExitHint = new JLabel(text, SwingConstants.CENTER);
 	    // per rendere visibile il background
@@ -997,42 +1013,6 @@ public class SwingGameView extends JFrame implements GameView, KeyListener {
         // altezza totale - altezza pannelli stats e controls
         return Math.max(initHeight - MIN_STATS_PANEL_HEIGHT - MIN_CONTROLS_PANEL_HEIGHT, MIN_GAME_PANEL_HEIGHT);
     }
-    
-    // --- Gestione Input da Tastiera ---
-
-	@Override
-	public void keyPressed(KeyEvent e) {
-		switch (e.getKeyCode()) {
-			case KeyEvent.VK_SPACE: {
-				togglePause();
-				break;
-			}
-			case KeyEvent.VK_ESCAPE: {
-				if (isFullScreen) {
-					handleExitRequest();
-				}
-				break;
-			}
-			default: {
-				break;
-			}
-		}
-	}
-	
-	private void handleExitRequest() {
-	    int choice = JOptionPane.showConfirmDialog(this, "Do you want to Quit the Game?", "Confirm Exit", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-
-	    if (choice == JOptionPane.YES_OPTION) {
-	        close();
-	        exitGame();
-	    }
-	}
-
-	@Override
-	public void keyReleased(KeyEvent e) {}
-	
-	@Override
-	public void keyTyped(KeyEvent e) {}
 	
 }
 
