@@ -137,11 +137,13 @@ public final class GameController {
 						
 						if (checkAndRecreateTubesOnResize(gameHeight)) {
 							// Aggiornare la Vista per Mostrare lo Stato di Pausa con Copia Snapshot degli Oggetti di Gioco (Thread-Safe)
-							gameView.updateDisplayAndRepaint(gameStats, new HashSet<>(vGameObj));
+							gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
 						} else {
 							// Aggiornare la Vista per Mostrare lo Stato di Pausa senza copiare gli oggetti di gioco che non cambiano durante la pausa
-							gameView.updateGameStatsAndRepaint(gameStats);
+							gameView.updateGameStats(gameStats);
 						}
+						
+						gameView.renderGameArea();
 					}
 					
 					// Sleep per Ridurre l'Utilizzo della CPU Durante la Pausa
@@ -223,7 +225,8 @@ public final class GameController {
 				// - game objects (potenzialmente molti, es. migliaia di bird): 
 				//   Soluzione 2 (volatile) se il difetto visivo di un frame "storto" è accettabile (costo ~0)
 				//   Soluzione 1 (snapshot) se serve consistenza garantita, valutando il costo di allocazione a frame
-				gameView.updateDisplayAndRepaint(gameStats, new HashSet<>(vGameObj));
+				gameView.updateDisplay(gameStats, new HashSet<>(vGameObj));
+				gameView.renderGameArea();
 	            
 	            // Controllo se autosave durante la generazione è da fare e ritorna Optional<BirdBrain> con bestBirdBrain da salvare se è il momento di fare l'autosave, altrimenti Optional vuoto
 	            autoSaveInGenBrain = checkAutoSaveInGen();

@@ -58,13 +58,13 @@ public interface GameView {
     void close();
     void exitGame();
     
-    // --- Metodi Astratti per Aggiornamento della UI ---
+    // --- Metodi Astratti per Aggiornamento della UI e Rendering Area di Gioco ---
     
-    void updateGameStatsAndRepaint(GameStats stats);
-    void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj);
-    void repaintGame();
+    void updateGameStats(GameStats stats);
+    void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj);
+    void renderGameArea();
     
-    // --- Metodi Astratti per Rendering e Animazioni ---
+    // --- Metodi Astratti per Aggiornamento Animazioni ---
     
     void preloadSprites(Set<AbstractGameObject> vGameObj);
     void updateAnimations();

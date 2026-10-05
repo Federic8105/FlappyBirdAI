@@ -750,7 +750,8 @@ public class SwingGameView extends JFrame implements GameView {
 	public void close() {
 		// Chiudere la finestra in modo thread-safe quando viene chiamato da un thread diverso dal thread dell'UI di Swing
 		// Non termina nessun thread, solo la finestra di gioco
-		// invokeLater accoda le operazioni da eseguire sul thread dell'UI di Swing quando la funzione è chiamata da un altro thread, garantendo che l'aggiornamento della GUI avvenga in modo sicuro (EDT è unico thread che può modificare la GUI in Swing)
+		// invokeLater accoda le operazioni da eseguire sul thread dell'UI di Swing quando la funzione è chiamata da un altro thread, garantendo che l'aggiornamento della GUI avvenga in modo sicuro
+		// EDT è unico thread che può modificare la GUI in Swing
 		SwingUtilities.invokeLater(() -> {
 			chronometerTimer.stop();
 			animationTimer.stop();
@@ -767,19 +768,18 @@ public class SwingGameView extends JFrame implements GameView {
 	// --- Aggiornamento UI ---
 	
 	@Override
-	public void updateGameStatsAndRepaint(GameStats stats) throws NullPointerException {
+	public void updateGameStats(GameStats stats) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		
 		// Aggiornare UI Thread-Safe
 		// aggiornamenti eseguiti su EDT per evitare problemi di concorrenza e garantire che la GUI sia aggiornata in modo sicuro
         SwingUtilities.invokeLater(() -> {
         	updateStatsLabels(stats);
-            repaintGame();
         });
 	}
 	
 	@Override
-    public void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
+    public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 				
@@ -789,15 +789,15 @@ public class SwingGameView extends JFrame implements GameView {
         	updateStatsLabels(stats);
         	// assegnazione fatta dentro invokeLater per evitare che i dati aggiornati delle statistiche non si rifersicano agli oggetti di gioco attuali
             currentVGameObj = vGameObj;
-            repaintGame();
         });
     }
 	
 	@Override
-    public void repaintGame() {
+    public void renderGameArea() {
 		gameLayeredPane.repaint();
     }
 	
+	// .setText() fa repaint automatico della label, quindi non serve chiamare repaint() manualmente
 	private void updateStatsLabels(GameStats stats) {
 		lFPS.setText("FPS: " + stats.fps + "/" + GameClock.MAX_FPS);
         
@@ -823,7 +823,7 @@ public class SwingGameView extends JFrame implements GameView {
 			lastTubePassed = stats.nTubePassed;
 		}
         
-        if (stats.nTubePassed != lastMaxTubePassed) {
+        if (stats.maxTubePassed != lastMaxTubePassed) {
         	lMaxTubePassed.setText("Max Tubes: " + stats.maxTubePassed);
         	lastMaxTubePassed = stats.maxTubePassed;
         }
@@ -862,10 +862,6 @@ public class SwingGameView extends JFrame implements GameView {
 				obj.updateFrameIndex();
 			}
 		}
-    	
-    	// seconda chiamata a repaint dopo quella per aggiornare posizioni a ogni frame
-    	// ma no problema perchè EDT gestisce le chiamate multiple a repaint e le unisce in una sola se sono troppo ravvicinate
-    	repaintGame();
     }
     
     // --- Gestione Pausa ---

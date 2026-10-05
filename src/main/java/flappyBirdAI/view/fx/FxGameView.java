@@ -14,7 +14,7 @@ import javafx.animation.AnimationTimer;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
-import javafx.geometry.Rectangle2D;
+import javafx.application.Platform;
 import javafx.util.Duration;
 import javafx.scene.Scene;
 import javafx.scene.canvas.GraphicsContext;
@@ -23,11 +23,9 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import java.util.Objects;
 import java.util.Set;
@@ -83,12 +81,11 @@ public class FxGameView implements GameView {
 		stage = createStage();
 		
 		rootPane = new StackPane();
-		
-		initTimers();
-		
 		Scene scene = new Scene(rootPane);
 		
-		setupKeyEventHandlers(scene);
+		setupWindowKeyEventHandlers(scene);
+		initTimers();
+		
 		stage.setScene(scene);
 		stage.show();
 	}
@@ -121,7 +118,7 @@ public class FxGameView implements GameView {
 	
 	// --- Inizializzazione Listeners e Timers ---
 	
-	private void setupKeyEventHandlers(Scene scene) {
+	private void setupWindowKeyEventHandlers(Scene scene) {
 		scene.setOnKeyPressed(event -> {
 			switch (event.getCode()) {
 				case KeyCode.SPACE -> togglePause();
@@ -178,8 +175,15 @@ public class FxGameView implements GameView {
 	
 	@Override
 	public void close() {
-		
-		
+		// Chiudere la finestra in modo thread-safe quando viene chiamato da un thread diverso dal thread dell'UI di JavaFX
+		// Non termina nessun thread, solo la finestra di gioco
+		// Platform.runLater accoda le operazioni da eseguire sul JavaFX Application Thread quando la funzione è chiamata da un altro thread, garantendo che l'aggiornamento della GUI avvenga in modo sicuro
+		// JavaFX Application Thread è l'unico che può modificare lo scene graph attivo, cioè nodi in una Scene mostrata nello stage
+		Platform.runLater(() -> {
+			chronometerTimer.stop();
+			animationTimer.stop();
+			stage.close();
+		});
 	}
 	
 	// Eseguito su un thread separato per non bloccare JavaFX Application Thread durante l'attesa di terminazione dei thread del gioco (eventuali salvataggi)
@@ -191,20 +195,20 @@ public class FxGameView implements GameView {
 	// --- Aggiornamento UI ---
 	
 	@Override
-	public void updateGameStatsAndRepaint(GameStats stats) throws NullPointerException {
+	public void updateGameStats(GameStats stats) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		
 	}
 	
 	@Override
-	public void updateDisplayAndRepaint(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
+	public void updateDisplay(GameStats stats, Set<AbstractGameObject> vGameObj) throws NullPointerException {
 		Objects.requireNonNull(stats, "Game Stats Cannot be Null");
 		Objects.requireNonNull(vGameObj, "Game Objects List Cannot be Null");
 		
 	}
 
 	@Override
-	public void repaintGame() {
+	public void renderGameArea() {
 		
 		
 	}
@@ -219,14 +223,23 @@ public class FxGameView implements GameView {
 	
 	@Override
 	public void preloadSprites(Set<AbstractGameObject> vGameObj) {
-		
-		
+		if (vGameObj != null && !vGameObj.isEmpty()) {
+    		// Precaricare le immagini dei GameObject per evitare ritardi durante il rendering
+    		spriteRenderer.preloadSprites(vGameObj);
+		}
 	}
 	
 	@Override
 	public void updateAnimations() {
-		
-		
+		if (currentVGameObj == null || currentVGameObj.isEmpty()) {
+            return;
+        }
+    	
+    	for (AbstractGameObject obj : currentVGameObj) {
+			if (obj.isAlive() && obj.isShowSprite() && obj.isAnimated()) {
+				obj.updateFrameIndex();
+			}
+		}
 	}
 	
 	// --- Gestione Pausa ---
