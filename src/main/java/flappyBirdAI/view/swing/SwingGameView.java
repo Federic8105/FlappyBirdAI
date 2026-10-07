@@ -37,7 +37,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
 
-
 public class SwingGameView extends JFrame implements GameView {
 
 	private static final long serialVersionUID = 1L;
@@ -172,9 +171,8 @@ public class SwingGameView extends JFrame implements GameView {
 	
 	private void initLeftPanels() {
 		JPanel leftPanel = new JPanel(new BorderLayout());
-		
-		// Calcolare la larghezza come percentuale della larghezza totale
-	    int panelWidth = calcImportExportPanelWidth(0.2f);
+		// Calcolare la larghezza come percentuale della larghezza totale, con controllo sulla larghezza minima
+	    int panelWidth = Math.max((int) (initWidth * 0.2f), MIN_IMPORT_EXPORT_PANEL_WIDTH);
 	    leftPanel.setPreferredSize(new Dimension(panelWidth, initHeight));
 	    leftPanel.setMinimumSize(new Dimension(MIN_IMPORT_EXPORT_PANEL_WIDTH, MIN_IMPORT_EXPORT_PANEL_HEIGHT + MIN_CHRONOMETER_PANEL_HEIGHT));
 	    
@@ -188,17 +186,11 @@ public class SwingGameView extends JFrame implements GameView {
 		add(leftPanel, BorderLayout.WEST);
 	}
 	
-	private int calcImportExportPanelWidth(float percOfTotWidth) {
-	    // Calcolare la larghezza come percentuale della larghezza totale
-	    // Controllo Width Min
-        return Math.max((int) (initWidth * percOfTotWidth), MIN_IMPORT_EXPORT_PANEL_WIDTH);
-    }
-	
 	private void initCentralPanels() {
 		JPanel centralPanel = new JPanel(new BorderLayout());
 		centralPanel.setPreferredSize(new Dimension(initWidth, initHeight));
 		
-		initGameLayeredPane();
+		initGamePanels();
 		initStatsPanel();
 		initControlsPanel();
 		
@@ -246,7 +238,7 @@ public class SwingGameView extends JFrame implements GameView {
 		initChronometerUI();
 	}
 	
-	private void initGameLayeredPane() {
+	private void initGamePanels() {
 		Image backgroundImg = createGameBackgroundImage();
 		
 		// inizializzare il pannello di gioco con un paintComponent personalizzato per disegnare lo sfondo e gli oggetti di gioco

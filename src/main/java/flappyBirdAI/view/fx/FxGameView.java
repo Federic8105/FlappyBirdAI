@@ -24,8 +24,13 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import java.util.Objects;
 import java.util.Set;
@@ -69,7 +74,7 @@ public class FxGameView implements GameView {
     // --- Componenti UI ---
     
     private final Stage stage;
-    private final StackPane rootPane;
+    private final BorderPane rootPane;
 	
 	// --- Costruttori ---
 
@@ -79,14 +84,15 @@ public class FxGameView implements GameView {
 		initHeight = Math.max(height, MIN_WINDOW_HEIGHT);
 		
 		stage = createStage();
-		
-		rootPane = new StackPane();
+		rootPane = new BorderPane();
+		initUI();
 		Scene scene = new Scene(rootPane);
-		
 		setupWindowKeyEventHandlers(scene);
 		initTimers();
 		
 		stage.setScene(scene);
+		// adatta la finestra alle dimensioni dei componenti
+		stage.sizeToScene();
 		stage.show();
 	}
 	
@@ -115,6 +121,37 @@ public class FxGameView implements GameView {
 		
 		return stage;
 	}
+	
+	private void initUI() {
+	    rootPane.setLeft(createLeftPanes());
+	    rootPane.setCenter(createCentralPanes());
+	}
+	
+	private BorderPane createLeftPanes() {
+	    BorderPane leftPane = new BorderPane();
+	    
+	    // Calcolare la larghezza come percentuale della larghezza totale, con controllo sulla larghezza minima
+	    int paneWidth = Math.max((int) (initWidth * 0.2f), MIN_IMPORT_EXPORT_PANEL_WIDTH);
+	    leftPane.setPrefWidth(paneWidth);
+	    leftPane.setMinWidth(MIN_IMPORT_EXPORT_PANEL_WIDTH);
+	    leftPane.setCenter(createImportExportPanes(paneWidth));
+	    leftPane.setBottom(createChronometerPanes(paneWidth));
+	    
+	    return leftPane;
+	}
+	
+	private BorderPane createCentralPanes() {
+	    BorderPane centralPane = new BorderPane();
+
+	    centralPane.setPrefSize(initWidth, initHeight);
+	    centralPane.setTop(createStatsPanes());
+	    centralPane.setCenter(createGamePanes());
+	    centralPane.setBottom(createControlsPanes());
+	    
+	    return centralPane;
+	}
+	
+	// --- Inizializzazione Pannelli Principali ---
 	
 	// --- Inizializzazione Listeners e Timers ---
 	
@@ -159,6 +196,46 @@ public class FxGameView implements GameView {
 		// timer con durata indefinita per aggiornare le animazioni dei GameObject
 		animationTimer.setCycleCount(Animation.INDEFINITE);
 		animationTimer.play();
+	}
+	
+	// --- Rendering Pannello di Gioco ---
+	//TODO
+	private void drawPauseOverlay() {
+	    GraphicsContext gc = pauseCanvas.getGraphicsContext2D();
+	    double w = pauseCanvas.getWidth(), h = pauseCanvas.getHeight();
+	    gc.clearRect(0, 0, w, h);
+	    gc.setFill(PAUSE_OVERLAY_COLOR);
+	    gc.fillRect(0, 0, w, h);
+
+	    double symbolSize = Math.min(w, h) / 6;
+	    double symbolX = (w - symbolSize) / 2, symbolY = (h - symbolSize) / 2;
+	    double barW = symbolSize * BAR_WIDTH_RATIO, barH = symbolSize * BAR_HEIGHT_RATIO;
+	    double gap = symbolSize * BAR_GAP_RATIO;
+	    double barY = symbolY + (symbolSize - barH) / 2;
+	    double bar1X = symbolX + (symbolSize - 2 * barW - gap) / 2;
+	    double bar2X = bar1X + barW + gap;
+
+	    gc.setFill(PAUSE_SYMBOL_COLOR);
+	    gc.fillRoundRect(bar1X, barY, barW, barH, 5, 5);
+	    gc.fillRoundRect(bar2X, barY, barW, barH, 5, 5);
+	    gc.setLineWidth(1.7);
+	    gc.setStroke(Color.BLACK);
+	    gc.strokeRoundRect(bar1X, barY, barW, barH, 5, 5);
+	    gc.strokeRoundRect(bar2X, barY, barW, barH, 5, 5);
+
+	    // Calcolare posizione del testo sotto il simbolo di pausa
+	    double fontSize = symbolSize / 4;
+	    double textY = symbolY + symbolSize + fontSize * 1.2;
+	    gc.setFont(Font.font("Arial", FontWeight.BOLD, FontPosture.ITALIC, fontSize));
+	    gc.setTextAlign(TextAlignment.CENTER);
+	    
+	    // Ombra del testo (testo nero leggermente spostato)
+	    gc.setFill(Color.BLACK);
+	    gc.fillText("PAUSED", w / 2 + 3, textY + 3);
+	    
+	    // Testo principale bianco
+	    gc.setFill(Color.WHITE);
+	    gc.fillText("PAUSED", w / 2, textY);
 	}
 	
 	// --- Gestione Ciclo di Vita ---
@@ -258,8 +335,8 @@ public class FxGameView implements GameView {
 	}
 	
 	@Override
-    public void updatePauseOverlay() {
-		
+	public void updatePauseOverlay() {
+	    pauseHolder.setVisible(!gameController.isGameRunning());
 	}
 	
 	// --- Gestione Messaggi e Notifiche ---
