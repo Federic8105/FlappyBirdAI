@@ -44,16 +44,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-//TODO: javadocs, uml, javaFX
-
 public final class GameMenu extends Application {
-	
-	// --- Entry Point ---
-
-	public static void main(String[] args) {
-		// Avviare l'applicazione JavaFX
-	    launch(args);
-	}
 	
 	// --- Costanti di Configurazione ---
 	

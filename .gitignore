@@ -19,3 +19,7 @@ Thumbs.db
 
 # Java specific files
 *.class
+
+# jpackage
+/dist-input/
+/dist/

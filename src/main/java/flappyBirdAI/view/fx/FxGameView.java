@@ -17,6 +17,7 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.util.Duration;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -36,6 +37,16 @@ import java.util.Objects;
 import java.util.Set;
 
 public class FxGameView implements GameView {
+	
+	// TODO TEMP: segnaposto per far compilare, da sostituire con l'implementazione vera
+	private final Canvas pauseCanvas = new Canvas();
+	private final StackPane pauseHolder = new StackPane();
+
+	private StackPane createImportExportPanes(int width) { return new StackPane(); }
+	private StackPane createChronometerPanes(int width) { return new StackPane(); }
+	private StackPane createStatsPanes() { return new StackPane(); }
+	private StackPane createGamePanes() { return new StackPane(); }
+	private StackPane createControlsPanes() { return new StackPane(); }
 	
 	// --- Costanti di Colori ---
 	
