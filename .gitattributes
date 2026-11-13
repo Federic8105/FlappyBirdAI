@@ -1,0 +1,7 @@
+# Line endings: Windows uses CRLF, Linux and macOS use LF.
+# "text=auto" lets Git detect the text files and keep them as LF in the repository,
+# whatever the OS of the person who edits them. Binary files (png, ico, icns, jar)
+# are detected automatically and are never converted.
+# Without this file Git prints "LF will be replaced by CRLF" at every git add.
+
+* text=auto

@@ -322,7 +322,7 @@ public final class GameController {
             	// Controllo Collisioni e Limiti Schermo - Flappy Bird Morto
                 if (currBird.checkCollision(tubeHitBoxes) || currBird.isOutOfScreen(gameWidth, gameHeight)) {
                     currBird.setAlive(false);
-        			--gameStats.nBirds;
+        			gameStats.nBirds--;
                     continue;
                     
                 // AI Decision

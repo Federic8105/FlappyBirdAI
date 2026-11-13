@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FlappyBirdAI - Maven build file.
+
+  Build commands (jar, standalone app, GitHub Actions): see BUILD_INSTRUCTIONS.txt
+  Check for newer versions:  mvn versions:display-property-updates
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -21,28 +27,39 @@
     <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
 
-    <!-- Application -->
+    <!-- Application: entry point of the jar and of the standalone app -->
     <app.mainClass>flappyBirdAI.Launcher</app.mainClass>
+    
+    <!-- Text added to the jar name, empty by default. Set it from the command line
+         when you build for another platform, together with -Djavafx.platform
+         (example: -Djavafx.platform=linux-aarch64 -Djar.suffix=-linux-aarch64) -->
+    <jar.suffix></jar.suffix>
 
     <!-- Dependency versions -->
     <javafx.version>27</javafx.version>
-    <gson.version>2.14.0</gson.version>
+    <gson.version>2.15.0</gson.version>
 
     <!-- Plugin versions -->
-    <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <maven-enforcer-plugin.version>3.7.0</maven-enforcer-plugin.version>
     <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
     <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
     <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+    <jpackage-maven-plugin.version>1.8.0</jpackage-maven-plugin.version>
   </properties>
 
   <!-- ===== Dependencies ===== -->
   <dependencies>
+    <!-- JavaFX. javafx-controls brings javafx-graphics and javafx-base with it.
+         Maven picks the native variant (win, linux, linux-aarch64, mac, mac-aarch64) of the OS you build on;
+         use -Djavafx.platform=VARIANT to pick another one. -->
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
       <version>${javafx.version}</version>
     </dependency>
 
+    <!-- Gson -->
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
@@ -52,10 +69,15 @@
 
   <!-- ===== Build ===== -->
   <build>
-    <finalName>${project.name}-${project.version}</finalName>
+    <!-- Name of the produced jar -->
+    <finalName>${project.name}-${project.version}${jar.suffix}</finalName>
 
+    <!--
+      Order of the plugins: it matters only for plugins in the SAME phase (here: shade, then
+      the copy of the fat jar, both in "package"), which run in the order written below.
+    -->
     <plugins>
-      <!-- 1. validate: check the build environment -->
+      <!-- [validate] Stops the build at once if Maven or Java is older than required -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -80,14 +102,15 @@
         </executions>
       </plugin>
 
-      <!-- 2. compile -->
+      <!-- [compile] -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
       </plugin>
 
-      <!-- 3. package: fat jar with all dependencies -->
+      <!-- [package] Fat jar: all libraries inside one jar, started by the Launcher class.
+           It replaces the normal jar and contains the JavaFX natives of ONE platform only. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -99,7 +122,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <!-- Do not write dependency-reduced-pom.xml in the project root -->
               <createDependencyReducedPom>false</createDependencyReducedPom>
+              
+              <!-- Drop module-info and signature files of the libraries:they are useless on the classpath,
+                   and a signature no longer matches once the files are merged (the jar could fail to start). -->
               <filters>
                 <filter>
                   <artifact>*:*</artifact>
@@ -113,6 +140,8 @@
                 </filter>
               </filters>
               <transformers>
+                <!-- Manifest of the jar: Main-Class is the Launcher; Enable-Native-Access hides the
+                     JavaFX native access warning when the jar is started with java -jar -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>${app.mainClass}</mainClass>
                   <manifestEntries>
@@ -124,14 +153,97 @@
           </execution>
         </executions>
       </plugin>
+      
+      <!-- [package] Copies ONLY the fat jar to target/jpackage-input (jpackage copies the whole
+           input folder, so target itself cannot be used as input) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${maven-resources-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>copy-fat-jar-for-jpackage</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}</directory>
+                  <includes>
+                    <include>${project.build.finalName}.jar</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <!-- [not in the normal build] Standalone app with Java included, made by the jpackage tool.
+           Run it explicitly, using the execution of the OS you are on (they differ only by icon):
+             mvn clean package jpackage:jpackage@win
+             mvn clean package jpackage:jpackage@mac
+             mvn clean package jpackage:jpackage@linux
+           "package" must be in the same command: it builds the jar that jpackage reads.
+           Output: target/dist
+           Add -Djpackage.dryRun=true to only print the jpackage command it would run,
+           without building the app (useful to check the settings).
+           It builds only for the OS it runs on: use the GitHub Actions workflow for all of them. -->
+      <plugin>
+        <groupId>org.panteleyev</groupId>
+        <artifactId>jpackage-maven-plugin</artifactId>
+        <version>${jpackage-maven-plugin.version}</version>
+        <configuration>
+          <name>${project.name}</name>
+          <appVersion>${project.version}</appVersion>
+          <type>APP_IMAGE</type>
+          <input>${project.build.directory}/jpackage-input</input>
+          <mainJar>${project.build.finalName}.jar</mainJar>
+          <mainClass>${app.mainClass}</mainClass>
+          <destination>${project.build.directory}/dist</destination>
+          <!-- Same role as Enable-Native-Access in the jar: the app launcher does not read the manifest -->
+          <javaOptions>
+            <option>--enable-native-access=ALL-UNNAMED</option>
+          </javaOptions>
+        </configuration>
+        <!-- One execution per OS, they only hold the OS-specific icon and are started from
+             the command line with @id -->
+        <executions>
+          <execution>
+            <id>win</id>
+            <configuration>
+              <icon>packaging/windows/FlappyBirdAI.ico</icon>
+            </configuration>
+          </execution>
+          <execution>
+            <id>mac</id>
+            <configuration>
+              <icon>packaging/macos/FlappyBirdAI.icns</icon>
+            </configuration>
+          </execution>
+          <execution>
+            <id>linux</id>
+            <configuration>
+              <icon>packaging/linux/FlappyBirdAI.png</icon>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
-      <!-- Run from Maven: mvn javafx:run -->
+      <!-- [not in the normal build] Run the game from Maven: mvn javafx:run
+           In this mode JavaFX runs as a module, so the native access option names that module -->
       <plugin>
         <groupId>org.openjfx</groupId>
         <artifactId>javafx-maven-plugin</artifactId>
         <version>${javafx-maven-plugin.version}</version>
         <configuration>
           <mainClass>${app.mainClass}</mainClass>
+          <options>
+            <option>--enable-native-access=javafx.graphics</option>
+   		  </options>
         </configuration>
       </plugin>
     </plugins>
