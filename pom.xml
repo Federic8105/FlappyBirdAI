@@ -42,7 +42,7 @@
     <jar.suffix></jar.suffix>
 
     <!-- Dependency versions -->
-    <javafx.version>27</javafx.version>
+    <javafx.version>27.0.1</javafx.version>
     <gson.version>2.15.0</gson.version>
 
     <!-- Plugin versions -->
