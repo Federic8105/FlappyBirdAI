@@ -24,11 +24,17 @@
   <properties>
     <!-- Build -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.version>25</java.version>
-    <maven.compiler.release>${java.version}</maven.compiler.release>
+    <!-- Java release used to compile, and the minimum Java the build runs on -->
+    <java.release>25</java.release>
+    <maven.compiler.release>${java.release}</maven.compiler.release>
 
     <!-- Application: entry point of the jar and of the standalone app -->
     <app.mainClass>flappyBirdAI.Launcher</app.mainClass>
+    
+    <!-- Icon of the standalone app: the default is the Linux one, the profiles at the end
+         of this file replace it on Windows and macOS. Can be overridden from the command line:
+         -Dapp.icon=path/to/icon -->
+    <app.icon>packaging/linux/FlappyBirdAI.png</app.icon>
     
     <!-- Text added to the jar name, empty by default. Set it from the command line
          when you build for another platform, together with -Djavafx.platform
@@ -94,7 +100,7 @@
                   <version>3.6.3</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
-                  <version>[${java.version},)</version>
+                  <version>[${java.release},)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -183,10 +189,9 @@
       </plugin>
       
       <!-- [not in the normal build] Standalone app with Java included, made by the jpackage tool.
-           Run it explicitly, using the execution of the OS you are on (they differ only by icon):
-             mvn clean package jpackage:jpackage@win
-             mvn clean package jpackage:jpackage@mac
-             mvn clean package jpackage:jpackage@linux
+           Run it explicitly; the icon of the OS you are on is chosen by the profiles at the
+           end of this file:
+             mvn clean package jpackage:jpackage
            "package" must be in the same command: it builds the jar that jpackage reads.
            Output: target/dist
            Add -Djpackage.dryRun=true to only print the jpackage command it would run,
@@ -204,33 +209,12 @@
           <mainJar>${project.build.finalName}.jar</mainJar>
           <mainClass>${app.mainClass}</mainClass>
           <destination>${project.build.directory}/dist</destination>
+          <icon>${app.icon}</icon>
           <!-- Same role as Enable-Native-Access in the jar: the app launcher does not read the manifest -->
           <javaOptions>
             <option>--enable-native-access=ALL-UNNAMED</option>
           </javaOptions>
         </configuration>
-        <!-- One execution per OS, they only hold the OS-specific icon and are started from
-             the command line with @id -->
-        <executions>
-          <execution>
-            <id>win</id>
-            <configuration>
-              <icon>packaging/windows/FlappyBirdAI.ico</icon>
-            </configuration>
-          </execution>
-          <execution>
-            <id>mac</id>
-            <configuration>
-              <icon>packaging/macos/FlappyBirdAI.icns</icon>
-            </configuration>
-          </execution>
-          <execution>
-            <id>linux</id>
-            <configuration>
-              <icon>packaging/linux/FlappyBirdAI.png</icon>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
 
       <!-- [not in the normal build] Run the game from Maven: mvn javafx:run
@@ -248,5 +232,34 @@
       </plugin>
     </plugins>
   </build>
+  
+  <!-- ===== Profiles: chosen automatically from the OS you build on ===== -->
+  <profiles>
+    <!-- Windows: .ico icon -->
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <app.icon>packaging/windows/FlappyBirdAI.ico</app.icon>
+      </properties>
+    </profile>
+
+    <!-- macOS: .icns icon -->
+    <profile>
+      <id>macos</id>
+      <activation>
+        <os>
+          <family>mac</family>
+        </os>
+      </activation>
+      <properties>
+        <app.icon>packaging/macos/FlappyBirdAI.icns</app.icon>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>
