@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   FlappyBirdAI - Maven build file.
+
   Build commands (jar, standalone app, GitHub Actions): see BUILD_INSTRUCTIONS.txt
   Check for newer versions:  mvn versions:display-property-updates
 -->
@@ -42,7 +43,7 @@
     <jar.suffix></jar.suffix>
 
     <!-- Dependency versions -->
-    <javafx.version>27</javafx.version>
+    <javafx.version>27.0.1</javafx.version>
     <gson.version>2.15.0</gson.version>
 
     <!-- Plugin versions -->

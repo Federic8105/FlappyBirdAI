@@ -397,13 +397,18 @@ How to get the files:
   2. Scroll to the "Artifacts" section at the bottom and click a name: the
      file is downloaded as it is (no outer zip).
   3. Open it:
-         Windows : FlappyBirdAI-windows-x64.zip       -> extract it
+         Windows : FlappyBirdAI-windows-x64.zip       -> extract it, run FlappyBirdAI\FlappyBirdAI.exe
          Linux   : FlappyBirdAI-linux-x64.tar.gz      -> tar -xzf FlappyBirdAI-linux-x64.tar.gz
+                                                         then ./FlappyBirdAI/bin/FlappyBirdAI
          macOS   : FlappyBirdAI-macos-arm64.tar.gz    -> tar -xzf FlappyBirdAI-macos-arm64.tar.gz
-     (the other apps have the names listed above)
+                                                         then open FlappyBirdAI.app
+         Jar     : no extraction needed -> java -jar FlappyBirdAI-1.0.0-windows-x64.jar
+     (the other files have the names listed above)
   4. Windows: the first time Windows may show "Windows protected your PC"
      (SmartScreen), because the app is not code-signed: click "More info" and
      then "Run anyway".
+  5. macOS: the app is not signed or notarized, so macOS may block it. See
+     section 4.C (right-click -> "Open", or: xattr -cr FlappyBirdAI.app).
 
 If a run fails (red cross): open the run, click the red step and read the log.
 
@@ -572,6 +577,10 @@ The Maven command of section 5 and the workflow build app-images only.
 - GitHub Actions: the ARM Linux job does not start
     -> the ubuntu-24.04-arm runner is free for public repositories only; for a
        private repository it is billed.
+- GitHub Actions: "Upload app" or "Upload jar" fails
+    -> archive: false uploads ONE file only. If the path matches more than one
+       file (for example an extra jar in target), the step fails: make the
+       path match a single file.
 
 
 11. QUICK REFERENCE (copy and paste)
