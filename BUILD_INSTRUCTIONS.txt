@@ -1,0 +1,645 @@
+FLAPPYBIRDAI - HOW TO BUILD THE JAR AND THE STANDALONE APP
+==========================================================
+
+Current project version: 1.0.0  (from <version> in pom.xml)
+
+These steps start from the project exactly as downloaded from GitHub
+(unmodified). Run every command from the project root, i.e. the folder that
+contains pom.xml.
+
+Commands are given for: Windows CMD, Windows PowerShell, macOS and Linux.
+Wherever a step is the same on every system it is written only once.
+
+IMPORTANT (PowerShell): always put -D arguments in double quotes, e.g.
+    "-Djavafx.platform=win"
+PowerShell can split an unquoted -Dname.value=x at the dot. The quotes also
+work in CMD, macOS and Linux, so they are used everywhere in this guide.
+All the -D parameters of the project are listed in section 11.
+
+IMPORTANT: Every app build (C, D, F) must run on the OS of the app you want to make.
+
+IMPORTANT (Windows): after every app build, "mvn clean" fails with "Failed to
+delete ... FlappyBirdAI.exe" until you delete target\dist. The fix takes one
+command: section 10, first entry.
+
+BUILD OPTIONS AT A GLANCE
+-------------------------
+  A. Fat jar for the OS you are on
+         mvn clean package                                          (section 1)
+  B. Fat jar for another OS / CPU (built from any computer)
+         mvn clean package "-Djavafx.platform=<variant>"            (section 3)
+  C. Standalone app, manual jpackage commands                       (section 4)
+  D. Standalone app, one Maven command
+         mvn clean package jpackage:jpackage                        (section 5)
+  E. All systems automatically with GitHub Actions                  (section 6)
+  F. Real installers (.exe/.msi, .dmg/.pkg, .deb/.rpm)              (section 9)
+
+What can be built where:
+  - Fat jar (A, B): the JavaFX native libraries inside the jar are those of
+    ONE OS and CPU. Option B can build the jar of another platform from any
+    computer, but it can only be RUN on that platform. To run a jar the user
+    needs Java 25 installed; the standalone app (C, D, E) already contains Java.
+  - Standalone app (C, D, E): jpackage builds only for the OS it runs on, so
+    the app for Windows must be built on Windows, for macOS on a Mac, for Linux
+    on Linux. GitHub Actions (E) gives you all of them without owning them.
+
+
+FILES OF THE PROJECT REQUIRED FOR THE BUILD
+-------------------------------------------
+  pom.xml
+      - maven-shade-plugin: builds the fat jar (jar with all libraries inside).
+      - maven-resources-plugin: copies ONLY the fat jar to target/jpackage-input
+        (jpackage copies everything it finds in its input folder).
+      - jpackage-maven-plugin: runs jpackage from Maven. Not part of the normal
+        build: it runs only when you ask for it (section 5).
+      - property app.icon + profiles "windows" and "macos": the profile of the
+        OS you are on is activated automatically and chooses the icon of the
+        app (Linux uses the default value of the property).
+      - property jar.suffix: optional text added to the jar name (section 3).
+      - javafx-maven-plugin: "mvn javafx:run" (section 2).
+  .github/workflows/build.yml
+      GitHub Actions workflow (section 6).
+  packaging/
+      Icons used by jpackage:
+        Windows : packaging\windows\FlappyBirdAI.ico
+        macOS   : packaging/macos/FlappyBirdAI.icns   (Intel and Apple Silicon)
+        Linux   : packaging/linux/FlappyBirdAI.png
+
+
+0. PREREQUISITES (to build on your own computer)
+------------------------------------------------
+What each build option needs:
+
+    Build option                              JDK 25   Maven    jpackage   Installer tool
+    ---------------------------------------   ------   ------   --------   --------------
+    A. Jar for your OS (section 1)            yes      yes      -          -
+    B. Jar for another platform (section 3)   yes      yes      -          -
+    C. App, manual jpackage (section 4)       yes      yes (*)  yes        -
+    D. App, one Maven command (section 5)     yes      yes      yes        -
+    E. GitHub Actions (section 6)             nothing installed: GitHub provides the machines
+    F. Installers (section 9)                 yes      yes (*)  yes        yes (**)
+
+    (*) Maven is used only to build the jar first (section 1); the app itself
+        is then made by the jpackage command.
+    (**) Each OS needs its own tool, listed in section 9.
+
+- JDK 25 (includes jpackage). Check:
+      java -version
+      jpackage --version
+- Maven 3.6.3 or newer (the pom checks it). Check:
+      mvn -version
+  The first time Maven needs internet access to download the plugins.
+- OPTIONAL: Installer tool, ONLY for option F (real installers). It is NOT needed for
+  the app-image built by options C and D. See section 9 for the tool each OS needs.
+
+
+1. BUILD THE JAR FOR YOUR OS (option A)
+---------------------------------------
+    mvn clean package
+
+Expected result: "BUILD SUCCESS" and the file
+    target/FlappyBirdAI-1.0.0.jar        (on Windows: target\FlappyBirdAI-1.0.0.jar)
+
+The folder target also contains original-FlappyBirdAI-1.0.0.jar: it is the jar
+WITHOUT the libraries. Do not use or distribute it.
+
+Harmless warning: "define 1 overlapping resource: META-INF/MANIFEST.MF".
+                  (shade keeps one manifest: the one with your Main-Class)
+
+The same command also copies the jar to target/jpackage-input (used by
+section 5).
+
+This command builds only the jar, it does not run jpackage.
+
+WINDOWS: if "mvn clean" stops with "Failed to delete ... FlappyBirdAI.exe",
+see section 10 (first entry).
+
+
+2. TEST THE JAR
+---------------
+Windows (CMD or PowerShell):
+
+    java -jar target\FlappyBirdAI-1.0.0.jar
+
+macOS / Linux:
+
+    java -jar target/FlappyBirdAI-1.0.0.jar
+
+The menu should open. This message is normal and cannot be removed with a
+fat jar (JavaFX is loaded from the classpath):
+    "Unsupported JavaFX configuration: classes were loaded from 'unnamed module'"
+
+You can also run the game directly from Maven (all systems):
+
+    mvn javafx:run
+
+In this mode JavaFX runs as a module. The pom already contains the option
+--enable-native-access=javafx.graphics for it, so the "System::load" warning
+does not appear.
+
+
+3. BUILD THE JAR FOR ANOTHER OS / CPU (option B)
+------------------------------------------------
+JavaFX exists in one variant per OS and CPU. Maven normally picks the variant
+of the computer you build on. With -Djavafx.platform you choose another one.
+Use the matching name in -Djar.suffix, so that the same name means the same
+platform for jars and apps (the apps of section 6 use the same names):
+
+    Platform           -Djavafx.platform     -Djar.suffix
+    ----------------   -------------------   ------------------
+    Windows x64        win                   -windows-x64
+    Linux x64          linux                 -linux-x64
+    Linux ARM          linux-aarch64         -linux-arm64
+    macOS Intel        mac                   -macos-intel
+    macOS Apple chip   mac-aarch64           -macos-arm64
+
+Command (same in CMD, PowerShell, macOS and Linux). Example for Linux ARM:
+
+    mvn clean package "-Djavafx.platform=linux-aarch64" "-Djar.suffix=-linux-arm64"
+
+Result:
+    target/FlappyBirdAI-1.0.0-linux-arm64.jar
+
+"-Djar.suffix" only adds a text to the file name, so that the jars of
+different platforms are not confused. Without it the file is called
+FlappyBirdAI-1.0.0.jar whatever the platform.
+
+Check which JavaFX variant is used (look for the variant at the end of the
+javafx lines, e.g. "linux-aarch64"):
+
+    mvn dependency:tree "-Djavafx.platform=linux-aarch64"
+
+Run the jar on the matching OS and CPU only.
+
+Notes on JavaFX 27:
+  - The official release notes say JavaFX 27 is available for Linux x86_64,
+    Windows x86_64 and macOS AArch64. The other variants of the table (Linux
+    ARM, macOS Intel) can be built (the GitHub Actions jobs for them are
+    green), but they are not listed as supported platforms.
+  - There is no native variant for Windows ARM. On a Windows ARM computer the
+    Windows x64 app or jar runs through the emulation of Windows.
+
+
+4. BUILD THE STANDALONE APP WITH MANUAL jpackage COMMANDS (option C)
+--------------------------------------------------------------------
+jpackage bundles the jar with a Java runtime, so the final user does
+not need to install Java.
+
+Summary of the steps (the complete commands for each system are in the
+sections 4.A (Windows CMD), 4.B (Windows PowerShell), 4.C (macOS) and 4.D
+(Linux), just below):
+
+Step 4.1 - Prepare a folder that contains ONLY the fat jar
+(jpackage copies everything it finds in the --input folder).
+
+Step 4.2 - Delete the previous output (jpackage fails if "dist" exists).
+
+Step 4.3 - Run jpackage (with the icon of your operating system).
+
+Step 4.4 - Run the app and test it.
+
+Before these steps build the jar (section 1). On Windows, if target\dist exists
+from an app build (section 5), delete it first: section 10, first entry.
+
+
+4.A  WINDOWS - CMD
+------------------
+    rmdir /s /q dist-input 2>nul
+    rmdir /s /q dist 2>nul
+    mkdir dist-input
+    copy target\FlappyBirdAI-1.0.0.jar dist-input\
+
+TEST version (opens a console window showing errors and warnings):
+
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --win-console --java-options "--enable-native-access=ALL-UNNAMED"
+
+FINAL version (no console window):
+
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --java-options "--enable-native-access=ALL-UNNAMED"
+
+Result and run:
+
+    dist\FlappyBirdAI\FlappyBirdAI.exe
+
+
+4.B  WINDOWS - POWERSHELL
+-------------------------
+    Remove-Item dist-input -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory dist-input -Force
+    Copy-Item target\FlappyBirdAI-1.0.0.jar dist-input\
+
+TEST version (with console window):
+
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --win-console --java-options "--enable-native-access=ALL-UNNAMED"
+
+FINAL version (no console window):
+
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --java-options "--enable-native-access=ALL-UNNAMED"
+
+Result and run:
+
+    .\dist\FlappyBirdAI\FlappyBirdAI.exe
+
+("-Force" in Remove-Item also deletes read-only files, so the exe does not
+block the delete.)
+
+
+4.C  macOS (Terminal)
+---------------------
+    rm -rf dist-input dist
+    mkdir dist-input
+    cp target/FlappyBirdAI-1.0.0.jar dist-input/
+
+    jpackage --type app-image \
+      --name FlappyBirdAI \
+      --input dist-input \
+      --main-jar FlappyBirdAI-1.0.0.jar \
+      --main-class flappyBirdAI.Launcher \
+      --app-version 1.0.0 \
+      --dest dist \
+      --icon packaging/macos/FlappyBirdAI.icns \
+      --java-options "--enable-native-access=ALL-UNNAMED"
+
+Result and run:
+
+    open dist/FlappyBirdAI.app
+
+To see errors and warnings, start the executable from the terminal instead:
+
+    dist/FlappyBirdAI.app/Contents/MacOS/FlappyBirdAI
+
+The app is not signed with a developer certificate or notarized, so macOS may
+block it the first time.
+Right-click the app, choose "Open", then confirm.
+If it still refuses to run, clear the quarantine attribute:
+    xattr -cr dist/FlappyBirdAI.app
+
+
+4.D  LINUX (Terminal)
+---------------------
+    rm -rf dist-input dist
+    mkdir dist-input
+    cp target/FlappyBirdAI-1.0.0.jar dist-input/
+
+    jpackage --type app-image \
+      --name FlappyBirdAI \
+      --input dist-input \
+      --main-jar FlappyBirdAI-1.0.0.jar \
+      --main-class flappyBirdAI.Launcher \
+      --app-version 1.0.0 \
+      --dest dist \
+      --icon packaging/linux/FlappyBirdAI.png \
+      --java-options "--enable-native-access=ALL-UNNAMED"
+
+Result and run:
+
+    ./dist/FlappyBirdAI/bin/FlappyBirdAI
+
+Running it from a terminal shows errors and warnings on the console.
+
+
+5. BUILD THE STANDALONE APP WITH ONE MAVEN COMMAND (option D)
+-------------------------------------------------------------
+One Maven command builds the jar and then the app, and
+replaces the manual steps of section 4 (no copy to dist-input, no manual
+delete of dist). It works on every OS (CMD, PowerShell, macOS, Linux):
+
+    mvn clean package jpackage:jpackage
+
+The icon is chosen automatically from the OS you are on, through the profiles
+of the pom:
+    Windows : profile "windows" -> packaging\windows\FlappyBirdAI.ico
+    macOS   : profile "macos"   -> packaging/macos/FlappyBirdAI.icns
+    Linux   : no profile, the default value of the property app.icon is used
+                                -> packaging/linux/FlappyBirdAI.png
+
+See which profile is active:
+
+    mvn help:active-profiles
+
+Use another icon without changing the pom:
+
+    mvn clean package jpackage:jpackage "-Dapp.icon=path/to/icon"
+
+Result and run:
+
+    Windows : target\dist\FlappyBirdAI\FlappyBirdAI.exe
+    macOS   : open target/dist/FlappyBirdAI.app
+    Linux   : ./target/dist/FlappyBirdAI/bin/FlappyBirdAI
+
+"package" must be in the same command: the fat jar is copied to
+target/jpackage-input during the package phase and jpackage reads it from
+there. "mvn clean" deletes that folder, so a command with "clean" must
+always include "package". (jpackage:jpackage alone works only if
+target/jpackage-input already exists from an earlier build.)
+Everything is created inside target, so "mvn clean" normally deletes it
+(on Windows, see the warning below).
+
+Check the jpackage command without running it (dry run):
+
+    mvn clean package jpackage:jpackage "-Djpackage.dryRun=true"
+
+It prints the parameters passed to jpackage (without building the app, so
+nothing is created in target/dist). They should match the ones of the manual
+commands of section 4 (name, input folder, main jar, main class, version, icon
+and the --enable-native-access option).
+
+Differences from the manual commands:
+  - There is no console window (no --win-console). To read errors on Windows
+    use the TEST command of section 4.
+  - Output folders are target/jpackage-input and target/dist, not dist-input
+    and dist.
+
+WINDOWS: after every app build the next "mvn clean" fails with "Failed to
+delete ... target\dist\FlappyBirdAI\FlappyBirdAI.exe" (the exe is read-only).
+Delete target\dist first: section 10 (first entry).
+
+
+6. ALL SYSTEMS AUTOMATICALLY WITH GITHUB ACTIONS (option E)
+-----------------------------------------------------------
+GitHub Actions runs the build on GitHub's servers (Windows, Linux and
+macOS), so you can get the app of every system without owning them.
+
+The workflow is the file .github/workflows/build.yml. It starts:
+  - at every push to the main branch;
+  - at every pull request;
+  - manually: repository on GitHub -> Actions tab -> "Build" ->
+    "Run workflow".
+A new run on the same pull request cancels the previous one still running.
+
+It runs two jobs:
+  1. "App": five machines. Each one builds the jar and the app with
+         mvn clean package jpackage:jpackage
+     and saves one archive (the artifact has the name of the file):
+         FlappyBirdAI-windows-x64.zip
+         FlappyBirdAI-linux-x64.tar.gz
+         FlappyBirdAI-linux-arm64.tar.gz
+         FlappyBirdAI-macos-arm64.tar.gz
+         FlappyBirdAI-macos-intel.tar.gz
+     Runners used: windows-latest, ubuntu-latest, ubuntu-24.04-arm,
+     macos-latest (Apple Silicon), macos-15-intel.
+     There is no app for Windows ARM (see the notes in section 3).
+     Inside each archive: the folder FlappyBirdAI (Windows, Linux) or
+     FlappyBirdAI.app (macOS).
+  2. "Jar": five runs, one per variant of section 3. Each one saves
+     a fat jar for one platform:
+         FlappyBirdAI-1.0.0-windows-x64.jar
+         FlappyBirdAI-1.0.0-linux-x64.jar
+         FlappyBirdAI-1.0.0-linux-arm64.jar
+         FlappyBirdAI-1.0.0-macos-intel.jar
+         FlappyBirdAI-1.0.0-macos-arm64.jar
+
+So a run has 10 jobs, all of them must be green.
+
+How to get the files:
+  1. Open the repository on GitHub -> Actions tab -> click the latest "Build" run.
+  2. Scroll to the "Artifacts" section at the bottom and click a name: the
+     file is downloaded as it is (no outer zip).
+  3. Open it:
+         Windows : FlappyBirdAI-windows-x64.zip       -> extract it
+         Linux   : FlappyBirdAI-linux-x64.tar.gz      -> tar -xzf FlappyBirdAI-linux-x64.tar.gz
+         macOS   : FlappyBirdAI-macos-arm64.tar.gz    -> tar -xzf FlappyBirdAI-macos-arm64.tar.gz
+     (the other apps have the names listed above)
+  4. Windows: the first time Windows may show "Windows protected your PC"
+     (SmartScreen), because the app is not code-signed: click "More info" and
+     then "Run anyway".
+
+If a run fails (red cross): open the run, click the red step and read the log.
+
+
+7. ABOUT THE ICON
+-----------------
+The --icon option sets the icon of the executable / app. The format depends
+on the operating system:
+
+    Windows : .ico   (multi-size)
+    macOS   : .icns  (multi-size)
+    Linux   : .png   (square)
+
+If you do not want a custom icon, remove the --icon option and its path from
+the jpackage command (or the <icon> line of the pom): the app then uses the
+default Java icon.
+
+On Windows, if the .exe icon does not change after rebuilding, it is the
+Windows icon cache: copy the exe to another folder or restart Windows
+Explorer.
+
+
+8. DISTRIBUTE THE APP
+---------------------
+Windows : zip the whole folder dist\FlappyBirdAI and share the zip.
+          The user extracts it and runs FlappyBirdAI.exe.
+          Windows SmartScreen may warn because the app is not code-signed.
+macOS   : compress dist/FlappyBirdAI.app into a zip.
+Linux   : compress the folder dist/FlappyBirdAI into a tar.gz (preserves
+          executable permissions). If extracted without execute permissions,
+          run: chmod +x dist/FlappyBirdAI/bin/FlappyBirdAI
+
+(With section 5 the folder is target/dist instead of dist; with GitHub
+Actions the archives are already made.)
+
+Always keep the whole folder (or .app) together: the exe/launcher needs the
+"app" and "runtime" folders next to it.
+
+
+9. OPTIONAL: REAL INSTALLERS
+----------------------------
+Replace "--type app-image" with one of these in the manual command of
+section 4 (build on the matching OS):
+
+    Windows : --type exe  or  --type msi     (requires the WiX Toolset, v3 or
+                                              v4/v5, installed and in the PATH)
+              optional: --win-menu --win-shortcut --win-dir-chooser
+    macOS   : --type dmg  or  --type pkg
+    Linux   : --type deb  or  --type rpm     (requires dpkg / rpm tools)
+
+The app-image from section 4 is the simplest option and needs no extra tools.
+The Maven command of section 5 and the workflow build app-images only.
+
+
+10. TROUBLESHOOTING
+-------------------
+- WINDOWS: "mvn clean" fails after an app build with "Failed to delete ...
+  target\dist\FlappyBirdAI\FlappyBirdAI.exe"
+
+  What happens: the exe created by jpackage on Windows has the read-only
+  attribute ("attrib target\dist\FlappyBirdAI\FlappyBirdAI.exe" shows an "R"
+  before the path), and Maven cannot delete a read-only file. It happens after
+  EVERY app build made with Maven (section 5), even if you never started the app,
+  and also after a jpackage run that stopped with an error.
+  Messages you may see:
+      Maven:       Failed to delete ...\target\dist\FlappyBirdAI\FlappyBirdAI.exe
+      PowerShell:  Remove-Item: You do not have sufficient access rights to
+                   perform this operation or the item is hidden, a system
+                   item, or read-only.
+                   (this one appears if you delete the exe with a plain
+                   "del" or "Remove-Item" without -Force)
+
+  Fix: delete the folder target\dist, then run Maven again.
+
+  Windows PowerShell:
+      Remove-Item -Recurse -Force target\dist
+      mvn clean package
+
+  Windows CMD:
+      rmdir /s /q target\dist
+      mvn clean package
+
+  If it still fails: make sure the app is not running (Task Manager) and
+  that no window, Explorer or IDE has the target\dist folder open.
+  Tip: delete target\dist before every new build, or copy the app folder out
+  of target before you test it.
+
+  macOS / Linux:
+      This problem is specific to Windows and is not expected here. If a
+      delete ever fails with "Permission denied":
+          chmod -R u+w target/dist
+          rm -rf target/dist
+          mvn clean package
+
+  GitHub Actions:
+      It does not happen: every run starts on a clean machine without a
+      target folder.
+
+- jpackage: "Error: Application destination directory ...\dist\FlappyBirdAI
+  already exists"
+    -> delete the dist folder and run the command again:
+           CMD:         rmdir /s /q dist
+           PowerShell:  Remove-Item -Recurse -Force dist
+- "mvn" or "jpackage" is not recognized
+    -> the tool is not in your PATH; open a new terminal after installing it.
+- jpackage cannot find the icon
+    -> check that you run the command from the project root and that the
+       file exists in the packaging folder (see the list at the top).
+- The app does not start
+    -> Windows: rebuild with --win-console and read the error in the console.
+    -> macOS / Linux: start the executable from the terminal (see 4.C / 4.D).
+    -> If a module is missing, add to the jpackage command:
+           --add-modules java.desktop,jdk.unsupported
+- macOS: Gatekeeper blocks the app or reports it as damaged
+    -> remove the quarantine attribute:
+           xattr -cr dist/FlappyBirdAI.app
+- Linux: permission denied when running the executable
+    -> restore execute permissions:
+           chmod +x dist/FlappyBirdAI/bin/FlappyBirdAI
+- Warnings about System::load / native access
+    -> make sure --java-options "--enable-native-access=ALL-UNNAMED" is in the
+       jpackage command (the jar manifest is NOT read by the app launcher).
+       With "mvn javafx:run" the option is in the <options> of the
+       javafx-maven-plugin in the pom.
+- Linux: JavaFX window does not open
+    -> JavaFX normally needs the GTK 3 libraries installed on the system.
+- A jar or app built on one OS does not run on another
+    -> expected: use the right variant (section 3) or build on the target OS
+       (see the notes at the top). Example: a Linux jar started on Windows
+       stops with
+           Graphics Device initialization failed for :  d3d, sw
+           Error initializing QuantumRenderer: no suitable pipeline found
+           Exception in thread "main" java.lang.RuntimeException: No toolkit found
+       To check which JavaFX variant a jar contains, run "mvn dependency:tree"
+       with the same -Djavafx.platform and look at the end of the javafx lines.
+- PowerShell: "Unknown lifecycle phase .xxx" or similar with -D
+    -> PowerShell splits an unquoted -Djavafx.platform=win at the dot. Put the
+       whole -D argument in double quotes (see the top of this file).
+- Maven: the build stops in the "enforcer" step
+    -> Maven or Java is older than the pom requires, update it.
+       Example: "Detected JDK ... is version 21.0.x which is not in the
+       allowed range [25,)". Install JDK 25 or newer.
+- Maven: jpackage plugin cannot be found / downloaded
+    -> Maven needs internet access the first time; check the version in the pom
+       (property jpackage-maven-plugin.version).
+- Maven: "File or directory ...\target\jpackage-input does not exist"
+    -> the jar was not built (or "mvn clean" removed it): run
+       "mvn clean package jpackage:jpackage" (package in the same command).
+- jpackage (manual): "The configured main jar does not exist
+  FlappyBirdAI-1.0.0.jar in the input directory"
+    -> dist-input is empty or the jar is missing: build the jar first
+       (section 1) and copy it again into dist-input.
+- Maven: jpackage plugin reports an unknown or missing parameter
+    -> run the dry run (section 5) and compare the printed command with the
+       manual one.
+- The icon of the app is not the expected one
+    -> run "mvn help:active-profiles": the profile of your OS ("windows" or
+       "macos") must be listed (on Linux no profile is listed: it uses the
+       default). A wrong profile name is not an error for Maven, the profile
+       is just not activated.
+- GitHub Actions: the workflow does not appear in the Actions tab
+    -> the file must be .github/workflows/build.yml and must be pushed to
+       GitHub.
+- GitHub Actions: a run fails
+    -> open the run, click the red step and read the log.
+- GitHub Actions: the ARM Linux job does not start
+    -> the ubuntu-24.04-arm runner is free for public repositories only; for a
+       private repository it is billed.
+
+
+11. QUICK REFERENCE (copy and paste)
+------------------------------------
+PARAMETERS YOU CAN PASS WITH -D (always in double quotes, see the top of this file)
+A -D argument sets a property from the command line and wins over the value
+written in the pom.xml.
+
+    "-Djavafx.platform=<variant>"   JavaFX variant put in the jar (section 3)
+    "-Djar.suffix=-<text>"          text added to the jar name (section 3)
+    "-Dapp.icon=<path>"             icon of the app (section 5)
+    "-Djpackage.dryRun=true"        print the jpackage command, do not run it (section 5)
+
+Jar for your OS (all systems):
+
+    mvn clean package
+
+Jar for another platform (all systems; variants: win, linux, linux-aarch64,
+mac, mac-aarch64; suffixes: -windows-x64, -linux-x64, -linux-arm64,
+-macos-intel, -macos-arm64):
+
+    mvn clean package "-Djavafx.platform=linux-aarch64" "-Djar.suffix=-linux-arm64"
+
+App with one Maven command (all systems; the icon is chosen by the OS):
+
+    mvn clean package jpackage:jpackage
+
+Same, only to print the jpackage command:
+
+    mvn clean package jpackage:jpackage "-Djpackage.dryRun=true"
+
+Windows: if "mvn clean" cannot delete the exe in target\dist:
+
+    PowerShell:  Remove-Item -Recurse -Force target\dist
+    CMD:         rmdir /s /q target\dist
+
+App with manual jpackage, final build:
+
+Windows CMD:
+
+    mvn clean package
+    rmdir /s /q dist-input 2>nul
+    rmdir /s /q dist 2>nul
+    mkdir dist-input
+    copy target\FlappyBirdAI-1.0.0.jar dist-input\
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --java-options "--enable-native-access=ALL-UNNAMED"
+
+Windows PowerShell:
+
+    mvn clean package
+    Remove-Item dist-input -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory dist-input -Force
+    Copy-Item target\FlappyBirdAI-1.0.0.jar dist-input\
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging\windows\FlappyBirdAI.ico --java-options "--enable-native-access=ALL-UNNAMED"
+
+macOS:
+
+    mvn clean package
+    rm -rf dist-input dist
+    mkdir dist-input
+    cp target/FlappyBirdAI-1.0.0.jar dist-input/
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging/macos/FlappyBirdAI.icns --java-options "--enable-native-access=ALL-UNNAMED"
+
+Linux:
+
+    mvn clean package
+    rm -rf dist-input dist
+    mkdir dist-input
+    cp target/FlappyBirdAI-1.0.0.jar dist-input/
+    jpackage --type app-image --name FlappyBirdAI --input dist-input --main-jar FlappyBirdAI-1.0.0.jar --main-class flappyBirdAI.Launcher --app-version 1.0.0 --dest dist --icon packaging/linux/FlappyBirdAI.png --java-options "--enable-native-access=ALL-UNNAMED"

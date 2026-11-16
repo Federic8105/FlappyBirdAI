@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   FlappyBirdAI - Maven build file.
-
   Build commands (jar, standalone app, GitHub Actions): see BUILD_INSTRUCTIONS.txt
   Check for newer versions:  mvn versions:display-property-updates
 -->
@@ -24,21 +23,22 @@
   <properties>
     <!-- Build -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- Java release used to compile, and the minimum Java the build runs on -->
-    <java.release>25</java.release>
-    <maven.compiler.release>${java.release}</maven.compiler.release>
+    <!-- Java release used to compile, and the minimum Java the build runs on.
+         Do not pass -Djava.version on the command line: it is also a built-in Java property. -->
+    <java.version>25</java.version>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
 
     <!-- Application: entry point of the jar and of the standalone app -->
     <app.mainClass>flappyBirdAI.Launcher</app.mainClass>
-    
+
     <!-- Icon of the standalone app: the default is the Linux one, the profiles at the end
          of this file replace it on Windows and macOS. Can be overridden from the command line:
          -Dapp.icon=path/to/icon -->
     <app.icon>packaging/linux/FlappyBirdAI.png</app.icon>
-    
+
     <!-- Text added to the jar name, empty by default. Set it from the command line
          when you build for another platform, together with -Djavafx.platform
-         (example: -Djavafx.platform=linux-aarch64 -Djar.suffix=-linux-aarch64) -->
+         (example: -Djavafx.platform=linux-aarch64 -Djar.suffix=-linux-arm64) -->
     <jar.suffix></jar.suffix>
 
     <!-- Dependency versions -->
@@ -100,7 +100,7 @@
                   <version>3.6.3</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
-                  <version>[${java.release},)</version>
+                  <version>[${java.version},)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -108,7 +108,7 @@
         </executions>
       </plugin>
 
-      <!-- [compile] -->
+      <!-- [compile] Listed only to pin the plugin version; the Java release comes from maven.compiler.release -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -130,8 +130,8 @@
             <configuration>
               <!-- Do not write dependency-reduced-pom.xml in the project root -->
               <createDependencyReducedPom>false</createDependencyReducedPom>
-              
-              <!-- Drop module-info and signature files of the libraries:they are useless on the classpath,
+
+              <!-- Drop module-info and signature files of the libraries: they are useless on the classpath,
                    and a signature no longer matches once the files are merged (the jar could fail to start). -->
               <filters>
                 <filter>
@@ -159,7 +159,7 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <!-- [package] Copies ONLY the fat jar to target/jpackage-input (jpackage copies the whole
            input folder, so target itself cannot be used as input) -->
       <plugin>
@@ -187,7 +187,7 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <!-- [not in the normal build] Standalone app with Java included, made by the jpackage tool.
            Run it explicitly; the icon of the OS you are on is chosen by the profiles at the
            end of this file:
@@ -227,12 +227,12 @@
           <mainClass>${app.mainClass}</mainClass>
           <options>
             <option>--enable-native-access=javafx.graphics</option>
-   		  </options>
+          </options>
         </configuration>
       </plugin>
     </plugins>
   </build>
-  
+
   <!-- ===== Profiles: chosen automatically from the OS you build on ===== -->
   <profiles>
     <!-- Windows: .ico icon -->
