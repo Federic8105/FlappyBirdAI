@@ -47,28 +47,18 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # Builds the fat jar, copies it to target/jpackage-input, then runs jpackage.
-      # Result: target/dist
-      - name: Build jar and app image
+      # Builds the fat jar and the app, then the archive with the version in its name:
+      # target/FlappyBirdAI-<version>-<name>.zip (Windows) or .tar.gz (Linux, macOS).
+      # The archive is made here because upload-artifact does not keep file permissions.
+      - name: Build jar, app image and archive
         shell: bash
-        run: mvn --batch-mode clean package jpackage:jpackage
-
-      # upload-artifact does not keep file permissions, so the app is archived first
-      - name: Archive app (Windows, zip)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: 7z a "FlappyBirdAI-${{ matrix.name }}.zip" ./target/dist/*
-
-      - name: Archive app (Linux/macOS, tar.gz)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: tar -C target/dist -czf "FlappyBirdAI-${{ matrix.name }}.tar.gz" .
+        run: mvn --batch-mode clean package jpackage:jpackage antrun:run@app-archive "-Dapp.suffix=-${{ matrix.name }}"
 
       # archive: false uploads the file as it is (no outer zip); it accepts ONE file only
       - name: Upload app
         uses: actions/upload-artifact@v7
         with:
-          path: FlappyBirdAI-${{ matrix.name }}.*
+          path: target/FlappyBirdAI-*-${{ matrix.name }}.*
           archive: false
           if-no-files-found: error
 

@@ -7,7 +7,7 @@ package flappyBirdAI;
 import flappyBirdAI.view.GameMenu;
 import javafx.application.Application;
 
-//TODO: javadocs, uml, javaFX
+//TODO: javadocs, uml, javaFX, releases di github
 
 public final class Launcher {
 	public static void main(String[] args) {

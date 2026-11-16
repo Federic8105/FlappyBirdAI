@@ -31,6 +31,7 @@ BUILD OPTIONS AT A GLANCE
   C. Standalone app, manual jpackage commands                       (section 4)
   D. Standalone app, one Maven command
          mvn clean package jpackage:jpackage                        (section 5)
+         + archive with the version: add  antrun:run@app-archive    (section 5.B)
   E. All systems automatically with GitHub Actions                  (section 6)
   F. Real installers (.exe/.msi, .dmg/.pkg, .deb/.rpm)              (section 9)
 
@@ -52,11 +53,17 @@ FILES OF THE PROJECT REQUIRED FOR THE BUILD
         (jpackage copies everything it finds in its input folder).
       - jpackage-maven-plugin: runs jpackage from Maven. Not part of the normal
         build: it runs only when you ask for it (section 5).
+      - maven-antrun-plugin: makes the archive of the app (zip on Windows,
+        tar.gz elsewhere) with the version in its name. It runs only when you
+        ask for it (section 5.B).
+      - javafx-maven-plugin: "mvn javafx:run" (section 2).
       - property app.icon + profiles "windows" and "macos": the profile of the
         OS you are on is activated automatically and chooses the icon of the
-        app (Linux uses the default value of the property).
+        app (Linux uses the default value of the property). The "windows"
+        profile also makes the archive of section 5.B a zip.
       - property jar.suffix: optional text added to the jar name (section 3).
-      - javafx-maven-plugin: "mvn javafx:run" (section 2).
+      - property app.suffix: optional text added to the app archive name
+        (section 5.B).
   .github/workflows/build.yml
       GitHub Actions workflow (section 6).
   packaging/
@@ -310,6 +317,7 @@ delete of dist). It works on every OS (CMD, PowerShell, macOS, Linux):
 The icon is chosen automatically from the OS you are on, through the profiles
 of the pom:
     Windows : profile "windows" -> packaging\windows\FlappyBirdAI.ico
+                                   (and a zip archive in section 5.B)
     macOS   : profile "macos"   -> packaging/macos/FlappyBirdAI.icns
     Linux   : no profile, the default value of the property app.icon is used
                                 -> packaging/linux/FlappyBirdAI.png
@@ -356,6 +364,34 @@ delete ... target\dist\FlappyBirdAI\FlappyBirdAI.exe" (the exe is read-only).
 Delete target\dist first: section 10 (first entry).
 
 
+5.B  ARCHIVE OF THE APP, WITH THE VERSION IN ITS NAME
+-----------------------------------------------------
+After the app is built, Maven can also make the archive to distribute, named
+with the version from the pom. It is one more goal at the end of the command:
+
+    mvn clean package jpackage:jpackage antrun:run@app-archive
+
+Result:
+    Windows       : target\FlappyBirdAI-1.0.0.zip
+    macOS / Linux : target/FlappyBirdAI-1.0.0.tar.gz
+
+Inside the archive there is the app (the folder FlappyBirdAI, or
+FlappyBirdAI.app on macOS) without the version in its name.
+
+To add a platform name to the file (GitHub Actions does it):
+
+    mvn clean package jpackage:jpackage antrun:run@app-archive "-Dapp.suffix=-linux-x64"
+    -> target/FlappyBirdAI-1.0.0-linux-x64.tar.gz
+
+Notes:
+  - antrun:run@app-archive must come AFTER jpackage:jpackage (the goals run in
+    the order written): it archives the folder target/dist.
+  - Do not use it with the dry run: nothing is created in target/dist.
+  - macOS and Linux use the tar of the system (already installed). Windows
+    makes a zip with Ant: nothing to install.
+  - It is not part of the normal build: "mvn clean package" does not create it.
+
+
 6. ALL SYSTEMS AUTOMATICALLY WITH GITHUB ACTIONS (option E)
 -----------------------------------------------------------
 GitHub Actions runs the build on GitHub's servers (Windows, Linux and
@@ -369,14 +405,14 @@ The workflow is the file .github/workflows/build.yml. It starts:
 A new run on the same pull request cancels the previous one still running.
 
 It runs two jobs:
-  1. "App": five machines. Each one builds the jar and the app with
-         mvn clean package jpackage:jpackage
+  1. "App": five machines. Each one builds the jar, the app and its archive with
+         mvn clean package jpackage:jpackage antrun:run@app-archive "-Dapp.suffix=-<name>"
      and saves one archive (the artifact has the name of the file):
-         FlappyBirdAI-windows-x64.zip
-         FlappyBirdAI-linux-x64.tar.gz
-         FlappyBirdAI-linux-arm64.tar.gz
-         FlappyBirdAI-macos-arm64.tar.gz
-         FlappyBirdAI-macos-intel.tar.gz
+         FlappyBirdAI-1.0.0-windows-x64.zip
+         FlappyBirdAI-1.0.0-linux-x64.tar.gz
+         FlappyBirdAI-1.0.0-linux-arm64.tar.gz
+         FlappyBirdAI-1.0.0-macos-arm64.tar.gz
+         FlappyBirdAI-1.0.0-macos-intel.tar.gz
      Runners used: windows-latest, ubuntu-latest, ubuntu-24.04-arm,
      macos-latest (Apple Silicon), macos-15-intel.
      There is no app for Windows ARM (see the notes in section 3).
@@ -397,11 +433,11 @@ How to get the files:
   2. Scroll to the "Artifacts" section at the bottom and click a name: the
      file is downloaded as it is (no outer zip).
   3. Open it:
-         Windows : FlappyBirdAI-windows-x64.zip       -> extract it, run FlappyBirdAI\FlappyBirdAI.exe
-         Linux   : FlappyBirdAI-linux-x64.tar.gz      -> tar -xzf FlappyBirdAI-linux-x64.tar.gz
-                                                         then ./FlappyBirdAI/bin/FlappyBirdAI
-         macOS   : FlappyBirdAI-macos-arm64.tar.gz    -> tar -xzf FlappyBirdAI-macos-arm64.tar.gz
-                                                         then open FlappyBirdAI.app
+         Windows : FlappyBirdAI-1.0.0-windows-x64.zip       -> extract it, run FlappyBirdAI\FlappyBirdAI.exe
+         Linux   : FlappyBirdAI-1.0.0-linux-x64.tar.gz      -> tar -xzf FlappyBirdAI-1.0.0-linux-x64.tar.gz
+                                                               then ./FlappyBirdAI/bin/FlappyBirdAI
+         macOS   : FlappyBirdAI-1.0.0-macos-arm64.tar.gz    -> tar -xzf FlappyBirdAI-1.0.0-macos-arm64.tar.gz
+                                                               then open FlappyBirdAI.app
          Jar     : no extraction needed -> java -jar FlappyBirdAI-1.0.0-windows-x64.jar
      (the other files have the names listed above)
   4. Windows: the first time Windows may show "Windows protected your PC"
@@ -443,6 +479,9 @@ Linux   : compress the folder dist/FlappyBirdAI into a tar.gz (preserves
 
 (With section 5 the folder is target/dist instead of dist; with GitHub
 Actions the archives are already made.)
+
+Instead of making the archive by hand you can use the one made by Maven, already
+named with the version: section 5.B.
 
 Always keep the whole folder (or .app) together: the exe/launcher needs the
 "app" and "runtime" folders next to it.
@@ -507,43 +546,8 @@ The Maven command of section 5 and the workflow build app-images only.
       It does not happen: every run starts on a clean machine without a
       target folder.
 
-- jpackage: "Error: Application destination directory ...\dist\FlappyBirdAI
-  already exists"
-    -> delete the dist folder and run the command again:
-           CMD:         rmdir /s /q dist
-           PowerShell:  Remove-Item -Recurse -Force dist
 - "mvn" or "jpackage" is not recognized
     -> the tool is not in your PATH; open a new terminal after installing it.
-- jpackage cannot find the icon
-    -> check that you run the command from the project root and that the
-       file exists in the packaging folder (see the list at the top).
-- The app does not start
-    -> Windows: rebuild with --win-console and read the error in the console.
-    -> macOS / Linux: start the executable from the terminal (see 4.C / 4.D).
-    -> If a module is missing, add to the jpackage command:
-           --add-modules java.desktop,jdk.unsupported
-- macOS: Gatekeeper blocks the app or reports it as damaged
-    -> remove the quarantine attribute:
-           xattr -cr dist/FlappyBirdAI.app
-- Linux: permission denied when running the executable
-    -> restore execute permissions:
-           chmod +x dist/FlappyBirdAI/bin/FlappyBirdAI
-- Warnings about System::load / native access
-    -> make sure --java-options "--enable-native-access=ALL-UNNAMED" is in the
-       jpackage command (the jar manifest is NOT read by the app launcher).
-       With "mvn javafx:run" the option is in the <options> of the
-       javafx-maven-plugin in the pom.
-- Linux: JavaFX window does not open
-    -> JavaFX normally needs the GTK 3 libraries installed on the system.
-- A jar or app built on one OS does not run on another
-    -> expected: use the right variant (section 3) or build on the target OS
-       (see the notes at the top). Example: a Linux jar started on Windows
-       stops with
-           Graphics Device initialization failed for :  d3d, sw
-           Error initializing QuantumRenderer: no suitable pipeline found
-           Exception in thread "main" java.lang.RuntimeException: No toolkit found
-       To check which JavaFX variant a jar contains, run "mvn dependency:tree"
-       with the same -Djavafx.platform and look at the end of the javafx lines.
 - PowerShell: "Unknown lifecycle phase .xxx" or similar with -D
     -> PowerShell splits an unquoted -Djavafx.platform=win at the dot. Put the
        whole -D argument in double quotes (see the top of this file).
@@ -557,18 +561,60 @@ The Maven command of section 5 and the workflow build app-images only.
 - Maven: "File or directory ...\target\jpackage-input does not exist"
     -> the jar was not built (or "mvn clean" removed it): run
        "mvn clean package jpackage:jpackage" (package in the same command).
-- jpackage (manual): "The configured main jar does not exist
-  FlappyBirdAI-1.0.0.jar in the input directory"
-    -> dist-input is empty or the jar is missing: build the jar first
-       (section 1) and copy it again into dist-input.
 - Maven: jpackage plugin reports an unknown or missing parameter
     -> run the dry run (section 5) and compare the printed command with the
        manual one.
+- Maven: antrun:run@app-archive fails
+  (Windows: "An Ant BuildException has occurred: ...\target\dist does not exist.")
+    -> it archives target/dist, which is created by jpackage: run it in the same
+       command AFTER jpackage:jpackage (section 5.B), and not together with the
+       dry run. On macOS / Linux the "tar" command must be available.
 - The icon of the app is not the expected one
     -> run "mvn help:active-profiles": the profile of your OS ("windows" or
        "macos") must be listed (on Linux no profile is listed: it uses the
        default). A wrong profile name is not an error for Maven, the profile
        is just not activated.
+- jpackage (manual): "Error: Application destination directory ...\dist\FlappyBirdAI
+  already exists"
+    -> delete the dist folder and run the command again:
+           CMD:         rmdir /s /q dist
+           PowerShell:  Remove-Item -Recurse -Force dist
+       With the Maven command the folder is target\dist: "mvn clean" deletes it
+       (on Windows see the first entry).
+- jpackage (manual): "The configured main jar does not exist
+  FlappyBirdAI-1.0.0.jar in the input directory"
+    -> dist-input is empty or the jar is missing: build the jar first
+       (section 1) and copy it again into dist-input.
+- jpackage cannot find the icon
+    -> check that you run the command from the project root and that the
+       file exists in the packaging folder (see the list at the top).
+- The app does not start
+    -> Windows: rebuild with --win-console and read the error in the console.
+    -> macOS / Linux: start the executable from the terminal (see 4.C / 4.D).
+    -> If a module is missing, add to the jpackage command:
+           --add-modules java.desktop,jdk.unsupported
+- Warnings about System::load / native access
+    -> make sure --java-options "--enable-native-access=ALL-UNNAMED" is in the
+       jpackage command (the jar manifest is NOT read by the app launcher).
+       With "mvn javafx:run" the option is in the <options> of the
+       javafx-maven-plugin in the pom.
+- macOS: Gatekeeper blocks the app or reports it as damaged
+    -> remove the quarantine attribute:
+           xattr -cr dist/FlappyBirdAI.app
+- Linux: permission denied when running the executable
+    -> restore execute permissions:
+           chmod +x dist/FlappyBirdAI/bin/FlappyBirdAI
+- Linux: JavaFX window does not open
+    -> JavaFX normally needs the GTK 3 libraries installed on the system.
+- A jar or app built on one OS does not run on another
+    -> expected: use the right variant (section 3) or build on the target OS
+       (see the notes at the top). Example: a Linux jar started on Windows
+       stops with
+           Graphics Device initialization failed for :  d3d, sw
+           Error initializing QuantumRenderer: no suitable pipeline found
+           Exception in thread "main" java.lang.RuntimeException: No toolkit found
+       To check which JavaFX variant a jar contains, run "mvn dependency:tree"
+       with the same -Djavafx.platform and look at the end of the javafx lines.
 - GitHub Actions: the workflow does not appear in the Actions tab
     -> the file must be .github/workflows/build.yml and must be pushed to
        GitHub.
@@ -592,6 +638,7 @@ written in the pom.xml.
     "-Djavafx.platform=<variant>"   JavaFX variant put in the jar (section 3)
     "-Djar.suffix=-<text>"          text added to the jar name (section 3)
     "-Dapp.icon=<path>"             icon of the app (section 5)
+    "-Dapp.suffix=-<text>"          text added to the app archive name (section 5)
     "-Djpackage.dryRun=true"        print the jpackage command, do not run it (section 5)
 
 Jar for your OS (all systems):
@@ -611,6 +658,10 @@ App with one Maven command (all systems; the icon is chosen by the OS):
 Same, only to print the jpackage command:
 
     mvn clean package jpackage:jpackage "-Djpackage.dryRun=true"
+
+App and its archive with the version in the name (all systems):
+
+    mvn clean package jpackage:jpackage antrun:run@app-archive
 
 Windows: if "mvn clean" cannot delete the exe in target\dist:
 

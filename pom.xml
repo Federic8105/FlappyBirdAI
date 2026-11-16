@@ -42,6 +42,10 @@
          (example: -Djavafx.platform=linux-aarch64 -Djar.suffix=-linux-arm64) -->
     <jar.suffix></jar.suffix>
 
+    <!-- Text added to the name of the app archive, empty by default (same idea as jar.suffix).
+         Example: -Dapp.suffix=-windows-x64 -->
+    <app.suffix></app.suffix>
+
     <!-- Dependency versions -->
     <javafx.version>27.0.1</javafx.version>
     <gson.version>2.15.0</gson.version>
@@ -49,10 +53,11 @@
     <!-- Plugin versions -->
     <maven-enforcer-plugin.version>3.7.0</maven-enforcer-plugin.version>
     <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
-    <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
     <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-    <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+    <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
     <jpackage-maven-plugin.version>1.8.0</jpackage-maven-plugin.version>
+    <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
+    <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
   </properties>
 
   <!-- ===== Dependencies ===== -->
@@ -218,6 +223,37 @@
         </configuration>
       </plugin>
 
+      <!-- [not in the normal build] Archive of the app made by jpackage, with the version in its name:
+             mvn clean package jpackage:jpackage antrun:run@app-archive
+           Output: target/FlappyBirdAI-<version><app.suffix>.tar.gz (a zip on Windows, see the profile "windows").
+           The system tar keeps the execute permissions and the links of the app. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>${maven-antrun-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>app-archive</id>
+            <!-- "none": it never runs by itself, only when called with antrun:run@app-archive -->
+            <phase>none</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <exec executable="tar" failonerror="true">
+                  <arg value="-C"/>
+                  <arg value="${project.build.directory}/dist"/>
+                  <arg value="-czf"/>
+                  <arg value="${project.build.directory}/${project.name}-${project.version}${app.suffix}.tar.gz"/>
+                  <arg value="."/>
+                </exec>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- [not in the normal build] Run the game from Maven: mvn javafx:run
            In this mode JavaFX runs as a module, so the native access option names that module -->
       <plugin>
@@ -236,7 +272,7 @@
 
   <!-- ===== Profiles: chosen automatically from the OS you build on ===== -->
   <profiles>
-    <!-- Windows: .ico icon -->
+    <!-- Windows: .ico icon, and a zip instead of a tar.gz for the app archive -->
     <profile>
       <id>windows</id>
       <activation>
@@ -247,6 +283,26 @@
       <properties>
         <app.icon>packaging/windows/FlappyBirdAI.ico</app.icon>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>app-archive</id>
+                <configuration>
+                  <!-- Windows: a zip instead of the tar.gz -->
+                  <target combine.self="override">
+                    <zip destfile="${project.build.directory}/${project.name}-${project.version}${app.suffix}.zip"
+                         basedir="${project.build.directory}/dist"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
     <!-- macOS: .icns icon -->
