@@ -20,6 +20,15 @@
   <name>FlappyBirdAI</name>
   <description>Flappy Bird clone with neural-network-controlled birds that evolve through mutation-based training</description>
 
+  <!-- ===== License ===== -->
+  <!-- Same license as the LICENSE file in the project root -->
+  <licenses>
+    <license>
+      <name>GNU General Public License v3.0</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.html</url>
+    </license>
+  </licenses>
+
   <!-- ===== Properties ===== -->
   <properties>
     <!-- Build -->
