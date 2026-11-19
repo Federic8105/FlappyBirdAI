@@ -132,12 +132,14 @@ jobs:
 
       # Every file of the jobs above was uploaded as its own artifact (archive: false), named like
       # the file. merge-multiple puts them all in release-files instead of one folder each.
+      # skip-decompress keeps the Windows .zip as a file, without it the action unpacks it.
       - name: Download the app archives and the jars
         uses: actions/download-artifact@v8
         with:
           pattern: FlappyBirdAI-*
           path: release-files
           merge-multiple: true
+          skip-decompress: true
 
       # 5 apps + 5 jars
       - name: Check that all 10 files are there
