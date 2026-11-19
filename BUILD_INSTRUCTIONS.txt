@@ -1,7 +1,8 @@
-FLAPPYBIRDAI - HOW TO BUILD THE JAR AND THE STANDALONE APP
-==========================================================
+FLAPPYBIRDAI - HOW TO DOWNLOAD OR BUILD THE JAR AND THE STANDALONE APP
+======================================================================
 
-Current project version: 1.0.0  (from <version> in pom.xml)
+Version: the examples in this file use 1.0.0. Replace it with the <version> of
+pom.xml (the same version is in the name of the files of every release).
 
 These steps start from the project exactly as downloaded from GitHub
 (unmodified). Run every command from the project root, i.e. the folder that
@@ -22,6 +23,16 @@ IMPORTANT (Windows): after every app build, "mvn clean" fails with "Failed to
 delete ... FlappyBirdAI.exe" until you delete target\dist. The fix takes one
 command: section 10, first entry.
 
+
+JUST WANT TO PLAY? YOU DO NOT NEED TO BUILD ANYTHING
+----------------------------------------------------
+Download the app for your system from the "Releases" page of the repository
+on GitHub (on the right side of the repository page): section 6, "How to get
+the files". The app already contains Java.
+Everything else in this file is for those who want to build the jar or the
+app themselves.
+
+
 BUILD OPTIONS AT A GLANCE
 -------------------------
   A. Fat jar for the OS you are on
@@ -32,7 +43,8 @@ BUILD OPTIONS AT A GLANCE
   D. Standalone app, one Maven command
          mvn clean package jpackage:jpackage                        (section 5)
          + archive with the version: add  antrun:run@app-archive    (section 5.B)
-  E. All systems automatically with GitHub Actions                  (section 6)
+  E. All systems automatically with GitHub Actions; the files are also
+     published on the Releases page                                 (section 6)
   F. Real installers (.exe/.msi, .dmg/.pkg, .deb/.rpm)              (section 9)
 
 What can be built where:
@@ -65,7 +77,8 @@ FILES OF THE PROJECT REQUIRED FOR THE BUILD
       - property app.suffix: optional text added to the app archive name
         (section 5.B).
   .github/workflows/build.yml
-      GitHub Actions workflow (section 6).
+      GitHub Actions workflow: builds the jar and the app for every system
+      and publishes them as a release (section 6).
   packaging/
       Icons used by jpackage:
         Windows : packaging\windows\FlappyBirdAI.ico
@@ -400,11 +413,12 @@ macOS), so you can get the app of every system without owning them.
 The workflow is the file .github/workflows/build.yml. It starts:
   - at every push to the main branch;
   - at every pull request;
+  - at every tag that starts with "v" (a release);
   - manually: repository on GitHub -> Actions tab -> "Build" ->
     "Run workflow".
 A new run on the same pull request cancels the previous one still running.
 
-It runs two jobs:
+It runs three jobs:
   1. "App": five machines. Each one builds the jar, the app and its archive with
          mvn clean package jpackage:jpackage antrun:run@app-archive "-Dapp.suffix=-<name>"
      and saves one archive (the artifact has the name of the file):
@@ -425,14 +439,28 @@ It runs two jobs:
          FlappyBirdAI-1.0.0-linux-arm64.jar
          FlappyBirdAI-1.0.0-macos-intel.jar
          FlappyBirdAI-1.0.0-macos-arm64.jar
+  3. "Release": only for a tag that starts with "v", after all the jobs above
+     are green. It publishes the 10 files on the Releases page of the
+     repository.
 
-So a run has 10 jobs, all of them must be green.
+So a run has 10 jobs (11 for a tag), all of them must be green.
 
 How to get the files:
-  1. Open the repository on GitHub -> Actions tab -> click the latest "Build" run.
-  2. Scroll to the "Artifacts" section at the bottom and click a name: the
-     file is downloaded as it is (no outer zip).
-  3. Open it:
+
+  A. From the Releases page (recommended: stable versions)
+     1. Open the repository on GitHub and click "Releases" (right side of the
+        page).
+     2. Open the latest release and, under "Assets", click the file for your
+        system: the 5 apps and the 5 jars are there, with the names above.
+
+  B. From the Actions tab (latest build of the code, not a release)
+     1. Open the repository on GitHub -> Actions tab -> click the latest
+        "Build" run.
+     2. Scroll to the "Artifacts" section at the bottom and click a name: the
+        file is downloaded as it is (no outer zip). You must be signed in to
+        GitHub, and the files are kept for a limited time (90 days by default).
+
+  Then open the file (same for A and B):
          Windows : FlappyBirdAI-1.0.0-windows-x64.zip       -> extract it, run FlappyBirdAI\FlappyBirdAI.exe
          Linux   : FlappyBirdAI-1.0.0-linux-x64.tar.gz      -> tar -xzf FlappyBirdAI-1.0.0-linux-x64.tar.gz
                                                                then ./FlappyBirdAI/bin/FlappyBirdAI
@@ -469,22 +497,15 @@ Explorer.
 
 8. DISTRIBUTE THE APP
 ---------------------
-Windows : zip the whole folder dist\FlappyBirdAI and share the zip.
-          The user extracts it and runs FlappyBirdAI.exe.
-          Windows SmartScreen may warn because the app is not code-signed.
-macOS   : compress dist/FlappyBirdAI.app into a zip.
-Linux   : compress the folder dist/FlappyBirdAI into a tar.gz (preserves
-          executable permissions). If extracted without execute permissions,
-          run: chmod +x dist/FlappyBirdAI/bin/FlappyBirdAI
-
-(With section 5 the folder is target/dist instead of dist; with GitHub
-Actions the archives are already made.)
-
-Instead of making the archive by hand you can use the one made by Maven, already
-named with the version: section 5.B.
+Share the archive made by Maven (section 5.B) or by GitHub Actions (section 6):
+it already has the right format (zip on Windows; tar.gz on macOS and Linux,
+which keeps the executable permissions).
 
 Always keep the whole folder (or .app) together: the exe/launcher needs the
 "app" and "runtime" folders next to it.
+
+If a Linux archive was extracted without execute permissions:
+    chmod +x FlappyBirdAI/bin/FlappyBirdAI
 
 
 9. OPTIONAL: REAL INSTALLERS
@@ -615,18 +636,6 @@ The Maven command of section 5 and the workflow build app-images only.
            Exception in thread "main" java.lang.RuntimeException: No toolkit found
        To check which JavaFX variant a jar contains, run "mvn dependency:tree"
        with the same -Djavafx.platform and look at the end of the javafx lines.
-- GitHub Actions: the workflow does not appear in the Actions tab
-    -> the file must be .github/workflows/build.yml and must be pushed to
-       GitHub.
-- GitHub Actions: a run fails
-    -> open the run, click the red step and read the log.
-- GitHub Actions: the ARM Linux job does not start
-    -> the ubuntu-24.04-arm runner is free for public repositories only; for a
-       private repository it is billed.
-- GitHub Actions: "Upload app" or "Upload jar" fails
-    -> archive: false uploads ONE file only. If the path matches more than one
-       file (for example an extra jar in target), the step fails: make the
-       path match a single file.
 
 
 11. QUICK REFERENCE (copy and paste)

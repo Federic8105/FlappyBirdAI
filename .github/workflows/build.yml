@@ -1,11 +1,13 @@
 # Builds the jar and the standalone app of FlappyBirdAI.
 # Commands used here are described in BUILD_INSTRUCTIONS.txt.
+# Pushing a tag that starts with "v" (version tag) also publishes the files on the GitHub Releases page (job "release").
 
 name: Build
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -98,3 +100,96 @@ jobs:
           path: target/FlappyBirdAI-*.jar
           archive: false
           if-no-files-found: error
+
+  # Publishes the 10 files of the two jobs above on the GitHub Releases page.
+  # It runs only for a tag that starts with "v", and only if ALL the jobs above are green.
+  release:
+    name: Release
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    needs: [app, jar]
+    runs-on: ubuntu-latest
+    # The workflow default is read-only; creating a release needs write access
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The files are named with the version in pom.xml, not with the tag: if they differ,
+      # the release would contain files with the wrong version, so stop here.
+      # The tag may have a suffix after the version (v1.2.0-rc1): only 1.2.0 is compared.
+      - name: Check that the tag matches the version in pom.xml
+        shell: bash
+        run: |
+          pom_version=$(mvn --batch-mode --quiet -DforceStdout help:evaluate -Dexpression=project.version)
+          tag_version="${GITHUB_REF_NAME#v}"
+          tag_version="${tag_version%%-*}"
+          if [ "$pom_version" != "$tag_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $pom_version in pom.xml. Update the version in pom.xml, commit, and create the tag again."
+            exit 1
+          fi
+
+      # Every file of the jobs above was uploaded as its own artifact (archive: false), named like
+      # the file. merge-multiple puts them all in release-files instead of one folder each.
+      - name: Download the app archives and the jars
+        uses: actions/download-artifact@v8
+        with:
+          pattern: FlappyBirdAI-*
+          path: release-files
+          merge-multiple: true
+
+      # 5 apps + 5 jars
+      - name: Check that all 10 files are there
+        shell: bash
+        run: |
+          ls -lR release-files
+          count=$(find release-files -maxdepth 1 -type f | wc -l)
+          echo "$count files found"
+          [ "$count" -eq 10 ]
+
+      # The text in "body" is placed before the list of merged pull requests that
+      # generate_release_notes adds. A tag with a suffix (v1.2.0-rc1) is published as pre-release.
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: release-files/*
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          body: |
+            FlappyBirdAI is a Flappy Bird clone with neural-network-controlled birds that evolve through mutation-based training.
+
+            ## Which file should I download?
+
+            Every release has two kinds of files, each one built for a specific system and CPU.
+
+            **App (recommended)**: includes Java, nothing else to install.
+
+            | Your system | File |
+            |---|---|
+            | Windows (64-bit) | `FlappyBirdAI-<version>-windows-x64.zip` |
+            | macOS, Apple Silicon (M1 or newer) | `FlappyBirdAI-<version>-macos-arm64.tar.gz` |
+            | macOS, Intel | `FlappyBirdAI-<version>-macos-intel.tar.gz` |
+            | Linux, x64 | `FlappyBirdAI-<version>-linux-x64.tar.gz` |
+            | Linux, ARM64 | `FlappyBirdAI-<version>-linux-arm64.tar.gz` |
+
+            **Jar**: the same names with the `.jar` extension. It needs Java 25 installed and runs only on the system and CPU written in its name.
+
+            There is no native build for Windows ARM: use the Windows x64 file, which runs through the emulation of Windows.
+
+            ## How to run it
+
+            - **Windows**: extract the zip, open the `FlappyBirdAI` folder and run `FlappyBirdAI.exe`.
+            - **macOS**: extract the archive and open `FlappyBirdAI.app`.
+            - **Linux**: extract the archive with `tar -xzf <file>`, then run `./FlappyBirdAI/bin/FlappyBirdAI`. The GTK 3 libraries must be installed.
+            - **Jar**: run `java -jar <file>`. The message "Unsupported JavaFX configuration" in the console is normal.
+
+            ## Security warnings
+
+            The apps are not code-signed, so your system may show a warning the first time.
+
+            - **Windows**: if SmartScreen shows "Windows protected your PC", click "More info", then "Run anyway".
+            - **macOS**: right-click the app, choose "Open" and confirm. If macOS still refuses to run it, open a terminal in the folder of the app and run `xattr -cr FlappyBirdAI.app`.
+
+            ## What's changed
